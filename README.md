@@ -1,8 +1,4 @@
-# JustInNeed — Frontend
-
-웹서핑 정리 도우미. Next.js (App Router) + TypeScript + CSS Modules.
-
-이번 단계에서는 **세션 목록/상세**와 **로그인/회원가입** 두 묶음을 구현했습니다. (API 연결 전, mock 데이터 기반)
+# JustInNeed
 
 ## 실행
 
@@ -14,11 +10,11 @@ npm run build    # 프로덕션 빌드
 
 ## 라우팅
 
-| 경로 | 화면 |
-| --- | --- |
-| `/login` | 로그인/회원가입 (소셜 → OAuth → 닉네임 → 완료) |
-| `/sessions` | 세션 목록 (리스트 / 해시태그 그룹 / 즐겨찾기) |
-| `/sessions/[id]` | 세션 상세 (줄글·마인드맵 보기, 편집, 출처) |
+| 경로             | 화면                                           |
+| ---------------- | ---------------------------------------------- |
+| `/login`         | 로그인/회원가입 (소셜 → OAuth → 닉네임 → 완료) |
+| `/sessions`      | 세션 목록 (리스트 / 해시태그 그룹 / 즐겨찾기)  |
+| `/sessions/[id]` | 세션 상세 (줄글·마인드맵 보기, 편집, 출처)     |
 
 `/sessions` 이하는 `(personal)` 레이아웃이 감싸며, 로그인되지 않은 경우 `/login`으로 보냅니다.
 
@@ -46,9 +42,3 @@ src/
     data.ts                # mock 데이터 (API 연결 시 교체)
     storage.ts             # localStorage 헬퍼 (auth / groups)
 ```
-
-## 다음 단계 (API 연결)
-
-- `lib/data.ts` 의 mock 을 API 클라이언트로 교체
-- `lib/storage.ts` 의 auth/groups 영속화를 서버 기준으로 이전
-- 미구현 페이지(홈, 분석/추천, 설정, 커뮤니티)는 사이드바에 비활성 항목으로 노출 중
