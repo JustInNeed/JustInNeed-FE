@@ -1,0 +1,86 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+}
+
+/* primary — solid green */
+.primary {
+  padding: 8px 14px;
+  font-size: 12px;
+  background: var(--green-500);
+  color: #fff;
+  border-radius: 9px;
+}
+.primary:hover:not(:disabled) {
+  background: var(--green-600);
+}
+
+/* secondary — outlined surface */
+.secondary {
+  padding: 8px 14px;
+  font-size: 12px;
+  background: var(--surface);
+  color: var(--ink-900);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.secondary:hover:not(:disabled) {
+  border-color: var(--green-300);
+}
+
+/* active toggle chip (for secondary toggles) */
+.secondary.active {
+  background: var(--green-50);
+  border-color: var(--green-300);
+  color: var(--green-800);
+}
+
+/* ghost — 30x30 transparent icon button */
+.ghost {
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--ink-500);
+  background: transparent;
+}
+.ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--ink-900);
+}
+
+/* icon — 30x30 transparent */
+.icon {
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-700);
+}
+.icon:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+/* iconSm — 24x24 outlined */
+.iconSm {
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-500);
+}
+.iconSm:hover:not(:disabled) {
+  border-color: var(--green-300);
+  color: var(--ink-900);
+}

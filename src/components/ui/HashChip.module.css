@@ -1,0 +1,28 @@
+.chip {
+  border-radius: 999px;
+  font-weight: 500;
+  background: var(--green-50);
+  color: var(--green-800);
+  border: 1px solid var(--green-100);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sm {
+  padding: 3px 9px;
+  font-size: 11px;
+}
+.md {
+  padding: 4px 11px;
+  font-size: 12px;
+}
+.lg {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.active {
+  background: var(--green-500);
+  color: #fff;
+  border-color: var(--green-500);
+}
