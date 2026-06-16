@@ -1,0 +1,115 @@
+/* JustInNeed — Design tokens & global reset */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+
+:root {
+  /* Sprout Green palette — single hue, varied tint/shade */
+  --green-50: #f0fbe8;
+  --green-100: #def6c7;
+  --green-200: #c4ee9c;
+  --green-300: #a6e26b;
+  --green-400: #87d448;
+  --green-500: #5fcf3e; /* primary */
+  --green-600: #4db02e;
+  --green-700: #3d8b25;
+  --green-800: #2d6a1b;
+  --green-900: #1f4a12;
+
+  /* Neutrals — slightly green-tinted whites/grays */
+  --bg: #fafcf8;
+  --surface: #ffffff;
+  --surface-2: #f4f8ee;
+  --line: #e8ede2;
+  --line-2: #d8dfd0;
+  --ink-900: #1a1f17;
+  --ink-700: #3a4234;
+  --ink-500: #6b7563;
+  --ink-400: #94998e;
+  --ink-300: #b5bab0;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  --shadow-sm: 0 1px 2px rgba(45, 106, 27, 0.04), 0 1px 1px rgba(45, 106, 27, 0.03);
+  --shadow: 0 4px 12px rgba(45, 106, 27, 0.06), 0 1px 3px rgba(45, 106, 27, 0.04);
+  --shadow-lg: 0 16px 40px rgba(45, 106, 27, 0.1), 0 4px 12px rgba(45, 106, 27, 0.06);
+
+  --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--ink-900);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+button,
+span,
+h1,
+h2,
+h3,
+h4,
+h5,
+p,
+div,
+label,
+a {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+input,
+textarea {
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: var(--green-200);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: 10px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-300);
+}

@@ -1,0 +1,128 @@
+.eyebrow {
+  font-size: 11px;
+  color: var(--ink-500);
+  margin-bottom: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.heading {
+  width: 100%;
+  margin: 0 0 14px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  outline: none;
+  color: var(--ink-900);
+}
+.heading:focus {
+  border-color: var(--green-400);
+  background: var(--green-50);
+}
+
+.summary {
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--ink-700);
+  line-height: 1.7;
+  font-family: inherit;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  outline: none;
+  resize: vertical;
+}
+.summary:focus {
+  border-color: var(--green-400);
+}
+
+.tip {
+  font-size: 11px;
+  color: var(--ink-400);
+  margin-bottom: 24px;
+}
+.tip code {
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.highlightHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.empty {
+  padding: 20px 16px;
+  text-align: center;
+  background: var(--surface-2);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--ink-500);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  border-left: 3px solid var(--green-500);
+}
+.num {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green-700);
+  padding-top: 2px;
+}
+.itemInput {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 13px;
+  color: var(--ink-900);
+  line-height: 1.5;
+  font-family: inherit;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  outline: none;
+  resize: vertical;
+}
+.itemInput:focus {
+  border-color: var(--green-300);
+  background: var(--surface);
+}
+.removeBtn {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-400);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.removeBtn:hover {
+  background: #fff0f0;
+  color: #c44;
+  border-color: #f3c5c5;
+}

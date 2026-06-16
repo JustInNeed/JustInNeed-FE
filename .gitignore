@@ -1,3 +1,16 @@
+### Next.js / Node ###
+/node_modules
+/.next
+/out
+/build
+next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.env*.local
+
 ### Java ###
 # Compiled class file
 *.class
@@ -83,13 +96,10 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-### Gradle ###
-.gradle/
-build/
-out/
-target/
 
 ### Local workspace ###
 tools/
 work/
 outputs/
+
+.claude

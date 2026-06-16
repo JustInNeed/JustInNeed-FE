@@ -1,0 +1,194 @@
+.aside {
+  width: 240px;
+  min-width: 240px;
+  height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: sticky;
+  top: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px;
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--green-400), var(--green-600));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(95, 207, 62, 0.35);
+}
+
+.brandName {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.brandSub {
+  font-size: 11px;
+  color: var(--ink-500);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.sectionLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-400);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 14px 10px 6px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  color: var(--ink-700);
+  background: transparent;
+  transition: background 0.15s;
+  position: relative;
+}
+.navItem:not(:disabled):hover {
+  background: var(--surface-2);
+}
+.navItem:disabled {
+  color: var(--ink-300);
+  cursor: default;
+}
+
+.navItemActive {
+  background: var(--green-50);
+  color: var(--green-800);
+  font-weight: 600;
+}
+
+.activeBar {
+  position: absolute;
+  left: 0;
+  top: 25%;
+  height: 50%;
+  width: 3px;
+  background: var(--green-500);
+  border-radius: 2px;
+  transform: translateX(-10px);
+}
+
+.recBox {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--bg);
+}
+.recHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.recEyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 4px rgba(95, 207, 62, 0.15);
+}
+.recTitle {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.recSub {
+  font-size: 11px;
+  color: var(--ink-500);
+  margin-bottom: 10px;
+}
+.recBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.userBox {
+  margin-top: auto;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green-300), var(--green-600));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.userName {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.logoutBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-500);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
+}
+.logoutBtn:hover {
+  background: var(--surface);
+  color: var(--ink-900);
+}
