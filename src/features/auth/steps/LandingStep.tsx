@@ -27,7 +27,7 @@ export function LandingStep({ existing, onPick, onCancel }: LandingStepProps) {
       </div>
 
       <div className={styles.providerList}>
-        {PROVIDERS.map((p) => {
+        {PROVIDERS.filter((p) => p.enabled).map((p) => {
           const isLast = existing?.provider === p.id;
           return (
             <button

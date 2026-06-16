@@ -8,6 +8,8 @@ export interface Provider {
   fg: string;
   border?: string;
   icon: ReactNode;
+  /** false면 로그인 화면에 버튼을 노출하지 않음 (로직은 유지). */
+  enabled: boolean;
 }
 
 export const PROVIDERS: Provider[] = [
@@ -16,6 +18,7 @@ export const PROVIDERS: Provider[] = [
     label: "카카오로 시작하기",
     bg: "#FEE500",
     fg: "#000",
+    enabled: true,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.78 1.85 5.22 4.62 6.6l-1.13 4.13c-.1.36.31.65.62.45L11 19.4c.33.03.66.05 1 .05 5.52 0 10-3.48 10-7.65S17.52 3 12 3z" />
@@ -27,6 +30,7 @@ export const PROVIDERS: Provider[] = [
     label: "네이버로 시작하기",
     bg: "#03C75A",
     fg: "#fff",
+    enabled: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
         <path d="M16.273 12.845L7.376 0H0v24h7.726V11.156L16.624 24H24V0h-7.727z" />
@@ -39,6 +43,7 @@ export const PROVIDERS: Provider[] = [
     bg: "#fff",
     fg: "#1A1F17",
     border: "1px solid var(--line-2)",
+    enabled: false, // 시연에서는 미제공 — 버튼 숨김 (로직 유지)
     icon: (
       <svg width="18" height="18" viewBox="0 0 48 48">
         <path
