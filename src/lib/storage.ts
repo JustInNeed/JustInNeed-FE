@@ -1,9 +1,7 @@
-// localStorage helpers — typed, SSR-safe. Swappable for an API client later.
-import type { Auth, HashtagGroup } from "./types";
-import { DEFAULT_GROUPS } from "./data";
+// localStorage 헬퍼 (인증 임시 보관). 추후 토큰 방식으로 교체 예정.
+import type { Auth } from "./types";
 
 const AUTH_KEY = "jin_auth";
-const GROUPS_KEY = "jin_groups";
 
 const isBrowser = () => typeof window !== "undefined";
 
@@ -29,24 +27,6 @@ export function clearAuth(): void {
   if (!isBrowser()) return;
   try {
     localStorage.removeItem(AUTH_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
-export function readGroups(): HashtagGroup[] {
-  if (!isBrowser()) return DEFAULT_GROUPS;
-  try {
-    return JSON.parse(localStorage.getItem(GROUPS_KEY) || "null") || DEFAULT_GROUPS;
-  } catch {
-    return DEFAULT_GROUPS;
-  }
-}
-
-export function writeGroups(groups: HashtagGroup[]): void {
-  if (!isBrowser()) return;
-  try {
-    localStorage.setItem(GROUPS_KEY, JSON.stringify(groups));
   } catch {
     /* ignore */
   }

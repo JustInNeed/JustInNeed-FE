@@ -1,32 +1,4 @@
-// Domain types — shared across features. API layer will produce these later.
-
-export interface Source {
-  url: string;
-  host: string;
-  time: string;
-  deepRead: boolean;
-}
-
-export interface Session {
-  id: string;
-  title: string;
-  start: string;
-  end: string;
-  duration: string;
-  urls: number;
-  favorite: boolean;
-  hashtags: string[];
-  summary: string;
-  insights: string[];
-  sources: Source[];
-}
-
-export interface HashtagGroup {
-  id: string;
-  name: string;
-  emoji: string;
-  tags: string[];
-}
+// 화면 전용 타입. (세션/그룹 도메인 타입은 API 스키마 lib/api/types.ts 가 원본)
 
 export type ProviderId = "kakao" | "naver" | "google";
 
@@ -38,7 +10,7 @@ export interface Auth {
   justLoggedIn?: boolean;
 }
 
-// Mindmap (force-directed graph)
+// Mindmap (force-directed graph) — 세션 상세에서 클라이언트가 생성
 export type MindmapGroup = "core" | "city" | "logi" | "sub" | "meta";
 
 export interface MindmapNode {

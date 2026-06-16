@@ -1,10 +1,15 @@
-import type { MindmapEdge, MindmapNode, Session } from "@/lib/types";
+import type { SessionDetail } from "@/lib/api";
+import { hostFromUrl } from "@/lib/format";
+import type { MindmapEdge, MindmapNode } from "@/lib/types";
 
-/** Build a small force-directed graph from a session's insights & sources. */
-export function buildSessionMindmap(session: Session): {
+/** 세션의 인사이트 & 출처로 작은 force-directed 그래프를 생성. */
+export function buildSessionMindmap(session: SessionDetail): {
   nodes: MindmapNode[];
   edges: MindmapEdge[];
 } {
+  const insights = session.summary?.insights ?? [];
+  const sources = session.sources ?? [];
+
   const nodes: MindmapNode[] = [
     {
       id: "core",
@@ -14,8 +19,8 @@ export function buildSessionMindmap(session: Session): {
       size: 22,
       group: "core",
     },
-    ...session.insights.map((it, i): MindmapNode => {
-      const angle = (i / session.insights.length) * Math.PI * 2 - Math.PI / 2;
+    ...insights.map((it, i): MindmapNode => {
+      const angle = (i / Math.max(insights.length, 1)) * Math.PI * 2 - Math.PI / 2;
       return {
         id: "i" + i,
         label: it.split(":")[0].slice(0, 16),
@@ -25,11 +30,11 @@ export function buildSessionMindmap(session: Session): {
         group: "city",
       };
     }),
-    ...session.sources.map((s, i): MindmapNode => {
-      const angle = (i / session.sources.length) * Math.PI * 2;
+    ...sources.map((s, i): MindmapNode => {
+      const angle = (i / Math.max(sources.length, 1)) * Math.PI * 2;
       return {
         id: "u" + i,
-        label: s.host,
+        label: hostFromUrl(s.url),
         x: 500 + Math.cos(angle) * 340,
         y: 360 + Math.sin(angle) * 260,
         size: 9,
@@ -39,8 +44,8 @@ export function buildSessionMindmap(session: Session): {
   ];
 
   const edges: MindmapEdge[] = [
-    ...session.insights.map((_, i): MindmapEdge => ["core", "i" + i]),
-    ...session.sources.map((_, i): MindmapEdge => ["core", "u" + i]),
+    ...insights.map((_, i): MindmapEdge => ["core", "i" + i]),
+    ...sources.map((_, i): MindmapEdge => ["core", "u" + i]),
   ];
 
   return { nodes, edges };

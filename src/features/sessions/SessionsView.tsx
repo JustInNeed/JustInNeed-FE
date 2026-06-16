@@ -1,47 +1,122 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Button, PageHeader } from "@/components/ui";
-import type { HashtagGroup, Session } from "@/lib/types";
-import { SESSIONS } from "@/lib/data";
-import { readGroups, writeGroups } from "@/lib/storage";
+import {
+  ApiError,
+  createTagGroup,
+  deleteTagGroup,
+  getSessions,
+  getTagGroups,
+  reorderTagGroups,
+  updateSession,
+  updateTagGroup,
+  type SessionListItem,
+  type TagGroup,
+} from "@/lib/api";
+import { useApi } from "@/lib/hooks/useApi";
 import { SessionCard } from "./SessionCard";
 import { GroupSectionList } from "./GroupSectionList";
-import { GroupEditor } from "./GroupEditor";
+import { GroupEditor, type GroupEditorPayload } from "./GroupEditor";
 import styles from "./SessionsView.module.css";
 
 type ViewMode = "list" | "group";
 
 export function SessionsView() {
   const router = useRouter();
-  const [sessions, setSessions] = useState<Session[]>(SESSIONS);
+  const sessionsQuery = useApi<SessionListItem[]>(getSessions, []);
+  const groupsQuery = useApi<TagGroup[]>(getTagGroups, []);
+
+  const [sessions, setSessions] = useState<SessionListItem[]>([]);
+  const [groups, setGroups] = useState<TagGroup[]>([]);
   const [favOnly, setFavOnly] = useState(false);
   const [view, setView] = useState<ViewMode>("list");
-  const [groups, setGroups] = useState<HashtagGroup[]>(() => readGroups());
   const [creating, setCreating] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<HashtagGroup | null>(null);
+  const [editingGroup, setEditingGroup] = useState<TagGroup | null>(null);
 
-  const persistGroups = (next: HashtagGroup[]) => {
-    setGroups(next);
-    writeGroups(next);
+  // 쿼리 결과를 로컬 상태로 미러링 (낙관적 업데이트용)
+  useEffect(() => {
+    if (sessionsQuery.data) setSessions(sessionsQuery.data);
+  }, [sessionsQuery.data]);
+  useEffect(() => {
+    if (groupsQuery.data) setGroups([...groupsQuery.data].sort((a, b) => a.position - b.position));
+  }, [groupsQuery.data]);
+
+  const openSession = (id: number) => router.push(`/sessions/${id}`);
+
+  const toggleFav = async (id: number) => {
+    const cur = sessions.find((s) => s.id === id);
+    if (!cur) return;
+    const next = !cur.isFavorite;
+    setSessions((ss) => ss.map((s) => (s.id === id ? { ...s, isFavorite: next } : s)));
+    try {
+      await updateSession(id, { isFavorite: next });
+      groupsQuery.refetch(); // 그룹 뷰의 즐겨찾기 표시 동기화
+    } catch (e) {
+      setSessions((ss) => ss.map((s) => (s.id === id ? { ...s, isFavorite: !next } : s)));
+      alert(e instanceof ApiError ? e.message : "즐겨찾기 변경에 실패했습니다.");
+    }
   };
-
-  const openSession = (id: string) => router.push(`/sessions/${id}`);
-  const toggleFav = (id: string) =>
-    setSessions((ss) => ss.map((x) => (x.id === id ? { ...x, favorite: !x.favorite } : x)));
-
-  const filtered = favOnly ? sessions.filter((s) => s.favorite) : sessions;
-  const favCount = sessions.filter((s) => s.favorite).length;
 
   const allTags = useMemo(() => {
     const set = new Set<string>();
-    sessions.forEach((s) => s.hashtags.forEach((t) => set.add(t)));
+    sessions.forEach((s) => s.tags.forEach((t) => set.add(t)));
     return Array.from(set).sort();
   }, [sessions]);
 
-  const sessionsForGroup = (g: HashtagGroup) =>
-    filtered.filter((s) => s.hashtags.some((t) => g.tags.includes(t)));
+  const filtered = favOnly ? sessions.filter((s) => s.isFavorite) : sessions;
+  const favCount = sessions.filter((s) => s.isFavorite).length;
+  const displayGroups = favOnly
+    ? groups.map((g) => ({ ...g, sessions: g.sessions.filter((s) => s.isFavorite) }))
+    : groups;
+
+  // --- 그룹 CRUD ---
+  const saveGroup = async (payload: GroupEditorPayload) => {
+    try {
+      if (payload.id != null) {
+        const updated = await updateTagGroup(payload.id, {
+          name: payload.name,
+          hashtags: payload.hashtags,
+        });
+        setGroups((gs) => gs.map((g) => (g.id === updated.id ? updated : g)));
+      } else {
+        const created = await createTagGroup({ name: payload.name, hashtags: payload.hashtags });
+        setGroups((gs) => [...gs, created].sort((a, b) => a.position - b.position));
+      }
+      setCreating(false);
+      setEditingGroup(null);
+    } catch (e) {
+      alert(e instanceof ApiError ? e.message : "그룹 저장에 실패했습니다.");
+    }
+  };
+
+  const removeGroup = async (id: number) => {
+    const prev = groups;
+    setGroups((gs) => gs.filter((g) => g.id !== id));
+    try {
+      await deleteTagGroup(id);
+    } catch (e) {
+      setGroups(prev);
+      alert(e instanceof ApiError ? e.message : "그룹 삭제에 실패했습니다.");
+    }
+  };
+
+  const reorderGroups = async (next: TagGroup[]) => {
+    const prev = groups;
+    setGroups(next);
+    try {
+      const result = await reorderTagGroups({ groupIds: next.map((g) => g.id) });
+      setGroups([...result].sort((a, b) => a.position - b.position));
+    } catch (e) {
+      setGroups(prev);
+      alert(e instanceof ApiError ? e.message : "순서 변경에 실패했습니다.");
+    }
+  };
+
+  const loading = view === "list" ? sessionsQuery.loading : groupsQuery.loading;
+  const error = view === "list" ? sessionsQuery.error : groupsQuery.error;
+  const refetch = view === "list" ? sessionsQuery.refetch : groupsQuery.refetch;
 
   return (
     <div className={styles.page}>
@@ -73,27 +148,48 @@ export function SessionsView() {
       />
 
       <div className={styles.body}>
-        {view === "list" && (
-          <div className={styles.grid}>
-            {filtered.map((s) => (
-              <SessionCard
-                key={s.id}
-                session={s}
-                onClick={() => openSession(s.id)}
-                onToggleFavorite={toggleFav}
-              />
-            ))}
+        {loading ? (
+          <div className={styles.state}>불러오는 중…</div>
+        ) : error ? (
+          <div className={styles.state}>
+            <p className={styles.stateError}>{error}</p>
+            <Button variant="secondary" onClick={refetch}>
+              다시 시도
+            </Button>
           </div>
-        )}
-        {view === "group" && (
+        ) : view === "list" ? (
+          filtered.length === 0 ? (
+            <div className={styles.state}>
+              <div className={styles.stateEmoji}>🌱</div>
+              <p className={styles.stateTitle}>
+                {favOnly ? "즐겨찾기한 세션이 없습니다" : "아직 세션이 없습니다"}
+              </p>
+              <p className={styles.stateDesc}>
+                {favOnly
+                  ? "세션 카드의 별을 눌러 즐겨찾기에 추가해보세요."
+                  : "확장 프로그램으로 웹 탐색을 수집하면 세션이 여기에 쌓여요."}
+              </p>
+            </div>
+          ) : (
+            <div className={styles.grid}>
+              {filtered.map((s) => (
+                <SessionCard
+                  key={s.id}
+                  session={s}
+                  onClick={() => openSession(s.id)}
+                  onToggleFavorite={toggleFav}
+                />
+              ))}
+            </div>
+          )
+        ) : (
           <GroupSectionList
-            groups={groups}
-            sessionsForGroup={sessionsForGroup}
+            groups={displayGroups}
             onOpen={openSession}
             onToggleFavorite={toggleFav}
             onEdit={(g) => setEditingGroup(g)}
-            onDelete={(id) => persistGroups(groups.filter((g) => g.id !== id))}
-            onReorder={persistGroups}
+            onDelete={removeGroup}
+            onReorder={reorderGroups}
             onCreate={() => setCreating(true)}
           />
         )}
@@ -107,15 +203,7 @@ export function SessionsView() {
             setCreating(false);
             setEditingGroup(null);
           }}
-          onSave={(g) => {
-            if (editingGroup) {
-              persistGroups(groups.map((x) => (x.id === g.id ? ({ ...g, id: x.id } as HashtagGroup) : x)));
-            } else {
-              persistGroups([...groups, { ...g, id: "g" + Date.now() } as HashtagGroup]);
-            }
-            setCreating(false);
-            setEditingGroup(null);
-          }}
+          onSave={saveGroup}
         />
       )}
     </div>
