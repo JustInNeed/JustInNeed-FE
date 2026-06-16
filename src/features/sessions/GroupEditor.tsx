@@ -1,24 +1,38 @@
 import { useState } from "react";
 import { Icon, Button } from "@/components/ui";
-import type { HashtagGroup } from "@/lib/types";
+import type { TagGroup } from "@/lib/api";
+import { MAX_HASHTAGS } from "@/lib/hashtag";
+import { withHash } from "@/lib/format";
 import styles from "./GroupEditor.module.css";
 
+export interface GroupEditorPayload {
+  id?: number;
+  hashtags: string[];
+}
+
 export interface GroupEditorProps {
-  allTags: string[];
-  group: HashtagGroup | null;
+  allTags: string[]; // raw 태그 ('#' 없음)
+  group: TagGroup | null;
   onCancel: () => void;
-  onSave: (group: Omit<HashtagGroup, "id"> & { id?: string }) => void;
+  onSave: (payload: GroupEditorPayload) => void;
 }
 
 export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorProps) {
-  const [selectedList, setSelectedList] = useState<string[]>(group?.tags ?? []);
+  const [selectedList, setSelectedList] = useState<string[]>(group?.hashtags ?? []);
   const [query, setQuery] = useState("");
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   const selected = new Set(selectedList);
-  const toggle = (tag: string) =>
-    setSelectedList((list) => (list.includes(tag) ? list.filter((t) => t !== tag) : [...list, tag]));
+  const atMax = selectedList.length >= MAX_HASHTAGS;
+
+  const toggle = (tag: string) => {
+    if (selected.has(tag)) {
+      setSelectedList((list) => list.filter((t) => t !== tag));
+    } else if (!atMax) {
+      setSelectedList((list) => [...list, tag]);
+    }
+  };
   const clearAll = () => setSelectedList([]);
 
   const onChipDrop = (i: number) => {
@@ -35,9 +49,8 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
     setDragOverIdx(null);
   };
 
-  const visibleTags = query
-    ? allTags.filter((t) => t.toLowerCase().includes(query.toLowerCase()))
-    : allTags;
+  const q = query.replace(/^#/, "").toLowerCase();
+  const visibleTags = q ? allTags.filter((t) => t.toLowerCase().includes(q)) : allTags;
   const canSave = selectedList.length > 0;
 
   return (
@@ -56,7 +69,10 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
         <div className={styles.body}>
           <div className={styles.selectedHead}>
             <label className={styles.label}>
-              선택된 해시태그 <span className={styles.count}>({selectedList.length})</span>
+              선택된 해시태그{" "}
+              <span className={styles.count}>
+                ({selectedList.length}/{MAX_HASHTAGS})
+              </span>
               {selectedList.length > 1 && <span className={styles.dragHint}>드래그로 순서 변경</span>}
             </label>
             {selectedList.length > 0 && (
@@ -98,7 +114,7 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
                   }}
                   title="드래그로 순서 변경"
                 >
-                  {t}
+                  {withHash(t)}
                   <button
                     className={styles.chipRemove}
                     onClick={(e) => {
@@ -128,20 +144,28 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
             />
           </div>
 
-          <label className={styles.label}>전체 해시태그 ({allTags.length})</label>
+          <label className={styles.label}>
+            전체 해시태그 ({allTags.length})
+            {atMax && <span className={styles.maxHint}>최대 {MAX_HASHTAGS}개 선택됨</span>}
+          </label>
           <div className={styles.tagList}>
             {visibleTags.length === 0 ? (
-              <span className={styles.placeholder}>검색 결과가 없습니다.</span>
+              <span className={styles.placeholder}>
+                {allTags.length === 0 ? "세션에 사용된 해시태그가 없습니다." : "검색 결과가 없습니다."}
+              </span>
             ) : (
               visibleTags.map((t) => {
                 const on = selected.has(t);
+                const disabled = !on && atMax;
                 return (
                   <button
                     key={t}
                     onClick={() => toggle(t)}
+                    disabled={disabled}
                     className={`${styles.tagBtn} ${on ? styles.tagBtnOn : ""}`}
+                    style={disabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
                   >
-                    {on && <Icon name="check" size={11} />} {t}
+                    {on && <Icon name="check" size={11} />} {withHash(t)}
                   </button>
                 );
               })
@@ -155,14 +179,7 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
           </Button>
           <button
             disabled={!canSave}
-            onClick={() =>
-              onSave({
-                id: group?.id,
-                name: group?.name || "",
-                emoji: group?.emoji || "🏷️",
-                tags: selectedList,
-              })
-            }
+            onClick={() => onSave({ id: group?.id, hashtags: selectedList })}
             className={`${styles.saveBtn} ${canSave ? styles.saveBtnOn : styles.saveBtnOff}`}
           >
             {group ? "수정 완료" : "그룹 만들기"}

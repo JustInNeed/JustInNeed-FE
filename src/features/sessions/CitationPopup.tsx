@@ -1,16 +1,21 @@
 import type { ReactNode } from "react";
 import { Icon, Button } from "@/components/ui";
-import type { MindmapNode, Session } from "@/lib/types";
+import type { SessionDetail } from "@/lib/api";
+import { hostFromUrl } from "@/lib/format";
+import type { MindmapNode } from "@/lib/types";
 import styles from "./CitationPopup.module.css";
 
 export interface CitationPopupProps {
   node: MindmapNode | undefined;
-  session: Session;
+  session: SessionDetail;
   onClose: () => void;
 }
 
 export function CitationPopup({ node, session, onClose }: CitationPopupProps) {
   if (!node) return null;
+
+  const insights = session.summary?.insights ?? [];
+  const sources = session.sources ?? [];
 
   let kind: "core" | "insight" | "source" = "core";
   let insightIdx = -1;
@@ -23,25 +28,19 @@ export function CitationPopup({ node, session, onClose }: CitationPopupProps) {
     sourceIdx = parseInt(node.id.slice(1), 10);
   }
 
-  if (kind === "insight" && session.sources.length) {
-    sourceIdx = insightIdx % session.sources.length;
+  if (kind === "insight" && sources.length) {
+    sourceIdx = insightIdx % sources.length;
   }
-  const src = sourceIdx >= 0 ? session.sources[sourceIdx] : null;
+  const src = sourceIdx >= 0 ? sources[sourceIdx] : null;
 
-  const insight = kind === "insight" ? session.insights[insightIdx] : null;
+  const insight = kind === "insight" ? insights[insightIdx] : null;
   const highlight = insight ? insight.split(":")[0].trim() : node.label || "";
 
-  const fauxParas =
-    kind === "insight" && insight
-      ? [
-          "일정을 짜다 보면 결국 비용과 효율 사이에서 타협이 필요하다. 여러 후기를 종합해보니 다음과 같은 결론을 얻을 수 있었다.",
-          insight,
-          "이 부분은 실제 방문 후기와 공식 사이트의 안내가 일치한다는 점에서 신뢰도가 높다고 판단된다. 추가로 시즌별 변동 가능성이 있으니 출발 직전 한 번 더 확인이 필요하다.",
-        ]
-      : [
-          "일정을 짜다 보면 결국 비용과 효율 사이에서 타협이 필요하다. 여러 후기를 종합해보니 다음과 같은 결론을 얻을 수 있었다.",
-          "이 부분은 실제 방문 후기와 공식 사이트의 안내가 일치한다는 점에서 신뢰도가 높다고 판단된다. 추가로 시즌별 변동 가능성이 있으니 출발 직전 한 번 더 확인이 필요하다.",
-        ];
+  // 출처의 실제 발췌문을 미리보기 본문으로 사용
+  const paras: string[] = [];
+  if (src?.excerpt) paras.push(src.excerpt);
+  if (insight && insight !== src?.excerpt) paras.push(insight);
+  if (paras.length === 0) paras.push("이 노드에 연결된 본문 미리보기가 없습니다.");
 
   const renderHighlighted = (text: string): ReactNode => {
     if (!highlight || !text.includes(highlight)) return text;
@@ -73,19 +72,17 @@ export function CitationPopup({ node, session, onClose }: CitationPopupProps) {
       </div>
 
       <div className={styles.titleWrap}>
-        <div className={styles.title}>{node.label}</div>
+        <div className={styles.title}>{src?.title || node.label}</div>
         {src && (
           <div className={styles.srcRow}>
-            <span className={styles.favicon}>{src.host.slice(0, 2).toUpperCase()}</span>
-            <span className={styles.srcHost}>{src.host}</span>
-            <span>·</span>
-            <span>{src.time}</span>
+            <span className={styles.favicon}>{hostFromUrl(src.url).slice(0, 2).toUpperCase()}</span>
+            <span className={styles.srcHost}>{hostFromUrl(src.url)}</span>
           </div>
         )}
       </div>
 
       <div className={styles.preview}>
-        {fauxParas.map((p, i) => (
+        {paras.map((p, i) => (
           <p key={i} className={styles.para}>
             {renderHighlighted(p)}
           </p>
@@ -93,9 +90,17 @@ export function CitationPopup({ node, session, onClose }: CitationPopupProps) {
       </div>
 
       <div className={styles.footer}>
-        <Button variant="secondary" className={styles.footerBtn}>
-          <Icon name="link" size={11} /> 원문 열기
-        </Button>
+        {src ? (
+          <a href={src.url} target="_blank" rel="noreferrer" className={styles.footerLink}>
+            <Button variant="secondary" className={styles.footerBtn}>
+              <Icon name="link" size={11} /> 원문 열기
+            </Button>
+          </a>
+        ) : (
+          <Button variant="secondary" className={styles.footerBtn} disabled>
+            <Icon name="link" size={11} /> 원문 열기
+          </Button>
+        )}
         <Button variant="secondary" className={styles.footerBtn}>
           <Icon name="bookmark" size={11} /> 북마크
         </Button>

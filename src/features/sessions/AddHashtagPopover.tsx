@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui";
+import { normalizeHashtag, validateHashtag } from "@/lib/hashtag";
 import styles from "./AddHashtagPopover.module.css";
 
 export interface AddHashtagPopoverProps {
-  existing: string[];
-  onAdd: (tag: string) => void;
+  existing: string[]; // raw 태그 ('#' 없음)
+  onAdd: (tag: string) => void; // raw 태그 반환
   onClose: () => void;
 }
-
-const normalize = (raw: string) => raw.trim().replace(/^#+/, "").replace(/\s+/g, "");
 
 export function AddHashtagPopover({ existing, onAdd, onClose }: AddHashtagPopoverProps) {
   const [value, setValue] = useState("");
@@ -35,20 +34,8 @@ export function AddHashtagPopover({ existing, onAdd, onClose }: AddHashtagPopove
     };
   }, [onClose]);
 
-  const validate = (raw: string): { ok: false; msg: string } | { ok: true; value: string } => {
-    const v = normalize(raw);
-    if (!v) return { ok: false, msg: "내용을 입력해주세요." };
-    if (v.length > 16) return { ok: false, msg: "최대 16자까지 입력할 수 있어요." };
-    if (!/^[\w가-힣-]+$/.test(v)) return { ok: false, msg: "특수문자는 사용할 수 없어요." };
-    const tagWithHash = "#" + v;
-    if (existing.some((t) => t.toLowerCase() === tagWithHash.toLowerCase())) {
-      return { ok: false, msg: "이미 추가된 해시태그입니다." };
-    }
-    return { ok: true, value: tagWithHash };
-  };
-
   const submit = () => {
-    const r = validate(value);
+    const r = validateHashtag(value, existing);
     if (!r.ok) {
       setError(r.msg);
       return;
@@ -56,7 +43,7 @@ export function AddHashtagPopover({ existing, onAdd, onClose }: AddHashtagPopove
     onAdd(r.value);
   };
 
-  const canSubmit = normalize(value).length > 0;
+  const canSubmit = normalizeHashtag(value).length > 0;
 
   return (
     <div ref={wrapRef} className={styles.popover} onMouseDown={(e) => e.stopPropagation()}>
@@ -79,7 +66,7 @@ export function AddHashtagPopover({ existing, onAdd, onClose }: AddHashtagPopove
             }
           }}
           placeholder="예: 로마"
-          maxLength={20}
+          maxLength={12}
           className={styles.input}
         />
       </div>
@@ -87,7 +74,7 @@ export function AddHashtagPopover({ existing, onAdd, onClose }: AddHashtagPopove
       {error ? (
         <div className={styles.error}>{error}</div>
       ) : (
-        <div className={styles.hint}>Enter로 추가 · 한글/영문/숫자, 최대 16자</div>
+        <div className={styles.hint}>Enter로 추가 · 한글/영문/숫자, 최대 10자</div>
       )}
 
       <div className={styles.actions}>

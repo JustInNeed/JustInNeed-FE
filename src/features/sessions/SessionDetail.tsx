@@ -1,48 +1,125 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Card, Button, HashChip } from "@/components/ui";
 import { Mindmap } from "@/components/mindmap/Mindmap";
-import type { Session } from "@/lib/types";
+import {
+  ApiError,
+  deleteSession,
+  getSession,
+  updateSession,
+  type SessionDetail as SessionDetailType,
+  type SessionUpdateRequest,
+} from "@/lib/api";
+import { useApi } from "@/lib/hooks/useApi";
+import { formatDateTime, formatDuration, formatTime, hostFromUrl, STATUS_LABEL, withHash } from "@/lib/format";
 import { buildSessionMindmap } from "./buildSessionMindmap";
 import { CitationPopup } from "./CitationPopup";
 import { SessionEditor } from "./SessionEditor";
 import { AddHashtagPopover } from "./AddHashtagPopover";
 import styles from "./SessionDetail.module.css";
 
-const DEFAULT_HEADING = "오늘 어디까지 정리됐을까요?";
-
 export interface SessionDetailProps {
-  session: Session;
+  sessionId: number;
 }
 
-export function SessionDetail({ session }: SessionDetailProps) {
+export function SessionDetail({ sessionId }: SessionDetailProps) {
   const router = useRouter();
+  const validId = Number.isFinite(sessionId);
+  const fetcher = useCallback(() => getSession(sessionId), [sessionId]);
+  const { data, error, loading } = useApi<SessionDetailType>(fetcher, [sessionId]);
+
+  const [detail, setDetail] = useState<SessionDetailType | null>(null);
   const [view, setView] = useState<"text" | "graph">("text");
-  const [favorite, setFavorite] = useState(session.favorite);
-  const [isPublic, setIsPublic] = useState(false);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showTagPicker, setShowTagPicker] = useState(false);
-  const [hashtags, setHashtags] = useState(session.hashtags);
 
   // edit mode
   const [editing, setEditing] = useState(false);
-  const [draftTitle, setDraftTitle] = useState(session.title);
-  const [draftSummary, setDraftSummary] = useState(session.summary);
-  const [draftHeading, setDraftHeading] = useState(DEFAULT_HEADING);
-  const [draftInsights, setDraftInsights] = useState(session.insights);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftHeading, setDraftHeading] = useState("");
+  const [draftMarkdown, setDraftMarkdown] = useState("");
+  const [draftInsights, setDraftInsights] = useState<string[]>([]);
 
-  const { nodes, edges } = useMemo(() => buildSessionMindmap(session), [session]);
+  useEffect(() => {
+    if (data) setDetail(data);
+  }, [data]);
+
+  const { nodes, edges } = useMemo(
+    () => (detail ? buildSessionMindmap(detail) : { nodes: [], edges: [] }),
+    [detail],
+  );
+
+  if (!validId) return <div className={styles.state}>잘못된 세션 주소입니다.</div>;
+  if (loading && !detail) return <div className={styles.state}>불러오는 중…</div>;
+  if (error && !detail) {
+    return (
+      <div className={styles.state}>
+        <p className={styles.stateError}>{error}</p>
+        <Button variant="secondary" onClick={() => router.push("/sessions")}>
+          세션 목록으로
+        </Button>
+      </div>
+    );
+  }
+  if (!detail) return null;
+
+  // 낙관적 업데이트 + 서버 동기화
+  const persist = async (body: SessionUpdateRequest, optimistic: Partial<SessionDetailType>) => {
+    const prev = detail;
+    setDetail({ ...detail, ...optimistic });
+    try {
+      const updated = await updateSession(detail.id, body);
+      setDetail(updated);
+    } catch (e) {
+      setDetail(prev);
+      alert(e instanceof ApiError ? e.message : "수정에 실패했습니다.");
+    }
+  };
+
+  const toggleFavorite = () => persist({ isFavorite: !detail.isFavorite }, { isFavorite: !detail.isFavorite });
+  const togglePublic = () => persist({ isPublic: !detail.isPublic }, { isPublic: !detail.isPublic });
+  const addTag = (raw: string) => {
+    const next = [...detail.tags, raw];
+    setShowTagPicker(false);
+    persist({ tags: next }, { tags: next });
+  };
+
+  const onDelete = async () => {
+    if (!confirm("이 세션을 삭제할까요?")) return;
+    try {
+      await deleteSession(detail.id);
+      router.push("/sessions");
+    } catch (e) {
+      alert(e instanceof ApiError ? e.message : "삭제에 실패했습니다.");
+    }
+  };
 
   const enterEdit = () => {
-    setDraftTitle(session.title);
-    setDraftSummary(session.summary);
-    setDraftHeading(DEFAULT_HEADING);
-    setDraftInsights(session.insights);
+    setDraftTitle(detail.title);
+    setDraftHeading(detail.summary?.heading ?? "");
+    setDraftMarkdown(detail.summary?.markdown ?? "");
+    setDraftInsights(detail.summary?.insights ?? []);
     setView("text");
     setEditing(true);
   };
+  const saveEdit = async () => {
+    await persist(
+      { title: draftTitle, editedMarkdown: draftMarkdown },
+      {
+        title: draftTitle,
+        summary: detail.summary
+          ? { ...detail.summary, heading: draftHeading, markdown: draftMarkdown }
+          : { heading: draftHeading, markdown: draftMarkdown, insights: draftInsights },
+      },
+    );
+    setEditing(false);
+  };
+
+  const heading = detail.summary?.heading || "요약";
+  const insights = detail.summary?.insights ?? [];
+  const duration = formatDuration(detail.startedAt, detail.endedAt);
 
   return (
     <div className={styles.page}>
@@ -58,44 +135,52 @@ export function SessionDetail({ session }: SessionDetailProps) {
                   value={draftTitle}
                   onChange={(e) => setDraftTitle(e.target.value)}
                   placeholder="세션 제목"
+                  maxLength={100}
                   className={styles.titleInput}
                 />
               ) : (
-                <h1 className={styles.title}>{session.title}</h1>
+                <h1 className={styles.title}>{detail.title}</h1>
               )}
               {!editing && (
                 <button
-                  onClick={() => setFavorite((v) => !v)}
+                  onClick={toggleFavorite}
                   className={styles.favBtn}
-                  style={{ color: favorite ? "var(--green-600)" : "var(--ink-300)" }}
+                  style={{ color: detail.isFavorite ? "var(--green-600)" : "var(--ink-300)" }}
                   aria-label="즐겨찾기"
                 >
-                  <Icon name={favorite ? "starFilled" : "star"} size={18} />
+                  <Icon name={detail.isFavorite ? "starFilled" : "star"} size={18} />
                 </button>
               )}
             </div>
 
             <div className={styles.meta}>
               <span>
-                {session.start} → {session.end.split(" ")[1]}
+                {formatDateTime(detail.startedAt)} → {detail.endedAt ? formatTime(detail.endedAt) : "진행 중"}
               </span>
+              {duration && (
+                <>
+                  <span>·</span>
+                  <span className={styles.metaItem}>
+                    <Icon name="clock" size={12} /> {duration}
+                  </span>
+                </>
+              )}
               <span>·</span>
               <span className={styles.metaItem}>
-                <Icon name="clock" size={12} /> {session.duration}
+                <Icon name="link" size={12} /> {detail.pageCount}개 페이지
               </span>
               <span>·</span>
-              <span className={styles.metaItem}>
-                <Icon name="link" size={12} /> {session.urls}개 페이지
-              </span>
-              <span>·</span>
-              <span className={styles.metaDone}>
-                <Icon name="dot" size={10} /> 분석 완료
+              <span
+                className={styles.metaDone}
+                style={{ color: detail.status === "FAILED" ? "#c44" : "var(--green-700)" }}
+              >
+                <Icon name="dot" size={10} /> {STATUS_LABEL[detail.status]}
               </span>
             </div>
 
             <div className={styles.tags}>
-              {hashtags.map((h) => (
-                <HashChip key={h} label={h} size="sm" />
+              {detail.tags.map((h) => (
+                <HashChip key={h} label={withHash(h)} size="sm" />
               ))}
               <div className={styles.tagPickerWrap}>
                 <button onClick={() => setShowTagPicker((v) => !v)} className={styles.addTag}>
@@ -103,12 +188,9 @@ export function SessionDetail({ session }: SessionDetailProps) {
                 </button>
                 {showTagPicker && (
                   <AddHashtagPopover
-                    existing={hashtags}
+                    existing={detail.tags}
                     onClose={() => setShowTagPicker(false)}
-                    onAdd={(t) => {
-                      setHashtags((prev) => [...prev, t]);
-                      setShowTagPicker(false);
-                    }}
+                    onAdd={addTag}
                   />
                 )}
               </div>
@@ -121,7 +203,7 @@ export function SessionDetail({ session }: SessionDetailProps) {
                 <Button variant="secondary" onClick={() => setEditing(false)}>
                   취소
                 </Button>
-                <Button variant="primary" onClick={() => setEditing(false)}>
+                <Button variant="primary" onClick={saveEdit}>
                   <Icon name="check" size={14} /> 저장
                 </Button>
               </>
@@ -129,17 +211,17 @@ export function SessionDetail({ session }: SessionDetailProps) {
               <>
                 <Button
                   variant="secondary"
-                  active={isPublic}
-                  onClick={() => setIsPublic((v) => !v)}
-                  title={isPublic ? "공개 — 클릭하여 비공개로" : "비공개 — 클릭하여 공개로"}
+                  active={detail.isPublic}
+                  onClick={togglePublic}
+                  title={detail.isPublic ? "공개 — 클릭하여 비공개로" : "비공개 — 클릭하여 공개로"}
                 >
-                  <Icon name={isPublic ? "unlock" : "lock"} size={14} />
-                  {isPublic ? "공개" : "비공개"}
+                  <Icon name={detail.isPublic ? "unlock" : "lock"} size={14} />
+                  {detail.isPublic ? "공개" : "비공개"}
                 </Button>
                 <Button variant="secondary" onClick={enterEdit}>
                   <Icon name="edit" size={14} /> 편집
                 </Button>
-                <Button variant="secondary" aria-label="삭제">
+                <Button variant="secondary" onClick={onDelete} aria-label="삭제">
                   <Icon name="trash" size={14} />
                 </Button>
               </>
@@ -169,8 +251,8 @@ export function SessionDetail({ session }: SessionDetailProps) {
             <SessionEditor
               heading={draftHeading}
               setHeading={setDraftHeading}
-              summary={draftSummary}
-              setSummary={setDraftSummary}
+              summary={draftMarkdown}
+              setSummary={setDraftMarkdown}
               insights={draftInsights}
               updateInsight={(idx, value) =>
                 setDraftInsights((arr) => arr.map((v, i) => (i === idx ? value : v)))
@@ -180,32 +262,44 @@ export function SessionDetail({ session }: SessionDetailProps) {
           ) : (
             <Card style={{ padding: 28, overflowY: "auto" }}>
               <div className={styles.sectionEyebrow}>본문</div>
-              <h2 className={styles.bodyHeading}>{DEFAULT_HEADING}</h2>
-              <p className={styles.bodyText}>{session.summary}</p>
+              <h2 className={styles.bodyHeading}>{heading}</h2>
+              {detail.summary?.markdown ? (
+                <p className={styles.bodyText}>{detail.summary.markdown}</p>
+              ) : (
+                <p className={styles.bodyMuted}>
+                  {detail.status === "ANALYZING"
+                    ? "아직 분석 중이에요. 잠시 후 다시 확인해주세요."
+                    : "요약 본문이 없습니다."}
+                </p>
+              )}
 
-              <div className={styles.sectionEyebrow}>하이라이트</div>
-              <ul className={styles.highlightList}>
-                {session.insights.map((ins, i) => {
-                  const src = session.sources[i % session.sources.length];
-                  return (
-                    <li key={i} className={styles.highlightItem}>
-                      <span className={styles.highlightNum}>{String(i + 1).padStart(2, "0")}</span>
-                      <span className={styles.highlightText}>{ins}</span>
-                      {src && (
-                        <a
-                          href={`https://${src.url}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          title={`${src.host} 원문 열기`}
-                          className={styles.highlightLink}
-                        >
-                          <Icon name="link" size={14} />
-                        </a>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+              {insights.length > 0 && (
+                <>
+                  <div className={styles.sectionEyebrow}>하이라이트</div>
+                  <ul className={styles.highlightList}>
+                    {insights.map((ins, i) => {
+                      const src = detail.sources[i % Math.max(detail.sources.length, 1)];
+                      return (
+                        <li key={i} className={styles.highlightItem}>
+                          <span className={styles.highlightNum}>{String(i + 1).padStart(2, "0")}</span>
+                          <span className={styles.highlightText}>{ins}</span>
+                          {src && (
+                            <a
+                              href={src.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={`${hostFromUrl(src.url)} 원문 열기`}
+                              className={styles.highlightLink}
+                            >
+                              <Icon name="link" size={14} />
+                            </a>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              )}
             </Card>
           )
         ) : (
@@ -221,7 +315,7 @@ export function SessionDetail({ session }: SessionDetailProps) {
             {selectedNode && (
               <CitationPopup
                 node={nodes.find((n) => n.id === selectedNode)}
-                session={session}
+                session={detail}
                 onClose={() => setSelectedNode(null)}
               />
             )}
@@ -231,28 +325,26 @@ export function SessionDetail({ session }: SessionDetailProps) {
         <div className={styles.sidebar}>
           <Card style={{ padding: 16 }}>
             <div className={styles.sourcesHead}>
-              <h3 className={styles.sourcesTitle}>출처 ({session.sources.length})</h3>
-              <span className={styles.sourcesSub}>시간순</span>
+              <h3 className={styles.sourcesTitle}>출처 ({detail.sources.length})</h3>
             </div>
-            {session.sources.map((s, i) => (
-              <div key={i} className={styles.source} style={{ borderTop: i ? "1px solid var(--line)" : "none" }}>
-                <div className={styles.favicon}>{s.host.slice(0, 2).toUpperCase()}</div>
-                <div className={styles.sourceMain}>
-                  <div className={styles.sourceHost}>{s.host}</div>
-                  <div className={styles.sourceMeta}>
-                    <span>{s.time}</span>
-                    {s.deepRead && (
-                      <span className={styles.deep}>
-                        <Icon name="dot" size={6} /> Deep
-                      </span>
-                    )}
+            {detail.sources.length === 0 ? (
+              <div className={styles.sourcesEmpty}>수집된 출처가 없습니다.</div>
+            ) : (
+              detail.sources.map((s, i) => (
+                <div key={i} className={styles.source} style={{ borderTop: i ? "1px solid var(--line)" : "none" }}>
+                  <div className={styles.favicon}>{hostFromUrl(s.url).slice(0, 2).toUpperCase()}</div>
+                  <div className={styles.sourceMain}>
+                    <div className={styles.sourceHost}>{s.title || hostFromUrl(s.url)}</div>
+                    <div className={styles.sourceMeta}>{hostFromUrl(s.url)}</div>
                   </div>
+                  <a href={s.url} target="_blank" rel="noreferrer">
+                    <Button variant="ghost" style={{ width: 24, height: 24 }} aria-label="원문 열기">
+                      <Icon name="link" size={11} />
+                    </Button>
+                  </a>
                 </div>
-                <Button variant="ghost" style={{ width: 24, height: 24 }} aria-label="원문 열기">
-                  <Icon name="link" size={11} />
-                </Button>
-              </div>
-            ))}
+              ))
+            )}
           </Card>
         </div>
       </div>
