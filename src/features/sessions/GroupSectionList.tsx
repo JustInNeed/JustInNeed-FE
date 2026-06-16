@@ -49,7 +49,6 @@ export function GroupSectionList({
         <div key={g.id} className={styles.group}>
           <div className={styles.groupHead}>
             <div className={styles.groupTags}>
-              <span className={styles.groupName}>{g.name}</span>
               {g.hashtags.map((t) => (
                 <HashChip key={t} label={withHash(t)} size="lg" />
               ))}

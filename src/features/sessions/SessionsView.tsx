@@ -75,13 +75,13 @@ export function SessionsView() {
   const saveGroup = async (payload: GroupEditorPayload) => {
     try {
       if (payload.id != null) {
-        const updated = await updateTagGroup(payload.id, {
-          name: payload.name,
-          hashtags: payload.hashtags,
-        });
+        // 이름은 화면에서 쓰지 않으므로 hashtags만 수정 (name은 서버 기존값 유지)
+        const updated = await updateTagGroup(payload.id, { hashtags: payload.hashtags });
         setGroups((gs) => gs.map((g) => (g.id === updated.id ? updated : g)));
       } else {
-        const created = await createTagGroup({ name: payload.name, hashtags: payload.hashtags });
+        // 백엔드 name은 필수(notnull) → 화면엔 없으므로 해시태그로 자동 생성
+        const name = payload.hashtags.slice(0, 3).join(", ") || "새 그룹";
+        const created = await createTagGroup({ name, hashtags: payload.hashtags });
         setGroups((gs) => [...gs, created].sort((a, b) => a.position - b.position));
       }
       setCreating(false);

@@ -24,12 +24,6 @@
   flex: 1;
   min-width: 0;
 }
-.groupName {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--ink-900);
-  margin-right: 4px;
-}
 .groupCount {
   font-size: 12px;
   color: var(--ink-500);

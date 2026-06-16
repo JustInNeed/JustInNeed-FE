@@ -7,7 +7,6 @@ import styles from "./GroupEditor.module.css";
 
 export interface GroupEditorPayload {
   id?: number;
-  name: string;
   hashtags: string[];
 }
 
@@ -19,7 +18,6 @@ export interface GroupEditorProps {
 }
 
 export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorProps) {
-  const [name, setName] = useState(group?.name ?? "");
   const [selectedList, setSelectedList] = useState<string[]>(group?.hashtags ?? []);
   const [query, setQuery] = useState("");
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -53,7 +51,7 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
 
   const q = query.replace(/^#/, "").toLowerCase();
   const visibleTags = q ? allTags.filter((t) => t.toLowerCase().includes(q)) : allTags;
-  const canSave = name.trim().length > 0;
+  const canSave = selectedList.length > 0;
 
   return (
     <div className={styles.overlay} onClick={onCancel}>
@@ -69,17 +67,6 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
         </div>
 
         <div className={styles.body}>
-          <label className={styles.label}>그룹 이름</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="예: 유럽 여행 준비"
-            maxLength={50}
-            autoFocus
-            className={styles.nameInput}
-          />
-
           <div className={styles.selectedHead}>
             <label className={styles.label}>
               선택된 해시태그{" "}
@@ -152,6 +139,7 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="해시태그 검색"
+              autoFocus
               className={styles.searchInput}
             />
           </div>
@@ -191,7 +179,7 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
           </Button>
           <button
             disabled={!canSave}
-            onClick={() => onSave({ id: group?.id, name: name.trim(), hashtags: selectedList })}
+            onClick={() => onSave({ id: group?.id, hashtags: selectedList })}
             className={`${styles.saveBtn} ${canSave ? styles.saveBtnOn : styles.saveBtnOff}`}
           >
             {group ? "수정 완료" : "그룹 만들기"}
