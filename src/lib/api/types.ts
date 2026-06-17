@@ -6,6 +6,34 @@ export interface ApiResponse<T> {
   message: string | null;
 }
 
+// ---------- 인증 / 회원 ----------
+export type SocialProvider = "KAKAO" | "NAVER" | "GOOGLE";
+
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface MemberResponse {
+  id: number;
+  nickname: string | null; // 가입 직후엔 null (닉네임 입력 전)
+  socialProvider: SocialProvider;
+  email: string | null;
+  joinedAt: string; // ISO datetime
+}
+
+export interface NicknameUpdateRequest {
+  nickname: string;
+}
+
+export interface LogoutRequest {
+  refreshToken?: string;
+}
+
+export interface TokenRefreshRequest {
+  refreshToken: string;
+}
+
 export type SessionStatus = "ANALYZING" | "COMPLETED" | "FAILED";
 
 /** 목록용 — 본문 없음, 가벼움. */

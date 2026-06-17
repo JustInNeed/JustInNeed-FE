@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/ui";
-import type { Auth } from "@/lib/types";
+import type { MemberResponse } from "@/lib/api";
 import styles from "./Sidebar.module.css";
 
 interface NavItem {
@@ -42,11 +42,11 @@ const SECTIONS: NavSection[] = [
 ];
 
 export interface SidebarProps {
-  auth: Auth | null;
+  member: MemberResponse;
   onLogout: () => void;
 }
 
-export function Sidebar({ auth, onLogout }: SidebarProps) {
+export function Sidebar({ member, onLogout }: SidebarProps) {
   const pathname = usePathname();
   const [recording, setRecording] = useState(true);
 
@@ -121,15 +121,13 @@ export function Sidebar({ auth, onLogout }: SidebarProps) {
         </button>
       </div>
 
-      {auth && (
-        <div className={styles.userBox}>
-          <div className={styles.avatar}>{(auth.nickname || "?").slice(0, 1).toUpperCase()}</div>
-          <div className={styles.userName}>{auth.nickname}</div>
-          <button onClick={onLogout} title="로그아웃" className={styles.logoutBtn} aria-label="로그아웃">
-            <Icon name="logout" size={14} />
-          </button>
-        </div>
-      )}
+      <div className={styles.userBox}>
+        <div className={styles.avatar}>{(member.nickname || "?").slice(0, 1).toUpperCase()}</div>
+        <div className={styles.userName}>{member.nickname ?? "사용자"}</div>
+        <button onClick={onLogout} title="로그아웃" className={styles.logoutBtn} aria-label="로그아웃">
+          <Icon name="logout" size={14} />
+        </button>
+      </div>
     </aside>
   );
 }

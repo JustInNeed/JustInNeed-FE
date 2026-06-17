@@ -1,15 +1,15 @@
 import { Icon } from "@/components/ui";
-import type { Auth } from "@/lib/types";
+import type { ProviderId } from "@/lib/types";
 import { PROVIDERS, type Provider } from "../providers";
 import styles from "../auth.module.css";
 
 export interface LandingStepProps {
-  existing: Auth | null;
+  /** 직전에 사용한 프로바이더 — "최근 사용" 배지 표시용 (선택). */
+  lastProviderId?: ProviderId | null;
   onPick: (provider: Provider) => void;
-  onCancel?: () => void;
 }
 
-export function LandingStep({ existing, onPick, onCancel }: LandingStepProps) {
+export function LandingStep({ lastProviderId = null, onPick }: LandingStepProps) {
   return (
     <div className={`${styles.panel} ${styles.landing}`}>
       <div className={styles.logoWrap}>
@@ -28,7 +28,7 @@ export function LandingStep({ existing, onPick, onCancel }: LandingStepProps) {
 
       <div className={styles.providerList}>
         {PROVIDERS.filter((p) => p.enabled).map((p) => {
-          const isLast = existing?.provider === p.id;
+          const isLast = lastProviderId === p.id;
           return (
             <button
               key={p.id}
@@ -51,12 +51,6 @@ export function LandingStep({ existing, onPick, onCancel }: LandingStepProps) {
       <p className={styles.terms}>
         가입 시 <a href="#">이용약관</a>과 <a href="#">개인정보처리방침</a>에 동의합니다.
       </p>
-
-      {onCancel && (
-        <button onClick={onCancel} className={styles.laterBtn}>
-          나중에 하기
-        </button>
-      )}
     </div>
   );
 }

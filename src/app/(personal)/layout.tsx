@@ -3,37 +3,51 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { readAuth, clearAuth } from "@/lib/storage";
-import type { Auth } from "@/lib/types";
+import { getMe, logout, type MemberResponse } from "@/lib/api";
+import { clearTokens, getAccessToken, getRefreshToken } from "@/lib/auth/tokens";
 import styles from "./layout.module.css";
 
 export default function PersonalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  // undefined = still resolving auth on the client; null = unauthenticated
-  const [auth, setAuth] = useState<Auth | null | undefined>(undefined);
+  const [member, setMember] = useState<MemberResponse | null>(null);
 
   useEffect(() => {
-    const a = readAuth();
-    if (!a) {
+    if (!getAccessToken()) {
       router.replace("/login");
-      setAuth(null);
       return;
     }
-    setAuth(a);
+    getMe()
+      .then((m) => {
+        if (!m.nickname) {
+          router.replace("/onboarding/nickname"); // 가입 미완료
+          return;
+        }
+        setMember(m);
+      })
+      .catch(() => {
+        // 401은 클라이언트가 refresh/redirect 처리 → 그 외 오류는 로그인으로
+        clearTokens();
+        router.replace("/login");
+      });
   }, [router]);
 
-  const onLogout = () => {
-    if (!confirm("로그아웃하시겠어요? 확장 프로그램에서도 로그아웃됩니다.")) return;
-    clearAuth();
+  const onLogout = async () => {
+    if (!confirm("로그아웃하시겠어요?")) return;
+    try {
+      await logout(getRefreshToken() ?? undefined);
+    } catch {
+      /* 서버 실패해도 로컬 토큰은 삭제 */
+    }
+    clearTokens();
     router.replace("/login");
   };
 
-  // Avoid flashing the shell before auth is known.
-  if (!auth) return null;
+  // member가 준비될 때까지 셸을 그리지 않음 (깜빡임 방지)
+  if (!member) return null;
 
   return (
     <div className={styles.shell}>
-      <Sidebar auth={auth} onLogout={onLogout} />
+      <Sidebar member={member} onLogout={onLogout} />
       <main className={styles.main}>{children}</main>
     </div>
   );
