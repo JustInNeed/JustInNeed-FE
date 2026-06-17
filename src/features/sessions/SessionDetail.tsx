@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Card, Button, HashChip } from "@/components/ui";
+import { Icon, Card, Button, HashChip, Markdown } from "@/components/ui";
 import { Mindmap } from "@/components/mindmap/Mindmap";
 import {
   ApiError,
@@ -35,10 +35,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showTagPicker, setShowTagPicker] = useState(false);
 
-  // edit mode
+  // edit mode — 제목 + 본문(markdown) + 하이라이트(insights) 편집
   const [editing, setEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
-  const [draftHeading, setDraftHeading] = useState("");
   const [draftMarkdown, setDraftMarkdown] = useState("");
   const [draftInsights, setDraftInsights] = useState<string[]>([]);
 
@@ -98,7 +97,6 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
 
   const enterEdit = () => {
     setDraftTitle(detail.title);
-    setDraftHeading(detail.summary?.heading ?? "");
     setDraftMarkdown(detail.summary?.markdown ?? "");
     setDraftInsights(detail.summary?.insights ?? []);
     setView("text");
@@ -106,18 +104,17 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   };
   const saveEdit = async () => {
     await persist(
-      { title: draftTitle, editedMarkdown: draftMarkdown },
+      { title: draftTitle, editedMarkdown: draftMarkdown, insights: draftInsights },
       {
         title: draftTitle,
         summary: detail.summary
-          ? { ...detail.summary, heading: draftHeading, markdown: draftMarkdown }
-          : { heading: draftHeading, markdown: draftMarkdown, insights: draftInsights },
+          ? { ...detail.summary, markdown: draftMarkdown, insights: draftInsights }
+          : { markdown: draftMarkdown, insights: draftInsights },
       },
     );
     setEditing(false);
   };
 
-  const heading = detail.summary?.heading || "요약";
   const insights = detail.summary?.insights ?? [];
   const duration = formatDuration(detail.startedAt, detail.endedAt);
 
@@ -249,22 +246,19 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
         {view === "text" ? (
           editing ? (
             <SessionEditor
-              heading={draftHeading}
-              setHeading={setDraftHeading}
-              summary={draftMarkdown}
-              setSummary={setDraftMarkdown}
+              value={draftMarkdown}
+              onChange={setDraftMarkdown}
               insights={draftInsights}
-              updateInsight={(idx, value) =>
-                setDraftInsights((arr) => arr.map((v, i) => (i === idx ? value : v)))
+              updateInsight={(idx, v) =>
+                setDraftInsights((arr) => arr.map((x, i) => (i === idx ? v : x)))
               }
               removeInsight={(idx) => setDraftInsights((arr) => arr.filter((_, i) => i !== idx))}
             />
           ) : (
             <Card style={{ padding: 28, overflowY: "auto" }}>
               <div className={styles.sectionEyebrow}>본문</div>
-              <h2 className={styles.bodyHeading}>{heading}</h2>
               {detail.summary?.markdown ? (
-                <p className={styles.bodyText}>{detail.summary.markdown}</p>
+                <Markdown>{detail.summary.markdown}</Markdown>
               ) : (
                 <p className={styles.bodyMuted}>
                   {detail.status === "ANALYZING"
@@ -272,6 +266,8 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                     : "요약 본문이 없습니다."}
                 </p>
               )}
+
+              {insights.length > 0 && <div className={styles.bodyDivider} />}
 
               {insights.length > 0 && (
                 <>

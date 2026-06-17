@@ -181,17 +181,9 @@
 .sectionEyebrow:not(:first-child) {
   margin-top: 8px;
 }
-.bodyHeading {
-  margin: 4px 0 14px;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.4;
-}
-.bodyText {
-  font-size: 14px;
-  color: var(--ink-700);
-  line-height: 1.7;
-  margin: 0 0 24px;
+.bodyDivider {
+  margin: 24px 0 20px;
+  border-top: 1px solid var(--line);
 }
 
 .highlightList {
