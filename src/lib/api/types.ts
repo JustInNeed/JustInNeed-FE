@@ -56,7 +56,8 @@ export interface Source {
 }
 
 export interface SessionSummary {
-  heading: string;
+  /** @deprecated 본문 markdown으로 통합됨 — 화면에서 사용하지 않음 (백엔드 컬럼 제거 예정). */
+  heading?: string;
   markdown: string;
   insights: string[];
 }
@@ -74,6 +75,8 @@ export interface SessionUpdateRequest {
   isPublic?: boolean;
   isFavorite?: boolean;
   tags?: string[];
+  /** 하이라이트 편집. ⚠️ 백엔드 SessionUpdateRequest에 insights 필드 추가 필요 (없으면 저장 안 됨). */
+  insights?: string[];
 }
 
 export interface TagGroup {

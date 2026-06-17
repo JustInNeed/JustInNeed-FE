@@ -2,44 +2,30 @@ import { Icon, Card } from "@/components/ui";
 import styles from "./SessionEditor.module.css";
 
 export interface SessionEditorProps {
-  heading: string;
-  setHeading: (v: string) => void;
-  summary: string;
-  setSummary: (v: string) => void;
+  /** 본문 마크다운 원문. 저장 시 editedMarkdown으로 전송됨. */
+  value: string;
+  onChange: (v: string) => void;
+  /** 하이라이트(인사이트) 목록. */
   insights: string[];
   updateInsight: (idx: number, value: string) => void;
   removeInsight: (idx: number) => void;
 }
 
-export function SessionEditor({
-  heading,
-  setHeading,
-  summary,
-  setSummary,
-  insights,
-  updateInsight,
-  removeInsight,
-}: SessionEditorProps) {
+export function SessionEditor({ value, onChange, insights, updateInsight, removeInsight }: SessionEditorProps) {
   return (
     <Card style={{ padding: 28, overflowY: "auto" }}>
-      <div className={styles.eyebrow}>본문</div>
-
-      <input
-        value={heading}
-        onChange={(e) => setHeading(e.target.value)}
-        placeholder="소제목"
-        className={styles.heading}
-      />
+      <div className={styles.eyebrow}>본문 (마크다운)</div>
 
       <textarea
-        value={summary}
-        onChange={(e) => setSummary(e.target.value)}
-        placeholder="본문을 입력하세요. (## 소제목 같은 마크다운 지원 예정)"
-        rows={8}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="마크다운으로 작성하세요. 예) # 제목, ## 소제목, **굵게**, - 목록"
         className={styles.summary}
+        autoFocus
       />
       <div className={styles.tip}>
-        Tip: <code>## 소제목</code> / <code>**굵게**</code> 같은 마크다운으로 작성할 수 있어요.
+        Tip: <code># 제목</code> / <code>## 소제목</code> / <code>**굵게**</code> / <code>- 목록</code> 등 마크다운 문법을
+        그대로 쓸 수 있어요.
       </div>
 
       <div className={styles.highlightHead}>
