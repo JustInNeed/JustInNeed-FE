@@ -11,8 +11,7 @@ npm run dev                  # http://localhost:3000  ← CORS가 3000에만 열
 npm run build                # 프로덕션 빌드
 ```
 
-> ⚠️ 백엔드 CORS가 `http://localhost:3000`에만 허용돼 있어 dev 서버는 **3000 포트**로 띄워야 합니다.
-> 3000이 막혀 있으면 Next가 자동으로 3001로 올라가는데, 그 경우 API 호출이 CORS로 막힙니다.
+> 백엔드 CORS가 `http://localhost:3000`에만 허용
 
 ## 환경 변수 (`.env.local`)
 
