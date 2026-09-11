@@ -1,0 +1,248 @@
+.page {
+  overflow-y: auto;
+  height: 100%;
+}
+.grid {
+  padding: 0 28px 28px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.card {
+  padding: 22px;
+}
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.cardTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.cardSub {
+  font-size: 11px;
+  color: var(--ink-500);
+}
+.em {
+  color: var(--green-700);
+}
+.emInk {
+  color: var(--ink-900);
+}
+.muted {
+  color: var(--ink-500);
+}
+
+/* 탐색 성향 */
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 2px;
+}
+.statLabel {
+  font-size: 13px;
+  color: var(--ink-700);
+}
+.statValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+/* 분석/추천 박스 */
+.recBox {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--green-50);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.recEyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green-700);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+.recText {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-900);
+  line-height: 1.6;
+}
+.recTextMuted {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-700);
+  line-height: 1.6;
+}
+.recSecond {
+  padding-top: 10px;
+  border-top: 1px dashed var(--green-300);
+}
+
+/* 롤링 배너 */
+.banner {
+  padding: 22px;
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, var(--green-50), var(--surface) 60%);
+  position: relative;
+  overflow: hidden;
+  min-height: 130px;
+}
+.bannerRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.bannerIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--green-500);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.bannerBody {
+  flex: 1;
+  padding-right: 80px;
+}
+.bannerTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.bannerText {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--ink-700);
+  line-height: 1.6;
+}
+.dots {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  display: flex;
+  gap: 6px;
+}
+.dot {
+  height: 6px;
+  border-radius: 999px;
+  transition: all 0.25s;
+}
+
+/* 읽기 행동 분포 */
+.stacked {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.legend {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 24px;
+  row-gap: 10px;
+}
+.legendRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.legendName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-900);
+}
+.legendSwatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.legendPct {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+/* 카테고리 */
+.catRow {
+  margin-bottom: 12px;
+}
+.catHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.catName {
+  font-weight: 500;
+}
+.catMeta {
+  color: var(--ink-500);
+}
+.catTrack {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.catBar {
+  height: 100%;
+  background: var(--green-500);
+  border-radius: 4px;
+}
+
+/* 히트맵 */
+.heatmaps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.heatHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.heatLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.heatLabelText {
+  font-size: 12px;
+  font-weight: 600;
+}
+.heatGrid {
+  display: grid;
+  grid-template-columns: 20px repeat(8, 1fr);
+  gap: 3px;
+}
+.heatAxis {
+  font-size: 9px;
+  color: var(--ink-500);
+}
+.heatCell {
+  aspect-ratio: 3.2;
+  border-radius: 3px;
+  border: 1px solid transparent;
+}

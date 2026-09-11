@@ -23,7 +23,7 @@ export default function NicknameOnboardingPage() {
       .then((m) => {
         if (m.nickname) {
           // 이미 닉네임이 있으면 온보딩 불필요
-          router.replace("/sessions");
+          router.replace("/home");
           return;
         }
         setProviderLabel(SOCIAL_PROVIDER_LABEL[m.socialProvider]);
@@ -37,7 +37,7 @@ export default function NicknameOnboardingPage() {
     setError(null);
     try {
       await updateNickname(nickname);
-      router.replace("/sessions");
+      router.replace("/home");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "닉네임 설정에 실패했습니다.");
       setSubmitting(false);

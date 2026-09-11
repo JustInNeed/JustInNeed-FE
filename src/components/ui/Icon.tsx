@@ -234,17 +234,19 @@ export interface IconProps {
   name: IconName;
   size?: number;
   stroke?: number;
+  /** 채움 색 (기본 none). 좋아요/북마크 활성 상태 등에 'currentColor' 로 사용. */
+  fill?: string;
   style?: CSSProperties;
   className?: string;
 }
 
-export function Icon({ name, size = 18, stroke = 1.7, style, className }: IconProps) {
+export function Icon({ name, size = 18, stroke = 1.7, fill = "none", style, className }: IconProps) {
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={fill}
       stroke="currentColor"
       strokeWidth={stroke}
       strokeLinecap="round"

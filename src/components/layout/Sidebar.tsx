@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/ui";
-import type { MemberResponse } from "@/lib/api";
+import { formatElapsed, usePersonal } from "@/lib/app/PersonalContext";
 import styles from "./Sidebar.module.css";
 
 interface NavItem {
   id: string;
   label: string;
   icon: IconName;
-  /** Only items with an href are navigable; others are placeholders for not-yet-built pages. */
-  href?: string;
+  href: string;
+  /** 활성 판정에 쓸 경로 prefix (기본 href) */
+  match?: string[];
 }
 
 interface NavSection {
@@ -24,31 +24,26 @@ const SECTIONS: NavSection[] = [
   {
     title: "개인 영역",
     items: [
-      { id: "home", label: "홈", icon: "home" },
-      { id: "analytics", label: "분석/추천", icon: "chart" },
+      { id: "home", label: "홈", icon: "home", href: "/home" },
+      { id: "analytics", label: "분석/추천", icon: "chart", href: "/analytics" },
       { id: "sessions", label: "세션 목록", icon: "list", href: "/sessions" },
-      { id: "settings", label: "설정", icon: "settings" },
+      { id: "settings", label: "설정", icon: "settings", href: "/settings" },
     ],
   },
   {
     title: "커뮤니티",
     items: [
-      { id: "community", label: "둘러보기", icon: "users" },
-      { id: "search", label: "검색", icon: "search" },
-      { id: "bookmarks", label: "북마크", icon: "bookmark" },
-      { id: "profile", label: "마이프로필", icon: "user" },
+      { id: "community", label: "둘러보기", icon: "users", href: "/community" },
+      { id: "search", label: "검색", icon: "search", href: "/search" },
+      { id: "bookmarks", label: "북마크", icon: "bookmark", href: "/bookmarks" },
+      { id: "profile", label: "마이프로필", icon: "user", href: "/profile", match: ["/profile"] },
     ],
   },
 ];
 
-export interface SidebarProps {
-  member: MemberResponse;
-  onLogout: () => void;
-}
-
-export function Sidebar({ member, onLogout }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname();
-  const [recording, setRecording] = useState(true);
+  const { member, logout, recording, setRecording, recordingSeconds } = usePersonal();
 
   return (
     <aside className={styles.aside}>
@@ -67,30 +62,15 @@ export function Sidebar({ member, onLogout }: SidebarProps) {
           <div key={section.title}>
             <div className={styles.sectionLabel}>{section.title}</div>
             {section.items.map((item) => {
-              const active = item.href ? pathname.startsWith(item.href) : false;
-              const cls = [styles.navItem, active ? styles.navItemActive : ""]
-                .filter(Boolean)
-                .join(" ");
-              const inner = (
-                <>
+              const bases = item.match ?? [item.href];
+              const active = bases.some((b) => pathname === b || pathname.startsWith(b + "/"));
+              const cls = [styles.navItem, active ? styles.navItemActive : ""].filter(Boolean).join(" ");
+              return (
+                <Link key={item.id} href={item.href} className={cls}>
                   <Icon name={item.icon} size={16} />
                   <span>{item.label}</span>
                   {active && <span className={styles.activeBar} />}
-                </>
-              );
-              return item.href ? (
-                <Link key={item.id} href={item.href} className={cls}>
-                  {inner}
                 </Link>
-              ) : (
-                <button
-                  key={item.id}
-                  className={cls}
-                  disabled
-                  title="준비 중인 페이지입니다"
-                >
-                  {inner}
-                </button>
               );
             })}
           </div>
@@ -106,9 +86,9 @@ export function Sidebar({ member, onLogout }: SidebarProps) {
           />
         </div>
         <div className={styles.recTitle}>{recording ? "수집 중" : "대기 중"}</div>
-        <div className={styles.recSub}>{recording ? "23분 14초" : "버튼을 눌러 시작"}</div>
+        <div className={styles.recSub}>{recording ? formatElapsed(recordingSeconds) : "버튼을 눌러 시작"}</div>
         <button
-          onClick={() => setRecording((v) => !v)}
+          onClick={() => setRecording(!recording)}
           className={styles.recBtn}
           style={{
             background: recording ? "var(--surface)" : "var(--green-500)",
@@ -124,7 +104,7 @@ export function Sidebar({ member, onLogout }: SidebarProps) {
       <div className={styles.userBox}>
         <div className={styles.avatar}>{(member.nickname || "?").slice(0, 1).toUpperCase()}</div>
         <div className={styles.userName}>{member.nickname ?? "사용자"}</div>
-        <button onClick={onLogout} title="로그아웃" className={styles.logoutBtn} aria-label="로그아웃">
+        <button onClick={logout} title="로그아웃" className={styles.logoutBtn} aria-label="로그아웃">
           <Icon name="logout" size={14} />
         </button>
       </div>

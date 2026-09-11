@@ -1,0 +1,273 @@
+// 디자인 시안(Claude Design "JustInNeed") 의 샘플 데이터.
+// ⚠️ 백엔드 API가 없는 화면(홈·분석·커뮤니티·검색·북마크·프로필·설정)에서만 사용한다.
+//    세션 목록/상세는 실제 API(lib/api)를 쓰며 이 파일을 참조하지 않는다.
+import type { SessionListItem } from "@/lib/api";
+import type { MindmapEdge, MindmapNode } from "@/lib/types";
+
+// ---------- 개인 홈 마인드맵 (force-directed) ----------
+export const MINDMAP_NODES: MindmapNode[] = [
+  { id: "eu", label: "유럽 여행", x: 600, y: 380, size: 28, group: "core" },
+  { id: "rome", label: "로마", x: 380, y: 220, size: 20, group: "city" },
+  { id: "paris", label: "파리", x: 820, y: 200, size: 22, group: "city" },
+  { id: "barca", label: "바르셀로나", x: 320, y: 540, size: 18, group: "city" },
+  { id: "prague", label: "프라하", x: 880, y: 540, size: 16, group: "city" },
+  { id: "flight", label: "항공권", x: 600, y: 130, size: 16, group: "logi" },
+  { id: "visa", label: "비자/입국", x: 760, y: 100, size: 12, group: "logi" },
+  { id: "rail", label: "유레일패스", x: 600, y: 600, size: 16, group: "logi" },
+  { id: "budget", label: "예산", x: 440, y: 620, size: 14, group: "logi" },
+  { id: "packing", label: "짐싸기", x: 760, y: 620, size: 12, group: "logi" },
+  { id: "colos", label: "콜로세움", x: 220, y: 130, size: 9, group: "sub" },
+  { id: "vatic", label: "바티칸", x: 250, y: 280, size: 10, group: "sub" },
+  { id: "tras", label: "트라스테베레", x: 180, y: 360, size: 8, group: "sub" },
+  { id: "pasta", label: "카르보나라", x: 130, y: 200, size: 9, group: "sub" },
+  { id: "eiffel", label: "에펠탑", x: 980, y: 150, size: 10, group: "sub" },
+  { id: "louvre", label: "루브르", x: 1020, y: 280, size: 11, group: "sub" },
+  { id: "orsay", label: "오르세", x: 920, y: 320, size: 9, group: "sub" },
+  { id: "mont", label: "몽마르뜨", x: 1050, y: 200, size: 8, group: "sub" },
+  { id: "sagrada", label: "사그라다 파밀리아", x: 200, y: 600, size: 10, group: "sub" },
+  { id: "park", label: "구엘공원", x: 180, y: 480, size: 9, group: "sub" },
+  { id: "tapas", label: "타파스", x: 220, y: 700, size: 8, group: "sub" },
+  { id: "castle", label: "프라하성", x: 1000, y: 600, size: 9, group: "sub" },
+  { id: "bridge", label: "카를교", x: 1010, y: 500, size: 9, group: "sub" },
+  { id: "skyscan", label: "스카이스캐너", x: 480, y: 60, size: 7, group: "sub" },
+  { id: "kayak", label: "Kayak", x: 720, y: 50, size: 7, group: "sub" },
+  { id: "booking", label: "Booking.com", x: 600, y: 700, size: 7, group: "sub" },
+  { id: "travel-blog", label: "여행블로그", x: 100, y: 380, size: 7, group: "meta" },
+  { id: "reddit", label: "r/travel", x: 1100, y: 380, size: 8, group: "meta" },
+];
+
+export const MINDMAP_EDGES: MindmapEdge[] = [
+  ["eu", "rome"], ["eu", "paris"], ["eu", "barca"], ["eu", "prague"],
+  ["eu", "flight"], ["eu", "rail"], ["eu", "budget"], ["eu", "packing"],
+  ["flight", "visa"],
+  ["rome", "colos"], ["rome", "vatic"], ["rome", "tras"], ["rome", "pasta"],
+  ["paris", "eiffel"], ["paris", "louvre"], ["paris", "orsay"], ["paris", "mont"],
+  ["barca", "sagrada"], ["barca", "park"], ["barca", "tapas"],
+  ["prague", "castle"], ["prague", "bridge"],
+  ["flight", "skyscan"], ["flight", "kayak"], ["rail", "booking"],
+  ["rome", "travel-blog"], ["paris", "travel-blog"], ["eu", "reddit"],
+];
+
+// ---------- 세션 (API SessionListItem 형태, 프로필/북마크/검색 화면용) ----------
+const s = (
+  id: number,
+  title: string,
+  start: string,
+  end: string,
+  pageCount: number,
+  isFavorite: boolean,
+  tags: string[],
+): SessionListItem => ({
+  id,
+  title,
+  startedAt: start,
+  endedAt: end,
+  pageCount,
+  status: "COMPLETED",
+  isFavorite,
+  isPublic: false,
+  tags,
+});
+
+export const MOCK_SESSIONS: SessionListItem[] = [
+  s(9001, "로마 3박 4일 동선 짜기", "2026-04-26T21:14:00", "2026-04-26T22:48:00", 18, true, ["로마", "콜로세움", "바티칸", "먹거리"]),
+  s(9002, "유럽 항공권 비교 (인천→로마 IN, 프라하→인천 OUT)", "2026-04-25T14:02:00", "2026-04-25T15:21:00", 11, false, ["항공권", "스카이스캐너", "예산"]),
+  s(9003, "파리 미술관 4곳 비교 (루브르/오르세/오랑주리/퐁피두)", "2026-04-24T10:05:00", "2026-04-24T11:30:00", 14, true, ["파리", "미술관", "루브르", "오르세"]),
+  s(9004, "유레일패스 vs 개별 구매", "2026-04-23T19:12:00", "2026-04-23T19:51:00", 7, false, ["유레일", "예산", "기차"]),
+  s(9005, "바르셀로나 가우디 투어", "2026-04-22T22:30:00", "2026-04-22T23:15:00", 9, false, ["바르셀로나", "가우디", "사그라다파밀리아"]),
+  s(9006, "쉥겐 비자 & 입국 서류", "2026-04-21T09:40:00", "2026-04-21T10:08:00", 5, false, ["비자", "쉥겐", "ETIAS"]),
+  s(9007, "프라하 1박 일정 짜기", "2026-04-20T23:05:00", "2026-04-20T23:32:00", 6, false, ["프라하", "카를교", "체코"]),
+];
+
+// ---------- 커뮤니티 ----------
+export interface CommunityUser {
+  name: string;
+  avatar: string;
+  handle: string; // '@' 포함
+}
+export interface CommunityPost {
+  id: string;
+  user: CommunityUser;
+  title: string;
+  snippet: string;
+  hashtags: string[]; // '#' 포함 (표시용)
+  nodes: number;
+  likes: number;
+  bookmarks: number;
+  exploring: number;
+  when: string;
+}
+
+export const COMMUNITY_FEED: CommunityPost[] = [
+  { id: "c1", user: { name: "wanderlust", avatar: "🌿", handle: "@wanderlust" }, title: "동유럽 3주 살이 전체 동선", snippet: "프라하 → 비엔나 → 부다페스트 → 크라쿠프 → 베를린. 각 도시 4~5일씩 잡고 야간열차로 이동.", hashtags: ["#프라하", "#동유럽", "#야간열차"], nodes: 142, likes: 284, bookmarks: 91, exploring: 12, when: "3시간 전" },
+  { id: "c2", user: { name: "foodtrip", avatar: "🥖", handle: "@foodtrip" }, title: "파리 미식 지도 — 1구부터 20구까지", snippet: "미슐랭 빕그루망 + 로컬 비스트로 위주. 마레 지구가 가성비 최고.", hashtags: ["#파리", "#먹거리", "#미슐랭"], nodes: 88, likes: 412, bookmarks: 188, exploring: 34, when: "6시간 전" },
+  { id: "c3", user: { name: "budgetnomad", avatar: "🪙", handle: "@budgetnomad" }, title: "유럽 한 달 200만원으로 살기", snippet: "호스텔 + 슈퍼마켓 + 무료 워킹투어. 알베르고 디푸소 활용 팁 공유.", hashtags: ["#예산", "#배낭여행", "#호스텔"], nodes: 56, likes: 198, bookmarks: 142, exploring: 28, when: "1일 전" },
+  { id: "c4", user: { name: "artwalk", avatar: "🎨", handle: "@artwalk" }, title: "유럽 미술관 30곳 우선순위", snippet: "루브르 / 우피치 / 프라도 / 리이크스. 각 미술관 머스트씨 작품 정리.", hashtags: ["#미술관", "#파리", "#피렌체"], nodes: 73, likes: 256, bookmarks: 198, exploring: 19, when: "2일 전" },
+  { id: "c5", user: { name: "slowtravel", avatar: "🌅", handle: "@slowtravel" }, title: "이탈리아 시골 마을 7곳", snippet: "알베로벨로, 오르비에토, 칼라브리아... 관광지 말고 진짜 이탈리아.", hashtags: ["#이탈리아", "#소도시", "#슬로우트래블"], nodes: 64, likes: 312, bookmarks: 224, exploring: 41, when: "3일 전" },
+  { id: "c6", user: { name: "rail.kr", avatar: "🚆", handle: "@rail.kr" }, title: "유레일 vs 저가항공 — 실비 비교", snippet: "4개국 이상이면 패스. 2~3개국이면 라이언에어가 더 싸다.", hashtags: ["#유레일", "#항공권", "#예산"], nodes: 41, likes: 178, bookmarks: 88, exploring: 7, when: "4일 전" },
+];
+
+export interface TrendingHashtag {
+  tag: string;
+  count: number;
+  trend: number;
+}
+export const TRENDING_HASHTAGS: TrendingHashtag[] = [
+  { tag: "#쉥겐비자", count: 1284, trend: 18 },
+  { tag: "#유레일패스", count: 982, trend: 12 },
+  { tag: "#파리", count: 854, trend: 8 },
+  { tag: "#오로라", count: 612, trend: 42 },
+  { tag: "#포르투", count: 488, trend: 28 },
+  { tag: "#야간열차", count: 401, trend: 15 },
+  { tag: "#아이슬란드", count: 388, trend: -4 },
+  { tag: "#알프스", count: 322, trend: 6 },
+];
+
+// ---------- 프로필 ----------
+export interface MockProfile {
+  name: string;
+  handle: string;
+  avatar: string;
+  bio: string;
+  nodes: number;
+  sessions: number;
+  likes: number;
+  interests: string[];
+  topTags: { tag: string; count: number }[];
+}
+
+export const MY_PROFILE: MockProfile = {
+  name: "sprout.kr",
+  handle: "@sprout.kr",
+  avatar: "🌱",
+  bio: "HCI 연구하며 여행 다니는 사람. 요즘은 유럽.",
+  nodes: 218,
+  sessions: 47,
+  likes: 87,
+  interests: ["#유럽여행", "#HCI", "#미술관", "#프론트엔드", "#독서"],
+  topTags: [
+    { tag: "#파리", count: 28 },
+    { tag: "#로마", count: 24 },
+    { tag: "#항공권", count: 18 },
+    { tag: "#미술관", count: 15 },
+    { tag: "#예산", count: 11 },
+  ],
+};
+
+export function otherProfile(handle: string): MockProfile {
+  const h = handle.startsWith("@") ? handle : `@${handle}`;
+  const post = COMMUNITY_FEED.find((p) => p.user.handle === h);
+  return {
+    name: h.replace("@", "") || "wanderlust",
+    handle: h || "@wanderlust",
+    avatar: post?.user.avatar ?? "🌿",
+    bio: "동유럽 한 달 살이 중. 천천히 깊게 다니기.",
+    nodes: 142,
+    sessions: 31,
+    likes: 284,
+    interests: ["#프라하", "#비엔나", "#야간열차", "#카페투어"],
+    topTags: [
+      { tag: "#프라하", count: 32 },
+      { tag: "#비엔나", count: 28 },
+      { tag: "#야간열차", count: 16 },
+      { tag: "#카페", count: 14 },
+      { tag: "#슬로우트래블", count: 12 },
+    ],
+  };
+}
+
+// ---------- 홈 대시보드 ----------
+export const HOME_TOP_TAGS = [
+  { tag: "#파리", n: 28 }, { tag: "#로마", n: 24 }, { tag: "#항공권", n: 18 }, { tag: "#미술관", n: 15 },
+  { tag: "#예산", n: 11 }, { tag: "#일정", n: 9 }, { tag: "#식당예약", n: 8 }, { tag: "#교통권", n: 7 },
+  { tag: "#환전", n: 6 }, { tag: "#숨겨진명소", n: 5 },
+];
+
+export const HOME_WEEK_ACTIVITY = [
+  { d: "월", mins: 38 }, { d: "화", mins: 94 }, { d: "수", mins: 67 }, { d: "목", mins: 110 },
+  { d: "금", mins: 77 }, { d: "토", mins: 120 }, { d: "일", mins: 58 },
+];
+
+export interface TimelineSite {
+  name: string;
+  favicon: string;
+  color: string;
+}
+export interface TimelineSlot {
+  time: string;
+  tags: string[];
+  sites: TimelineSite[];
+}
+export const HOME_TIMELINE: TimelineSlot[] = [
+  { time: "09:00 — 10:30", tags: ["#아침루틴", "#커피"], sites: [{ name: "velog.io", favicon: "V", color: "#20c997" }, { name: "medium.com", favicon: "M", color: "#000" }] },
+  { time: "10:30 — 12:00", tags: ["#자바", "#스프링", "#JPA"], sites: [{ name: "docs.spring.io", favicon: "S", color: "#6db33f" }, { name: "baeldung.com", favicon: "B", color: "#5d2f86" }, { name: "stackoverflow", favicon: "SO", color: "#f48024" }] },
+  { time: "13:00 — 14:30", tags: ["#파리", "#항공권", "#일정"], sites: [{ name: "skyscanner.net", favicon: "SK", color: "#0770e3" }, { name: "parisinfo.com", favicon: "P", color: "#d6336c" }] },
+  { time: "15:00 — 16:30", tags: ["#로마", "#콜로세움", "#먹거리"], sites: [{ name: "tripadvisor.co.kr", favicon: "T", color: "#00aa6c" }, { name: "naver.com/blog", favicon: "N", color: "#03c75a" }] },
+  { time: "17:00 — 18:00", tags: ["#예산", "#환전"], sites: [{ name: "kbstar.com", favicon: "K", color: "#fac810" }, { name: "wise.com", favicon: "W", color: "#163300" }] },
+];
+
+// ---------- 분석/추천 ----------
+export const ROLLING_SLIDES = [
+  { eyebrow: "이번 주 인사이트", icon: "sparkle" as const, title: "유럽 여행 준비가 본격화되고 있어요. 항공권 → 미술관 → 도시별 동선 순으로 탐색이 깊어지는 중입니다.", body: "지금까지의 흐름을 보면 다음 단계는 현지 교통 + 식사 예약이 될 가능성이 높아요." },
+  { eyebrow: "오늘의 웹 서핑 팁", icon: "sprout" as const, title: '검색어에 큰따옴표("")를 씌워 "키워드" 형태로 검색하면 정확한 결과를 찾을 수 있습니다.', body: "검색 방식만 바꿔도 정보의 질이 크게 달라집니다." },
+  { eyebrow: "오늘의 추천 행동", icon: "compass" as const, title: "커뮤니티 탐색 비중이 18%로 높은 편이에요. 문제 해결엔 좋지만 전체 구조를 잡는 데는 한계가 있어요.", body: "공식 문서를 한 번쯤 정독하며 기초를 다져보는 건 어떨까요?" },
+];
+
+export const READING_BEHAVIOR = [
+  { label: "Deep Reading", pct: 42, color: "var(--green-700)" },
+  { label: "Reading", pct: 26, color: "var(--green-500)" },
+  { label: "Scanning", pct: 22, color: "var(--green-300)" },
+  { label: "Navigation", pct: 10, color: "var(--green-100)" },
+];
+
+export const CATEGORY_RATIO = [
+  { name: "블로그", pct: 42, n: 89 },
+  { name: "공식문서", pct: 28, n: 60 },
+  { name: "커뮤니티", pct: 18, n: 38 },
+  { name: "뉴스", pct: 8, n: 17 },
+  { name: "기타", pct: 4, n: 9 },
+];
+
+export const EXPLORATION_STATS = [
+  { label: "세션 평균 URL", value: "12개" },
+  { label: "평균 페이지 체류", value: "42초" },
+  { label: "평균 세션 길이", value: "1시간 14분" },
+];
+
+// ---------- 설정 ----------
+export interface ExcludedUrl {
+  url: string;
+  on: boolean;
+  isDefault: boolean;
+}
+export const DEFAULT_EXCLUDED: ExcludedUrl[] = [
+  { url: "instagram.com", on: true, isDefault: true },
+  { url: "mail.google.com", on: true, isDefault: true },
+  { url: "youtube.com/shorts", on: true, isDefault: true },
+  { url: "twitter.com", on: false, isDefault: true },
+  { url: "tiktok.com", on: true, isDefault: true },
+  { url: "tistory.com/feed", on: true, isDefault: false },
+  { url: "tistory.com/skin", on: true, isDefault: false },
+  { url: "tistory.com", on: true, isDefault: false },
+  { url: "naver.com/blog", on: true, isDefault: false },
+];
+
+export const INTEGRATIONS = [
+  { l: "Google Docs", s: "연결됨", on: true },
+  { l: "Notion", s: "연결됨", on: true },
+  { l: "카카오톡", s: "미연결", on: false },
+];
+
+// ---------- 북마크 ----------
+export const BOOKMARK_TAG_BUNDLES = [
+  { name: "동유럽 자료", tags: ["#프라하", "#비엔나", "#부다페스트", "#야간열차"] },
+  { name: "미술관 모음", tags: ["#루브르", "#오르세", "#프라도", "#리이크스"] },
+  { name: "예산 짜기", tags: ["#호스텔", "#슈퍼마켓", "#무료투어"] },
+  { name: "항공권 비교", tags: ["#스카이스캐너", "#카타르항공", "#오픈조"] },
+];
+
+export const SIMILAR_PEOPLE = [
+  { name: "foodtrip", tags: "#파리 #먹거리" },
+  { name: "artwalk", tags: "#미술관 #파리" },
+  { name: "rail.kr", tags: "#유레일 #예산" },
+];
