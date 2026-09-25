@@ -1,0 +1,30 @@
+name: Sync to personal repo
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    # 개인 레포로 복사된 뒤에는 이 워크플로가 돌지 않도록 팀 레포에서만 실행
+    if: github.repository == 'JustInNeed/JustInNeed-FE'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # Vercel Hobby는 커밋 작성자가 계정 주인이 아니면 배포를 막으므로,
+      # 팀원 커밋 히스토리 대신 내 이름으로 된 스냅샷 커밋 하나만 push
+      - name: Push snapshot to personal repo
+        env:
+          PAT: ${{ secrets.PERSONAL_REPO_PAT }}
+        run: |
+          git config user.name "optiprime27"
+          git config user.email "yesong0427@gmail.com"
+          git checkout --orphan vercel-sync
+          git add -A
+          git commit -m "sync: ${{ github.sha }}"
+          git remote add personal https://${PAT}@github.com/optiprime27/JustInNeed-FE.git
+          git push personal vercel-sync:main --force
