@@ -24,7 +24,9 @@ jobs:
           git config user.name "optiprime27"
           git config user.email "yesong0427@gmail.com"
           git checkout --orphan vercel-sync
-          git add -A
+          # 워크플로 파일을 push하려면 PAT에 Workflows 권한이 필요하므로 스냅샷에서 제외
+          git rm -r -q --cached .github/workflows
+          git add -A -- . ':!.github/workflows'
           git commit -m "sync: ${{ github.sha }}"
           git remote add personal https://${PAT}@github.com/optiprime27/JustInNeed-FE.git
           git push personal vercel-sync:main --force
