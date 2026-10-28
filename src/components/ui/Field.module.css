@@ -1,0 +1,32 @@
+.field {
+  margin-bottom: 14px;
+}
+.head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-700);
+}
+.hint {
+  font-size: 11px;
+  color: var(--ink-400);
+}
+.input {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  outline: none;
+  color: var(--ink-900);
+  box-sizing: border-box;
+  transition: border-color 0.12s;
+}
+.input:focus {
+  border-color: var(--green-400);
+}

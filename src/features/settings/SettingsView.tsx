@@ -1,0 +1,114 @@
+"use client";
+
+import { useState } from "react";
+import { Icon, Card, PageHeader, Toggle, inputClass, Button } from "@/components/ui";
+import { DEFAULT_EXCLUDED, INTEGRATIONS, type ExcludedUrl } from "@/lib/mock/designData";
+import { ExclusionList } from "./ExclusionList";
+import { AccountSection } from "./AccountSection";
+import styles from "./SettingsView.module.css";
+
+type Section = "collection" | "extension" | "integration" | "account";
+
+const SECTIONS: { id: Section; l: string }[] = [
+  { id: "collection", l: "데이터 수집" },
+  { id: "extension", l: "확장 프로그램" },
+  { id: "integration", l: "외부 플랫폼" },
+  { id: "account", l: "계정" },
+];
+
+export function SettingsView() {
+  const [section, setSection] = useState<Section>("collection");
+  const [popup, setPopup] = useState(true);
+  const [excluded, setExcluded] = useState<ExcludedUrl[]>(DEFAULT_EXCLUDED);
+  const [newUrl, setNewUrl] = useState("");
+  const [autoStop, setAutoStop] = useState(true);
+  const [contextMenu, setContextMenu] = useState(true);
+  const [integrations, setIntegrations] = useState(INTEGRATIONS);
+
+  const addUrl = () => {
+    const v = newUrl.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
+    if (!v) return;
+    if (excluded.length >= 100) return alert("최대 100개까지 등록할 수 있어요.");
+    if (excluded.some((e) => e.url === v)) return alert("이미 등록된 URL입니다.");
+    setExcluded((list) => [...list, { url: v, on: true, isDefault: false }]);
+    setNewUrl("");
+  };
+
+  return (
+    <div className={styles.page}>
+      <PageHeader title="설정" subtitle="확장 프로그램과 데이터 수집을 관리해요" />
+      <div className={styles.grid}>
+        <nav className={styles.nav}>
+          {SECTIONS.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setSection(s.id)}
+              className={`${styles.navBtn} ${section === s.id ? styles.navBtnOn : ""}`}
+            >
+              {s.l}
+            </button>
+          ))}
+        </nav>
+
+        <div>
+          {section === "collection" && (
+            <Card className={styles.card}>
+              <h3 className={styles.cardTitle}>수집 제외 URL</h3>
+              <p className={styles.cardDesc}>이 사이트들에서는 행동 데이터를 수집하지 않아요. 최대 100개까지 등록 가능합니다.</p>
+              <div className={styles.addRow}>
+                <input
+                  value={newUrl}
+                  onChange={(e) => setNewUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addUrl()}
+                  placeholder="https://example.com"
+                  className={inputClass}
+                  style={{ flex: 1 }}
+                />
+                <Button variant="primary" onClick={addUrl}>
+                  <Icon name="plus" size={12} /> 추가
+                </Button>
+              </div>
+              <ExclusionList excluded={excluded} setExcluded={setExcluded} />
+            </Card>
+          )}
+
+          {section === "extension" && (
+            <Card className={styles.card}>
+              <Toggle label="확장 프로그램 팝업 노출" desc="브라우저에 떠있는 수집 상태 팝업을 켭니다" on={popup} onChange={setPopup} />
+              <div className={styles.divider} />
+              <Toggle label="자동 종료 알림" desc="30분 이상 활동 없으면 5초 알림 후 종료" on={autoStop} onChange={setAutoStop} />
+              <div className={styles.divider} />
+              <Toggle label="우클릭 컨텍스트 메뉴" desc="텍스트 선택 후 우클릭으로 수동 스크랩" on={contextMenu} onChange={setContextMenu} />
+            </Card>
+          )}
+
+          {section === "integration" && (
+            <Card className={styles.card}>
+              <h3 className={styles.cardTitle} style={{ marginBottom: 14 }}>연동된 외부 플랫폼</h3>
+              {integrations.map((p, i) => (
+                <div key={p.l} className={styles.integRow}>
+                  <div>
+                    <div className={styles.integName}>{p.l}</div>
+                    <div className={styles.integStatus} style={{ color: p.on ? "var(--green-600)" : "var(--ink-500)" }}>{p.s}</div>
+                  </div>
+                  <Button
+                    variant={p.on ? "secondary" : "primary"}
+                    onClick={() =>
+                      setIntegrations((list) =>
+                        list.map((x, j) => (j === i ? { ...x, on: !x.on, s: x.on ? "미연결" : "연결됨" } : x)),
+                      )
+                    }
+                  >
+                    {p.on ? "해제" : "연결"}
+                  </Button>
+                </div>
+              ))}
+            </Card>
+          )}
+
+          {section === "account" && <AccountSection />}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { setTokens } from "@/lib/auth/tokens";
+import { setAuthToast } from "@/lib/auth/toast";
 import styles from "./callback.module.css";
 
 export default function OauthCallbackPage() {
@@ -21,10 +22,11 @@ export default function OauthCallbackPage() {
     }
 
     setTokens({ accessToken, refreshToken });
+    setAuthToast({ kind: "login", justSignedUp: needsNickname === "true" });
     // 주소창·히스토리에서 토큰 쿼리 즉시 제거
     window.history.replaceState({}, "", "/oauth/callback");
 
-    router.replace(needsNickname === "true" ? "/onboarding/nickname" : "/sessions");
+    router.replace(needsNickname === "true" ? "/onboarding/nickname" : "/home");
   }, [router]);
 
   return (
