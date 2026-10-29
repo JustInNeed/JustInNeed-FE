@@ -5,7 +5,7 @@ import { AuthScreen } from "@/features/auth/AuthScreen";
 import { LandingStep } from "@/features/auth/steps/LandingStep";
 import type { Provider } from "@/features/auth/providers";
 import type { ProviderId } from "@/lib/types";
-import { getLastProvider, setLastProvider } from "@/lib/auth/tokens";
+import { clearPendingProvider, getLastProvider, setPendingProvider } from "@/lib/auth/tokens";
 import { consumeAuthToast } from "@/lib/auth/toast";
 import { AuthToast } from "@/components/layout/AuthToast";
 import { useToast } from "@/lib/app/ToastContext";
@@ -21,6 +21,7 @@ export default function LoginPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("error") !== "oauth") return;
+    clearPendingProvider();
     toast.error("로그인에 실패했어요. 다시 시도해 주세요.");
     window.history.replaceState(null, "", "/login");
   }, [toast]);
@@ -42,8 +43,9 @@ export default function LoginPage() {
   }, []);
 
   // 소셜 로그인 시작: SPA 라우팅이 아니라 브라우저 전체를 백엔드로 이동시켜야 함
+  // "최근 사용"은 로그인 성공(콜백) 후에 확정
   const onPick = (provider: Provider) => {
-    setLastProvider(provider.id);
+    setPendingProvider(provider.id);
     window.location.href = `${BASE_URL}/oauth2/authorization/${provider.id}`;
   };
 
