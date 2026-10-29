@@ -13,6 +13,9 @@ import { useToast } from "@/lib/app/ToastContext";
 import { withHash } from "@/lib/format";
 import {
   COMMUNITY_FEED,
+  MINDMAP_EDGES,
+  MINDMAP_NODES,
+  MINDMAP_NODE_URLS,
   MOCK_SESSIONS,
   MY_PROFILE,
   otherProfile,
@@ -305,7 +308,11 @@ export function ProfileView({ handle }: ProfileViewProps) {
         />
       )}
       {detail && fullView && (
-        <MindmapFullView title={`${profile.name}님의 전체 마인드맵`} onClose={closeFullView} />
+        <MindmapFullView
+          title={`${profile.name}님의 전체 마인드맵`}
+          mindmap={{ nodes: MINDMAP_NODES, edges: MINDMAP_EDGES, nodeUrls: MINDMAP_NODE_URLS }}
+          onClose={closeFullView}
+        />
       )}
     </div>
   );

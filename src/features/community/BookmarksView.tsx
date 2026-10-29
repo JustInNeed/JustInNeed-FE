@@ -8,9 +8,12 @@ import { MindmapDetailModal } from "@/components/mindmap/MindmapDetailModal";
 import { MindmapFullView } from "@/components/mindmap/MindmapFullView";
 import { SessionCard } from "@/features/sessions";
 import {
-  BOOKMARK_TAG_BUNDLES,
   BOOKMARKED_MINDMAPS,
+  BOOKMARK_TAG_BUNDLES,
   COMMUNITY_FEED,
+  MINDMAP_EDGES,
+  MINDMAP_NODES,
+  MINDMAP_NODE_URLS,
   MOCK_SESSIONS,
   relatedSessionsFor,
   type BookmarkedMindmap,
@@ -153,6 +156,7 @@ export function BookmarksView() {
       {detail && fullView && (
         <MindmapFullView
           title={`${detail.post.user.name}님의 전체 마인드맵`}
+          mindmap={{ nodes: MINDMAP_NODES, edges: MINDMAP_EDGES, nodeUrls: MINDMAP_NODE_URLS }}
           highlightIds={detail.savedNodeIds}
           onClose={closeFullView}
         />
