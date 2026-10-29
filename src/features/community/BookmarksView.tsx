@@ -7,28 +7,10 @@ import { MindmapCard } from "@/components/mindmap/MindmapCard";
 import { MindmapDetailModal } from "@/components/mindmap/MindmapDetailModal";
 import { MindmapFullView } from "@/components/mindmap/MindmapFullView";
 import { SessionCard } from "@/features/sessions";
-import {
-  BOOKMARKED_MINDMAPS,
-  BOOKMARK_TAG_BUNDLES,
-  COMMUNITY_FEED,
-  MINDMAP_EDGES,
-  MINDMAP_NODES,
-  MINDMAP_NODE_URLS,
-  MOCK_SESSIONS,
-  relatedSessionsFor,
-  type BookmarkedMindmap,
-  type CommunityPost,
-} from "@/lib/mock/designData";
+import type { BookmarksData, SavedMindmap } from "@/lib/viewTypes";
 import { useToast } from "@/lib/app/ToastContext";
 import { profilePath } from "./CommunityView";
 import styles from "./Community.module.css";
-
-type SavedMap = BookmarkedMindmap & { post: CommunityPost };
-
-const SAVED_MAPS: SavedMap[] = BOOKMARKED_MINDMAPS.flatMap((b) => {
-  const post = COMMUNITY_FEED.find((p) => p.id === b.postId);
-  return post ? [{ ...b, post }] : [];
-});
 
 /** 카드 위 북마크 해제 버튼 — 카드 클릭(팝업 · 이동)으로 번지지 않는다 */
 function UnbookmarkButton({ onClick, dark = false }: { onClick: () => void; dark?: boolean }) {
@@ -47,12 +29,46 @@ function UnbookmarkButton({ onClick, dark = false }: { onClick: () => void; dark
   );
 }
 
-export function BookmarksView() {
+export interface BookmarksViewProps {
+  /** 없으면(null) 빈 상태 — 북마크 API 가 생기기 전까지 */
+  data: BookmarksData | null;
+  loading?: boolean;
+  /** 불러오기 실패 메시지 */
+  error?: string | null;
+  onRetry?: () => void;
+}
+
+export function BookmarksView({ data, loading = false, error, onRetry }: BookmarksViewProps) {
+  return (
+    <div className={styles.page}>
+      <PageHeader title="북마크" subtitle="저장한 마인드맵·세션·해시태그 묶음" />
+      {loading ? (
+        <div className={styles.state}>불러오는 중…</div>
+      ) : error ? (
+        <div className={styles.searchBody}>
+          <InlineState kind="error" title={error} onRetry={onRetry} />
+        </div>
+      ) : !data ? (
+        <div className={styles.searchBody}>
+          <InlineState
+            kind="empty"
+            title="아직 북마크한 항목이 없어요"
+            description="커뮤니티에서 마음에 드는 마인드맵이나 세션을 북마크해 보세요."
+          />
+        </div>
+      ) : (
+        <BookmarksBody data={data} />
+      )}
+    </div>
+  );
+}
+
+function BookmarksBody({ data }: { data: BookmarksData }) {
   const router = useRouter();
   const toast = useToast();
   const [tab, setTab] = useState<"mindmap" | "sessions" | "tags">("mindmap");
 
-  // 북마크 해제 (목: 로컬 상태). 원본 순서에서 걸러내므로 되돌리면 같은 자리로 돌아온다.
+  // 북마크 해제 (API 연결 전: 로컬 상태). 받은 순서에서 걸러내므로 되돌리면 같은 자리로 돌아온다.
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
   const unbookmark = (key: string) => {
     setRemoved((cur) => new Set(cur).add(key));
@@ -68,19 +84,18 @@ export function BookmarksView() {
       },
     });
   };
-  const maps = SAVED_MAPS.filter((m) => !removed.has(`map:${m.postId}`));
-  const sessions = MOCK_SESSIONS.filter((s) => !removed.has(`session:${s.id}`));
-  const bundles = BOOKMARK_TAG_BUNDLES.filter((g) => !removed.has(`tag:${g.name}`));
+  const maps = data.mindmaps.filter((m) => !removed.has(`map:${m.post.id}`));
+  const sessions = data.sessions.filter((s) => !removed.has(`session:${s.id}`));
+  const bundles = data.tagBundles.filter((g) => !removed.has(`tag:${g.name}`));
 
   // 상세 팝업 → 원래 마인드맵에서 보기. 전체 보기를 닫으면 팝업으로 돌아간다.
-  const [detail, setDetail] = useState<SavedMap | null>(null);
+  const [detail, setDetail] = useState<SavedMindmap | null>(null);
   const [fullView, setFullView] = useState(false);
   const closeDetail = useCallback(() => setDetail(null), []);
   const closeFullView = useCallback(() => setFullView(false), []);
 
   return (
-    <div className={styles.page}>
-      <PageHeader title="북마크" subtitle="저장한 마인드맵·세션·해시태그 묶음" />
+    <>
       <div className={styles.bmTabs}>
         <Button variant="secondary" active={tab === "mindmap"} onClick={() => setTab("mindmap")}>마인드맵 ({maps.length})</Button>
         <Button variant="secondary" active={tab === "sessions"} onClick={() => setTab("sessions")}>세션 ({sessions.length})</Button>
@@ -94,14 +109,14 @@ export function BookmarksView() {
           <div className={styles.bmGrid}>
             {maps.map((m) => (
               <MindmapCard
-                key={m.postId}
-                seed={m.postId}
+                key={m.post.id}
+                seed={m.post.id}
                 nodes={m.post.nodes}
                 height={210}
                 title={m.post.title}
                 meta={`by ${m.post.user.name} · 저장 ${m.savedAgo}`}
                 tags={m.post.hashtags.slice(0, 2)}
-                topLeft={<UnbookmarkButton dark onClick={() => unbookmark(`map:${m.postId}`)} />}
+                topLeft={<UnbookmarkButton dark onClick={() => unbookmark(`map:${m.post.id}`)} />}
                 topRight={`노드 ${m.post.nodes}`}
                 onClick={() => setDetail(m)}
               />
@@ -142,7 +157,7 @@ export function BookmarksView() {
       {detail && !fullView && (
         <MindmapDetailModal
           post={detail.post}
-          sessions={relatedSessionsFor(detail.post)}
+          sessions={data.relatedSessions[detail.post.id] ?? []}
           onClose={closeDetail}
           onOpenProfile={(handle) => router.push(profilePath(handle))}
           actions={
@@ -156,11 +171,11 @@ export function BookmarksView() {
       {detail && fullView && (
         <MindmapFullView
           title={`${detail.post.user.name}님의 전체 마인드맵`}
-          mindmap={{ nodes: MINDMAP_NODES, edges: MINDMAP_EDGES, nodeUrls: MINDMAP_NODE_URLS }}
+          mindmap={detail.authorMindmap}
           highlightIds={detail.savedNodeIds}
           onClose={closeFullView}
         />
       )}
-    </div>
+    </>
   );
 }
