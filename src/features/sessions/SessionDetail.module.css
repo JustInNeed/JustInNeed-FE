@@ -194,9 +194,6 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.sectionEyebrow:not(:first-child) {
-  margin-top: 8px;
-}
 .bodyHead {
   display: flex;
   align-items: center;
@@ -210,52 +207,6 @@
   display: flex;
   gap: 2px;
 }
-.bodyDivider {
-  margin: 24px 0 20px;
-  border-top: 1px solid var(--line);
-}
-
-.highlightList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.highlightItem {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  background: var(--surface-2);
-  border-radius: 10px;
-  border-left: 3px solid var(--green-500);
-}
-.highlightNum {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--green-700);
-}
-.highlightText {
-  flex: 1;
-  font-size: 13px;
-  color: var(--ink-900);
-  line-height: 1.5;
-}
-.highlightLink {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  color: var(--ink-400);
-  text-decoration: none;
-  transition: color 0.12s;
-}
-.highlightLink:hover {
-  color: var(--green-700);
-}
-
 .sidebar {
   overflow-y: auto;
   display: flex;

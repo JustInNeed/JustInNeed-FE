@@ -43,10 +43,6 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-.idx {
-  font-size: 10px;
-  color: var(--ink-400);
-}
 .closeBtn {
   width: 22px;
   height: 22px;

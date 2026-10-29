@@ -55,11 +55,10 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showTagPicker, setShowTagPicker] = useState(false);
 
-  // edit mode — 제목 + 본문(markdown) + 하이라이트(insights) 편집
+  // edit mode — 제목 + 본문(markdown) 편집
   const [editing, setEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftMarkdown, setDraftMarkdown] = useState("");
-  const [draftInsights, setDraftInsights] = useState<string[]>([]);
 
   // 30초 자동 저장 — 변경이 있을 때만 저장. 저장 / 취소 버튼 옆 회색 상태 문구, 실패는 토스트로만
   const [baseline, setBaseline] = useState("");
@@ -77,7 +76,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const [tagDragIdx, setTagDragIdx] = useState<number | null>(null);
   const [tagOverIdx, setTagOverIdx] = useState<number | null>(null);
 
-  const draftKey = JSON.stringify([draftTitle, draftMarkdown, draftInsights]);
+  const draftKey = JSON.stringify([draftTitle, draftMarkdown]);
   const dirty = editing && draftKey !== baseline;
 
   useEffect(() => {
@@ -189,11 +188,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const enterEdit = () => {
     const title = detail.title;
     const markdown = detail.summary?.markdown ?? "";
-    const ins = detail.summary?.insights ?? [];
     setDraftTitle(title);
     setDraftMarkdown(markdown);
-    setDraftInsights(ins);
-    setBaseline(JSON.stringify([title, markdown, ins]));
+    setBaseline(JSON.stringify([title, markdown]));
     setAutoSave({ status: "idle", at: null });
     setView("text");
     setEditing(true);
@@ -206,11 +203,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     const key = draftKey;
     setAutoSave((s) => ({ ...s, status: "saving" }));
     try {
-      const updated = await updateSession(detail.id, {
-        title: draftTitle,
-        editedMarkdown: draftMarkdown,
-        insights: draftInsights,
-      });
+      const updated = await updateSession(detail.id, { title: draftTitle, editedMarkdown: draftMarkdown });
       setDetail(updated);
       setBaseline(key);
       const t = Date.now();
@@ -266,18 +259,15 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   };
   const saveEdit = async () => {
     await persist(
-      { title: draftTitle, editedMarkdown: draftMarkdown, insights: draftInsights },
+      { title: draftTitle, editedMarkdown: draftMarkdown },
       {
         title: draftTitle,
-        summary: detail.summary
-          ? { ...detail.summary, markdown: draftMarkdown, insights: draftInsights }
-          : { markdown: draftMarkdown, insights: draftInsights },
+        summary: detail.summary ? { ...detail.summary, markdown: draftMarkdown } : { markdown: draftMarkdown },
       },
     );
     setEditing(false);
   };
 
-  const insights = detail.summary?.insights ?? [];
   const duration = formatDuration(detail.startedAt, detail.endedAt);
 
   return (
@@ -442,15 +432,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
       <div className={styles.content}>
         {view === "text" ? (
           editing ? (
-            <SessionEditor
-              value={draftMarkdown}
-              onChange={setDraftMarkdown}
-              insights={draftInsights}
-              updateInsight={(idx, v) =>
-                setDraftInsights((arr) => arr.map((x, i) => (i === idx ? v : x)))
-              }
-              removeInsight={(idx) => setDraftInsights((arr) => arr.filter((_, i) => i !== idx))}
-            />
+            <SessionEditor value={draftMarkdown} onChange={setDraftMarkdown} />
           ) : (
             <Card style={{ padding: 28, overflowY: "auto" }}>
               <div className={styles.bodyHead}>
@@ -481,36 +463,6 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                     ? "아직 분석 중이에요. 잠시 후 다시 확인해주세요."
                     : "요약 본문이 없습니다."}
                 </p>
-              )}
-
-              {insights.length > 0 && <div className={styles.bodyDivider} />}
-
-              {insights.length > 0 && (
-                <>
-                  <div className={styles.sectionEyebrow}>하이라이트</div>
-                  <ul className={styles.highlightList}>
-                    {insights.map((ins, i) => {
-                      const src = detail.sources[i % Math.max(detail.sources.length, 1)];
-                      return (
-                        <li key={i} className={styles.highlightItem}>
-                          <span className={styles.highlightNum}>{String(i + 1).padStart(2, "0")}</span>
-                          <span className={styles.highlightText}>{ins}</span>
-                          {src && (
-                            <a
-                              href={src.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              title={`${hostFromUrl(src.url)} 원문 열기`}
-                              className={styles.highlightLink}
-                            >
-                              <Icon name="link" size={14} />
-                            </a>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </>
               )}
             </Card>
           )
