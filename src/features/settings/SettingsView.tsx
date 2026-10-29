@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Icon, Card, PageHeader, Toggle, inputClass, Button, FieldMessage } from "@/components/ui";
 import { DEFAULT_EXCLUDED, INTEGRATIONS, type ExcludedUrl } from "@/lib/mock/designData";
 import { ExclusionList } from "./ExclusionList";
+import { normalizeExcludedUrl } from "./excludedUrl";
 import { AccountSection } from "./AccountSection";
 import { WithdrawSection } from "./WithdrawSection";
 import styles from "./SettingsView.module.css";
@@ -30,8 +31,9 @@ export function SettingsView() {
   const [integrations, setIntegrations] = useState(INTEGRATIONS);
 
   const addUrl = () => {
-    const v = newUrl.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
-    if (!v) return;
+    if (!newUrl.trim()) return;
+    const v = normalizeExcludedUrl(newUrl);
+    if (!v) return setUrlError("올바른 URL 형식이 아니에요.");
     if (excluded.length >= 100) return setUrlError("URL은 최대 100개까지 등록할 수 있습니다.");
     if (excluded.some((e) => e.url === v)) return setUrlError("이미 등록된 URL입니다.");
     setExcluded((list) => [...list, { url: v, on: true, isDefault: false }]);
