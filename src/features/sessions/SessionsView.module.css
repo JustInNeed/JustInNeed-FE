@@ -28,6 +28,14 @@
   gap: 14px;
 }
 
+.end {
+  margin: 0;
+  padding: 24px 0 4px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
 .state {
   display: flex;
   flex-direction: column;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Button, PageHeader, InlineState } from "@/components/ui";
 import {
@@ -24,6 +24,8 @@ import styles from "./SessionsView.module.css";
 
 type ViewMode = "list" | "group";
 
+const PAGE_SIZE = 10;
+
 export function SessionsView() {
   const router = useRouter();
   const toast = useToast();
@@ -36,6 +38,8 @@ export function SessionsView() {
   const [view, setView] = useState<ViewMode>("list");
   const [creating, setCreating] = useState(false);
   const [editingGroup, setEditingGroup] = useState<TagGroup | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   // 쿼리 결과를 로컬 상태로 미러링 (낙관적 업데이트용)
   useEffect(() => {
@@ -68,6 +72,7 @@ export function SessionsView() {
   }, [sessions]);
 
   const filtered = favOnly ? sessions.filter((s) => s.isFavorite) : sessions;
+  const hasMore = visibleCount < filtered.length;
   const favCount = sessions.filter((s) => s.isFavorite).length;
   const displayGroups = favOnly
     ? groups.map((g) => ({ ...g, sessions: g.sessions.filter((s) => s.isFavorite) }))
@@ -120,6 +125,18 @@ export function SessionsView() {
   const error = view === "list" ? sessionsQuery.error : groupsQuery.error;
   const refetch = view === "list" ? sessionsQuery.refetch : groupsQuery.refetch;
 
+  // 무한 스크롤 — GET /sessions 는 페이징이 없어 받아 둔 목록을 10개씩 나눠 그림. 스크롤 80% 지점에서 다음 10개
+  const loadMoreIfNeeded = () => {
+    const el = bodyRef.current;
+    if (!el || view !== "list" || loading || !hasMore) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight * 0.8) setVisibleCount((c) => c + PAGE_SIZE);
+  };
+  // 첫 10개가 화면을 다 못 채우면 스크롤이 생길 때까지 이어서 그림
+  useEffect(() => {
+    loadMoreIfNeeded();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleCount, filtered.length, view, loading]);
+
   return (
     <div className={styles.page}>
       <PageHeader
@@ -133,6 +150,7 @@ export function SessionsView() {
               onClick={() => {
                 setView("list");
                 setFavOnly((v) => !v);
+                setVisibleCount(PAGE_SIZE);
               }}
             >
               <Icon name="star" size={12} /> 즐겨찾기
@@ -149,7 +167,7 @@ export function SessionsView() {
         }
       />
 
-      <div className={styles.body}>
+      <div ref={bodyRef} className={styles.body} onScroll={loadMoreIfNeeded}>
         {loading ? (
           <div className={styles.state}>불러오는 중…</div>
         ) : error ? (
@@ -166,16 +184,19 @@ export function SessionsView() {
               }
             />
           ) : (
-            <div className={styles.grid}>
-              {filtered.map((s) => (
-                <SessionCard
-                  key={s.id}
-                  session={s}
-                  onClick={() => openSession(s.id)}
-                  onToggleFavorite={toggleFav}
-                />
-              ))}
-            </div>
+            <>
+              <div className={styles.grid}>
+                {filtered.slice(0, visibleCount).map((s) => (
+                  <SessionCard
+                    key={s.id}
+                    session={s}
+                    onClick={() => openSession(s.id)}
+                    onToggleFavorite={toggleFav}
+                  />
+                ))}
+              </div>
+              {!hasMore && <p className={styles.end}>모든 기록을 확인했습니다.</p>}
+            </>
           )
         ) : (
           <GroupSectionList
