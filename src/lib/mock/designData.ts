@@ -207,8 +207,11 @@ export const HOME_TIMELINE: TimelineSlot[] = [
 ];
 
 // ---------- 분석/추천 ----------
+// "이번 주 인사이트" 슬라이드는 이번 주 세션 중 하나를 랜덤으로 보여준다 (AnalyticsView).
+// 목: MOCK_SESSIONS 를 이번 주 세션으로 사용 — BE API 생기면 교체
+export const WEEKLY_SESSIONS = MOCK_SESSIONS;
+
 export const ROLLING_SLIDES = [
-  { eyebrow: "이번 주 인사이트", icon: "sparkle" as const, title: "유럽 여행 준비가 본격화되고 있어요. 항공권 → 미술관 → 도시별 동선 순으로 탐색이 깊어지는 중입니다.", body: "지금까지의 흐름을 보면 다음 단계는 현지 교통 + 식사 예약이 될 가능성이 높아요." },
   { eyebrow: "오늘의 웹 서핑 팁", icon: "sprout" as const, title: '검색어에 큰따옴표("")를 씌워 "키워드" 형태로 검색하면 정확한 결과를 찾을 수 있습니다.', body: "검색 방식만 바꿔도 정보의 질이 크게 달라집니다." },
   { eyebrow: "오늘의 추천 행동", icon: "compass" as const, title: "커뮤니티 탐색 비중이 18%로 높은 편이에요. 문제 해결엔 좋지만 전체 구조를 잡는 데는 한계가 있어요.", body: "공식 문서를 한 번쯤 정독하며 기초를 다져보는 건 어떨까요?" },
 ];
@@ -217,7 +220,7 @@ export const READING_BEHAVIOR = [
   { label: "Deep Reading", pct: 42, color: "var(--green-700)" },
   { label: "Reading", pct: 26, color: "var(--green-500)" },
   { label: "Scanning", pct: 22, color: "var(--green-300)" },
-  { label: "Navigation", pct: 10, color: "var(--green-100)" },
+  { label: "Idle", pct: 10, color: "var(--green-100)" },
 ];
 
 export const CATEGORY_RATIO = [

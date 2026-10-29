@@ -147,18 +147,10 @@
   color: #fff;
   cursor: pointer;
 }
-.hintErr {
-  margin-top: 6px;
-  font-size: 11px;
-  color: #c44;
-}
-.hintOk {
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--green-700);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.nickActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 .providerBox {
   display: flex;

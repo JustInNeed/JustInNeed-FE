@@ -2,7 +2,8 @@
 
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Icon, Card, PageHeader } from "@/components/ui";
-import { CATEGORY_RATIO, EXPLORATION_STATS, READING_BEHAVIOR, ROLLING_SLIDES } from "@/lib/mock/designData";
+import { CATEGORY_RATIO, EXPLORATION_STATS, READING_BEHAVIOR, ROLLING_SLIDES, WEEKLY_SESSIONS } from "@/lib/mock/designData";
+import { formatDate, formatDuration, withHash } from "@/lib/format";
 import styles from "./AnalyticsView.module.css";
 
 export function AnalyticsView() {
@@ -110,11 +111,28 @@ function AnalysisRecBox({ analysis, recommendation }: { analysis: ReactNode; rec
 
 function RollingBanner() {
   const [i, setI] = useState(0);
+  // 이번 주 세션 중 랜덤 1개 — 서버 렌더와 어긋나지 않게 마운트 후에 고른다
+  const [pick, setPick] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setI((v) => (v + 1) % ROLLING_SLIDES.length), 5000);
-    return () => clearInterval(t);
+    setPick(Math.floor(Math.random() * WEEKLY_SESSIONS.length));
   }, []);
-  const s = ROLLING_SLIDES[i];
+  const session = WEEKLY_SESSIONS[pick];
+  const slides = [
+    {
+      eyebrow: "이번 주 인사이트",
+      icon: "sparkle" as const,
+      title: session.title,
+      body: [formatDate(session.startedAt), formatDuration(session.startedAt, session.endedAt), session.tags.slice(0, 3).map(withHash).join(" ")]
+        .filter(Boolean)
+        .join(" · "),
+    },
+    ...ROLLING_SLIDES,
+  ];
+  useEffect(() => {
+    const t = setInterval(() => setI((v) => (v + 1) % slides.length), 5000);
+    return () => clearInterval(t);
+  }, [slides.length]);
+  const s = slides[i];
   return (
     <Card className={styles.banner}>
       <div className={styles.bannerRow}>
@@ -128,7 +146,7 @@ function RollingBanner() {
         </div>
       </div>
       <div className={styles.dots}>
-        {ROLLING_SLIDES.map((_, idx) => (
+        {slides.map((_, idx) => (
           <button
             key={idx}
             onClick={() => setI(idx)}

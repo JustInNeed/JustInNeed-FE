@@ -285,9 +285,3 @@
   align-items: center;
   gap: 6px;
 }
-.deep {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  color: var(--green-700);
-}

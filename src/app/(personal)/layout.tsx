@@ -67,7 +67,7 @@ export default function PersonalLayout({ children }: { children: React.ReactNode
   if (!member) return null;
 
   return (
-    <PersonalProvider member={member} logout={onLogout}>
+    <PersonalProvider member={member} updateMember={setMember} logout={onLogout}>
       <div className={styles.shell}>
         <Sidebar />
         <main className={styles.main}>{children}</main>

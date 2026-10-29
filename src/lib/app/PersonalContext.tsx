@@ -2,12 +2,14 @@
 
 // (personal) 레이아웃 하위 화면이 공유하는 앱 상태.
 // - member / logout : 사이드바·설정 계정 섹션에서 사용
+// - updateMember    : 닉네임 변경 등 회원 정보가 바뀌었을 때 레이아웃 상태 갱신
 // - recording       : 확장 프로그램 수집 상태 (사이드바 버튼)
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { MemberResponse } from "@/lib/api";
 
 export interface PersonalContextValue {
   member: MemberResponse;
+  updateMember: (member: MemberResponse) => void;
   logout: () => void;
   recording: boolean;
   setRecording: (v: boolean) => void;
@@ -19,10 +21,12 @@ const Ctx = createContext<PersonalContextValue | null>(null);
 
 export function PersonalProvider({
   member,
+  updateMember,
   logout,
   children,
 }: {
   member: MemberResponse;
+  updateMember: (member: MemberResponse) => void;
   logout: () => void;
   children: ReactNode;
 }) {
@@ -41,7 +45,7 @@ export function PersonalProvider({
   const setRecording = useCallback((v: boolean) => setRecordingState(v), []);
 
   return (
-    <Ctx.Provider value={{ member, logout, recording, setRecording, recordingSeconds }}>
+    <Ctx.Provider value={{ member, updateMember, logout, recording, setRecording, recordingSeconds }}>
       {children}
     </Ctx.Provider>
   );
