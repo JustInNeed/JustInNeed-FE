@@ -9,6 +9,7 @@ import {
   SIMILAR_PEOPLE,
   TRENDING_HASHTAGS,
   TRENDING_HASHTAGS_WEEK,
+  COMMUNITY_RELATED_URLS,
   relatedSessionsFor,
   type CommunityPost,
 } from "@/lib/mock/designData";
@@ -94,6 +95,7 @@ export function CommunityView() {
             onToggleLike={() => toggleSet(liked, setLiked, post.id)}
             onToggleBookmark={() => toggleSet(bookmarked, setBookmarked, post.id)}
             onOpen={() => setDetail(post)}
+            relatedUrls={COMMUNITY_RELATED_URLS[post.id]}
           />
         ))}
       </div>

@@ -180,6 +180,35 @@ export function relatedSessionsFor(post: CommunityPost): SessionListItem[] {
   return (matched.length ? matched : MOCK_SESSIONS).slice(0, 3);
 }
 
+/** 추천 마인드맵과 함께 보여줄 연관 URL (마인드맵 id → 최대 2개) */
+export interface RelatedUrl {
+  title: string;
+  url: string;
+}
+export const COMMUNITY_RELATED_URLS: Record<string, RelatedUrl[]> = {
+  c1: [
+    { title: "ÖBB 나이트젯 야간열차 노선", url: "https://www.nightjet.com/en" },
+    { title: "체코 철도 승차권 예약", url: "https://www.cd.cz/en/" },
+  ],
+  c2: [
+    { title: "미슐랭 가이드 파리 빕그루망", url: "https://guide.michelin.com/en/ile-de-france/paris/restaurants/bib-gourmand" },
+    { title: "마레 지구 산책 코스", url: "https://www.parisinfo.com/" },
+  ],
+  c3: [
+    { title: "유럽 도시별 물가 비교", url: "https://www.numbeo.com/cost-of-living/" },
+    { title: "무료 워킹투어 모음", url: "https://www.freetour.com/" },
+  ],
+  c4: [
+    { title: "우피치 미술관 관람 예약", url: "https://www.uffizi.it/en" },
+    { title: "프라도 미술관 관람 안내", url: "https://www.museodelprado.es/en" },
+  ],
+  c5: [{ title: "알베로벨로 여행 정보", url: "https://www.italia.it/en/puglia/things-to-do/alberobello" }],
+  c6: [
+    { title: "유레일 패스 가격 비교", url: "https://www.eurail.com/en" },
+    { title: "라이언에어 노선 검색", url: "https://www.ryanair.com/" },
+  ],
+};
+
 export interface TrendingHashtag {
   tag: string;
   count: number;
