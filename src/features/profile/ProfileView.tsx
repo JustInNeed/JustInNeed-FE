@@ -1,15 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Button, InlineState } from "@/components/ui";
 import { MindmapCard } from "@/components/mindmap/MindmapCard";
+import { MindmapDetailModal } from "@/components/mindmap/MindmapDetailModal";
+import { MindmapFullView } from "@/components/mindmap/MindmapFullView";
 import { SessionCard } from "@/features/sessions";
 import type { SessionListItem } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import { useToast } from "@/lib/app/ToastContext";
 import { withHash } from "@/lib/format";
-import { COMMUNITY_FEED, MOCK_SESSIONS, MY_PROFILE, otherProfile, type MockProfile } from "@/lib/mock/designData";
+import {
+  COMMUNITY_FEED,
+  MOCK_SESSIONS,
+  MY_PROFILE,
+  otherProfile,
+  relatedSessionsFor,
+  type CommunityPost,
+  type MockProfile,
+} from "@/lib/mock/designData";
 import { ProfileEdit, type ProfileDraft } from "./ProfileEdit";
 import styles from "./Profile.module.css";
 
@@ -42,6 +52,11 @@ export function ProfileView({ handle }: ProfileViewProps) {
   const [selected, setSelected] = useState<string[]>([]);
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
   const bookmarkRef = useRef<HTMLDivElement>(null);
+  // 마인드맵 카드 → 상세 팝업 → 크게 보기 (리프 노드는 원문 URL로). 크게 보기를 닫으면 팝업으로 돌아간다
+  const [detail, setDetail] = useState<CommunityPost | null>(null);
+  const [fullView, setFullView] = useState(false);
+  const closeDetail = useCallback(() => setDetail(null), []);
+  const closeFullView = useCallback(() => setFullView(false), []);
 
   useEffect(() => {
     if (!bookmarkOpen) return;
@@ -226,6 +241,14 @@ export function ProfileView({ handle }: ProfileViewProps) {
                 tags={visibleTags(p.hashtags).slice(0, 2)}
                 topLeft={isMine ? <span title="핀고정됨"><Icon name="pin" size={11} stroke={2} /></span> : undefined}
                 topRight={`노드 ${p.nodes}`}
+                onClick={() =>
+                  // 목: 피드 게시물을 빌려 쓰므로 작성자 · 해시태그는 이 프로필 기준으로 바꿔 보여줌
+                  setDetail({
+                    ...p,
+                    user: { name: profile.name, avatar: profile.avatar, handle: profile.handle },
+                    hashtags: visibleTags(p.hashtags),
+                  })
+                }
                 footer={
                   <>
                     <span>♡ {p.likes}</span>
@@ -265,6 +288,25 @@ export function ProfileView({ handle }: ProfileViewProps) {
             </div>
           ))}
       </div>
+
+      {detail && !fullView && (
+        <MindmapDetailModal
+          post={detail}
+          sessions={relatedSessionsFor(detail)}
+          onClose={closeDetail}
+          // 이미 이 사람 프로필이라 작성자 이름을 누르면 팝업만 닫힌다
+          onOpenProfile={() => {}}
+          actions={
+            <Button variant="primary" onClick={() => setFullView(true)}>
+              <Icon name="network" size={13} />
+              마인드맵 크게 보기
+            </Button>
+          }
+        />
+      )}
+      {detail && fullView && (
+        <MindmapFullView title={`${profile.name}님의 전체 마인드맵`} onClose={closeFullView} />
+      )}
     </div>
   );
 }
