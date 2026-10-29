@@ -209,6 +209,12 @@ export interface ExcludedUrl {
   isDefault: boolean;
 }
 
+/** 외부 플랫폼 연동 (메뉴는 숨김 상태) */
+export interface Integration {
+  name: string;
+  connected: boolean;
+}
+
 // ---------- 북마크 ----------
 export interface BookmarkedMindmap {
   postId: string; // CommunityPost id

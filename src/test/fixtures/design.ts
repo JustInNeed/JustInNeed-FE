@@ -359,26 +359,9 @@ export const EXPLORATION_STATS = [
 ];
 
 // ---------- 설정 ----------
+// 수집 제외 URL · 외부 연동 목록은 settings.ts 로 옮김
 /** 닉네임 중복 확인 시뮬레이션용 "이미 사용 중" 목록 (소문자) — 중복 확인 API 생기면 교체 */
 export const TAKEN_NICKNAMES: string[] = ["admin", "test"];
-
-export const DEFAULT_EXCLUDED: ExcludedUrl[] = [
-  { url: "instagram.com", on: true, isDefault: true },
-  { url: "mail.google.com", on: true, isDefault: true },
-  { url: "youtube.com/shorts", on: true, isDefault: true },
-  { url: "twitter.com", on: false, isDefault: true },
-  { url: "tiktok.com", on: true, isDefault: true },
-  { url: "tistory.com/feed", on: true, isDefault: false },
-  { url: "tistory.com/skin", on: true, isDefault: false },
-  { url: "tistory.com", on: true, isDefault: false },
-  { url: "naver.com/blog", on: true, isDefault: false },
-];
-
-export const INTEGRATIONS = [
-  { l: "Google Docs", s: "연결됨", on: true },
-  { l: "Notion", s: "연결됨", on: true },
-  { l: "카카오톡", s: "미연결", on: false },
-];
 
 // ---------- 북마크 ----------
 export const BOOKMARKED_MINDMAPS: BookmarkedMindmap[] = [
