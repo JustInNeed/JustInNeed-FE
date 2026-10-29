@@ -195,6 +195,16 @@ export const TRENDING_HASHTAGS: TrendingHashtag[] = [
   { tag: "#아이슬란드", count: 388, trend: -4 },
   { tag: "#알프스", count: 322, trend: 6 },
 ];
+export const TRENDING_HASHTAGS_WEEK: TrendingHashtag[] = [
+  { tag: "#유레일패스", count: 6420, trend: 9 },
+  { tag: "#쉥겐비자", count: 5873, trend: 14 },
+  { tag: "#파리", count: 5210, trend: 3 },
+  { tag: "#바르셀로나", count: 3986, trend: 21 },
+  { tag: "#야간열차", count: 2754, trend: 11 },
+  { tag: "#프라하", count: 2402, trend: 7 },
+  { tag: "#오로라", count: 2133, trend: 36 },
+  { tag: "#스위스패스", count: 1690, trend: -3 },
+];
 
 // ---------- 프로필 ----------
 /** 노드 공개 범위 — url: 원문 URL만 공개 (기본값), full: 내용까지 공개 */
