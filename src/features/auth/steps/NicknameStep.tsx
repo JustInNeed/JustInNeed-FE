@@ -90,7 +90,7 @@ export function NicknameStep({ onSubmit, submitting = false, error = null, provi
         disabled={!canSubmit}
         className={`${styles.nextBtn} ${canSubmit ? styles.nextBtnOn : styles.nextBtnOff}`}
       >
-        {submitting ? "처리 중…" : "완료"}
+        {submitting ? "처리 중…" : "다음"}
       </button>
 
       {providerLabel && (
