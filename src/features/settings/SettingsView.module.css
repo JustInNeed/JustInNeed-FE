@@ -187,3 +187,73 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 계정 — 회원 탈퇴 */
+.withdrawRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.withdrawTitle {
+  font-size: 13px;
+  font-weight: 600;
+}
+.withdrawDesc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ink-500);
+}
+.withdrawBtn {
+  flex-shrink: 0;
+  color: var(--danger-700);
+  border-color: var(--danger-200);
+}
+.withdrawBack {
+  display: inline-flex;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-500);
+}
+.withdrawBack:hover {
+  color: var(--ink-900);
+}
+.withdrawHeading {
+  margin: 0 0 18px;
+  font-size: 17px;
+  font-weight: 700;
+}
+.withdrawSub {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.withdrawField {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.withdrawLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-700);
+}
+.withdrawCode {
+  font-family: var(--font-mono);
+  color: var(--danger-700);
+}
+.withdrawInput {
+  font-family: var(--font-mono);
+}
+.withdrawHelp {
+  font-size: 12px;
+  color: var(--ink-500);
+}
+.withdrawActions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}

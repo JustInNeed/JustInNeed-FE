@@ -5,6 +5,7 @@ import { Icon, Card, PageHeader, Toggle, inputClass, Button, FieldMessage } from
 import { DEFAULT_EXCLUDED, INTEGRATIONS, type ExcludedUrl } from "@/lib/mock/designData";
 import { ExclusionList } from "./ExclusionList";
 import { AccountSection } from "./AccountSection";
+import { WithdrawSection } from "./WithdrawSection";
 import styles from "./SettingsView.module.css";
 
 type Section = "collection" | "extension" | "integration" | "account";
@@ -18,6 +19,7 @@ const SECTIONS: { id: Section; l: string }[] = [
 
 export function SettingsView() {
   const [section, setSection] = useState<Section>("collection");
+  const [withdrawing, setWithdrawing] = useState(false);
   const [popup, setPopup] = useState(true);
   const [excluded, setExcluded] = useState<ExcludedUrl[]>(DEFAULT_EXCLUDED);
   const [newUrl, setNewUrl] = useState("");
@@ -44,7 +46,10 @@ export function SettingsView() {
           {SECTIONS.map((s) => (
             <button
               key={s.id}
-              onClick={() => setSection(s.id)}
+              onClick={() => {
+                setSection(s.id);
+                setWithdrawing(false);
+              }}
               className={`${styles.navBtn} ${section === s.id ? styles.navBtnOn : ""}`}
             >
               {s.l}
@@ -118,7 +123,12 @@ export function SettingsView() {
             </Card>
           )}
 
-          {section === "account" && <AccountSection />}
+          {section === "account" &&
+            (withdrawing ? (
+              <WithdrawSection onBack={() => setWithdrawing(false)} />
+            ) : (
+              <AccountSection onWithdraw={() => setWithdrawing(true)} />
+            ))}
         </div>
       </div>
     </div>
