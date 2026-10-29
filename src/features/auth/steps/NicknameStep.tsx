@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icon } from "@/components/ui";
+import { NICKNAME_FORMAT_ERROR, NICKNAME_MAX_LENGTH, isValidNickname } from "@/lib/nickname";
 import styles from "../auth.module.css";
 
 export interface NicknameStepProps {
@@ -11,12 +12,9 @@ export interface NicknameStepProps {
   providerLabel?: string;
 }
 
-// FE 측 형식 검증 (서버 검증 없음): 영문으로 시작하는 3-8자(영문·숫자)
-const FORMAT = /^[a-zA-Z][a-zA-Z0-9]{2,7}$/;
-
 export function NicknameStep({ onSubmit, submitting = false, error = null, providerLabel }: NicknameStepProps) {
   const [nickname, setNickname] = useState("");
-  const formatOk = FORMAT.test(nickname);
+  const formatOk = isValidNickname(nickname);
   const canSubmit = formatOk && !submitting;
 
   return (
@@ -32,7 +30,7 @@ export function NicknameStep({ onSubmit, submitting = false, error = null, provi
         onKeyDown={(e) => {
           if (e.key === "Enter" && canSubmit) onSubmit(nickname);
         }}
-        maxLength={8}
+        maxLength={NICKNAME_MAX_LENGTH}
         placeholder="영문 3-8자"
         className={styles.nickInput}
         style={{ width: "100%", marginTop: 6, boxSizing: "border-box" }}
@@ -40,7 +38,7 @@ export function NicknameStep({ onSubmit, submitting = false, error = null, provi
 
       <div className={styles.statusLine}>
         {nickname.length > 0 && !formatOk && (
-          <span className={styles.statusError}>영문으로 시작하는 3-8자(영문·숫자)로 입력해주세요.</span>
+          <span className={styles.statusError}>{NICKNAME_FORMAT_ERROR}</span>
         )}
         {formatOk && !error && <span className={styles.statusOk}><Icon name="check" size={11} /> 사용 가능한 형식이에요.</span>}
         {error && <span className={styles.statusError}>{error}</span>}

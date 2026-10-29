@@ -162,19 +162,6 @@ export function CommunityView() {
 
         <div className={styles.rightCol}>
           <Card style={{ padding: 16 }}>
-            <h3 className={styles.sideTitle}>이번 주 영향력</h3>
-            <div className={styles.impactRow}>
-              <span className={styles.impactValue}>87</span>
-              <span className={styles.impactDelta}>+24</span>
-            </div>
-            <div className={styles.impactSub}>좋아요 받음</div>
-            <div className={styles.impactFoot}>
-              <span>북마크 41</span>
-              <span>나도 탐색중 12</span>
-            </div>
-          </Card>
-
-          <Card style={{ padding: 16 }}>
             <h3 className={styles.sideTitle} style={{ marginBottom: 10 }}>관심사가 비슷한 사람</h3>
             {SIMILAR_PEOPLE.map((u) => (
               <div key={u.name} className={styles.personRow}>

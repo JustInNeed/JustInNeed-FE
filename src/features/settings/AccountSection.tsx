@@ -1,26 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { Icon, Card, Field, inputClass, Button } from "@/components/ui";
-import { SOCIAL_PROVIDER_LABEL } from "@/lib/api";
+import { Card, Field, FieldMessage, inputClass, Button } from "@/components/ui";
+import { ApiError, SOCIAL_PROVIDER_LABEL, updateNickname } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
+import { useToast } from "@/lib/app/ToastContext";
+import { NICKNAME_FORMAT_ERROR, NICKNAME_HINT, NICKNAME_MAX_LENGTH, isValidNickname } from "@/lib/nickname";
 import { PROVIDERS } from "@/features/auth/providers";
 import type { ProviderId } from "@/lib/types";
 import styles from "./SettingsView.module.css";
 
-const FORMAT = /^[a-zA-Z][a-zA-Z0-9]{2,7}$/;
-
-/** 계정 섹션 — 닉네임 변경(중복 확인은 백엔드 전용 API 부재로 로컬 시뮬레이션), 연결된 소셜 계정, 로그아웃. */
+/**
+ * 계정 섹션 — 닉네임 변경, 연결된 소셜 계정, 로그아웃.
+ * 중복 확인은 백엔드 전용 API 부재로 로컬 시뮬레이션. 저장은 형식만 맞으면 가능하고, 실제 중복은 서버 409 로 확인.
+ */
 export function AccountSection() {
-  const { member, logout } = usePersonal();
+  const { member, updateMember, logout } = usePersonal();
+  const toast = useToast();
   const current = member.nickname ?? "";
   const [nickname, setNickname] = useState(current);
   const [status, setStatus] = useState<null | "ok" | "taken">(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const isFormatValid = FORMAT.test(nickname);
+  const isFormatValid = isValidNickname(nickname);
   const isChanged = nickname !== current;
   const canCheck = isChanged && isFormatValid;
+  const canSave = isChanged && isFormatValid && !saving;
   const showInvalidHint = isChanged && !isFormatValid;
+  const errorText = showInvalidHint ? NICKNAME_FORMAT_ERROR : saveError ?? (status === "taken" ? "이미 사용 중인 닉네임입니다." : null);
 
   const onCheck = () => {
     if (!canCheck) return;
@@ -28,20 +36,39 @@ export function AccountSection() {
     setStatus(taken ? "taken" : "ok");
   };
 
+  const onSave = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      const updated = await updateNickname(nickname);
+      updateMember(updated);
+      setStatus(null);
+      toast.success("닉네임을 변경했어요.");
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) setSaveError(e.message);
+      else toast.error(e instanceof ApiError ? e.message : "저장에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const providerId = member.socialProvider.toLowerCase() as ProviderId;
   const provider = PROVIDERS.find((p) => p.id === providerId);
 
   return (
     <Card className={styles.card}>
-      <Field label="닉네임" hint="영어 시작, 3-8자 (영문/숫자)">
+      <Field label="닉네임" hint={NICKNAME_HINT}>
         <div className={styles.nickRow}>
           <input
             value={nickname}
             onChange={(e) => {
               setNickname(e.target.value);
               setStatus(null);
+              setSaveError(null);
             }}
-            maxLength={8}
+            maxLength={NICKNAME_MAX_LENGTH}
+            aria-invalid={errorText ? true : undefined}
+            aria-describedby={errorText || status === "ok" ? "account-nickname-message" : undefined}
             className={inputClass}
             style={{ flex: 1 }}
           />
@@ -49,13 +76,22 @@ export function AccountSection() {
             중복 확인
           </button>
         </div>
-        {showInvalidHint && <div className={styles.hintErr}>영문으로 시작하는 3-8자(영문·숫자)로 입력해주세요.</div>}
-        {status === "ok" && (
-          <div className={styles.hintOk}>
-            <Icon name="check" size={11} /> 사용 가능한 닉네임입니다.
-          </div>
+        {errorText ? (
+          <FieldMessage tone="error" id="account-nickname-message">
+            {errorText}
+          </FieldMessage>
+        ) : (
+          status === "ok" && (
+            <FieldMessage tone="success" id="account-nickname-message">
+              사용 가능한 닉네임입니다.
+            </FieldMessage>
+          )
         )}
-        {status === "taken" && <div className={styles.hintErr}>이미 사용 중인 닉네임입니다.</div>}
+        <div className={styles.nickActions}>
+          <Button variant="primary" onClick={onSave} disabled={!canSave}>
+            {saving ? "저장 중…" : "저장"}
+          </Button>
+        </div>
       </Field>
 
       <Field label="연결된 계정" hint="회원가입 시 사용">

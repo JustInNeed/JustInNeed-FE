@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Icon, Card, PageHeader, Button, Field, inputClass } from "@/components/ui";
+import { Icon, Card, PageHeader, Button, Field, FieldMessage, inputClass } from "@/components/ui";
 import { MOCK_SESSIONS, type MockProfile } from "@/lib/mock/designData";
 import { formatDuration } from "@/lib/format";
+import { usePersonal } from "@/lib/app/PersonalContext";
+import { NICKNAME_FORMAT_ERROR, NICKNAME_HINT, NICKNAME_MAX_LENGTH, isValidNickname } from "@/lib/nickname";
 import styles from "./Profile.module.css";
 
 export interface ProfileEditProps {
@@ -19,12 +21,15 @@ const VISIBILITY_OPTIONS: { v: Visibility; l: string; d: string }[] = [
 ];
 
 export function ProfileEdit({ profile, onClose }: ProfileEditProps) {
-  const [name, setName] = useState(profile.name);
+  const { member } = usePersonal();
+  // 닉네임은 목 프로필이 아니라 로그인한 회원 닉네임으로 시작 (저장은 아직 로컬 상태)
+  const [name, setName] = useState(member.nickname ?? profile.name);
   const [bio, setBio] = useState(profile.bio);
   const [interests, setInterests] = useState(profile.interests);
   const [newTag, setNewTag] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("url");
   const [pinned, setPinned] = useState<number[]>([MOCK_SESSIONS[0].id, MOCK_SESSIONS[2].id]);
+  const nameInvalid = !isValidNickname(name);
 
   const addTag = () => {
     const raw = newTag.trim();
@@ -42,15 +47,27 @@ export function ProfileEdit({ profile, onClose }: ProfileEditProps) {
         right={
           <div className={styles.actions}>
             <Button variant="secondary" onClick={onClose}>취소</Button>
-            <Button variant="primary" onClick={onClose}>저장</Button>
+            <Button variant="primary" onClick={onClose} disabled={nameInvalid}>저장</Button>
           </div>
         }
       />
       <div className={styles.editBody}>
         <Card className={styles.editCard}>
           <h3 className={styles.editTitle}>기본 정보</h3>
-          <Field label="닉네임" hint="영어, 최대 8자">
-            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={8} className={inputClass} />
+          <Field label="닉네임" hint={NICKNAME_HINT}>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={NICKNAME_MAX_LENGTH}
+              aria-invalid={nameInvalid ? true : undefined}
+              aria-describedby={nameInvalid ? "profile-nickname-error" : undefined}
+              className={inputClass}
+            />
+            {nameInvalid && (
+              <FieldMessage tone="error" id="profile-nickname-error">
+                {NICKNAME_FORMAT_ERROR}
+              </FieldMessage>
+            )}
           </Field>
           <Field label="소개" hint="120자 이내">
             <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={120} rows={2} className={inputClass} style={{ resize: "vertical" }} />

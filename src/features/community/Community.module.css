@@ -375,32 +375,6 @@
   font-size: 13px;
   font-weight: 600;
 }
-.impactRow {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-.impactValue {
-  font-size: 28px;
-  font-weight: 700;
-}
-.impactDelta {
-  font-size: 12px;
-  color: var(--green-600);
-  font-weight: 600;
-}
-.impactSub {
-  font-size: 11px;
-  color: var(--ink-500);
-  margin-bottom: 12px;
-}
-.impactFoot {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--ink-500);
-}
 .personRow {
   display: flex;
   align-items: center;
