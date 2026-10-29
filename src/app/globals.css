@@ -26,6 +26,17 @@
   --ink-400: #94998e;
   --ink-300: #b5bab0;
 
+  /* Feedback — 오류 / 경고 (토스트 · 인라인 메시지) */
+  --danger-50: #fef3f2;
+  --danger-200: #fad7d2;
+  --danger-500: #d92d20;
+  --danger-700: #b42318;
+  --danger-on-dark: #f97066;
+  --warning-50: #fffaeb;
+  --warning-200: #fedf89;
+  --warning-500: #f79009;
+  --warning-800: #93370d;
+
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 18px;

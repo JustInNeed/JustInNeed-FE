@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Button, PageHeader } from "@/components/ui";
+import { Icon, Button, PageHeader, InlineState } from "@/components/ui";
 import {
   ApiError,
   createTagGroup,
@@ -16,6 +16,7 @@ import {
   type TagGroup,
 } from "@/lib/api";
 import { useApi } from "@/lib/hooks/useApi";
+import { useToast } from "@/lib/app/ToastContext";
 import { SessionCard } from "./SessionCard";
 import { GroupSectionList } from "./GroupSectionList";
 import { GroupEditor, type GroupEditorPayload } from "./GroupEditor";
@@ -25,6 +26,7 @@ type ViewMode = "list" | "group";
 
 export function SessionsView() {
   const router = useRouter();
+  const toast = useToast();
   const sessionsQuery = useApi<SessionListItem[]>(getSessions, []);
   const groupsQuery = useApi<TagGroup[]>(getTagGroups, []);
 
@@ -55,7 +57,7 @@ export function SessionsView() {
       groupsQuery.refetch(); // 그룹 뷰의 즐겨찾기 표시 동기화
     } catch (e) {
       setSessions((ss) => ss.map((s) => (s.id === id ? { ...s, isFavorite: !next } : s)));
-      alert(e instanceof ApiError ? e.message : "즐겨찾기 변경에 실패했습니다.");
+      toast.error(e instanceof ApiError ? e.message : "즐겨찾기 변경에 실패했습니다. 다시 시도해 주세요.");
     }
   };
 
@@ -87,7 +89,7 @@ export function SessionsView() {
       setCreating(false);
       setEditingGroup(null);
     } catch (e) {
-      alert(e instanceof ApiError ? e.message : "그룹 저장에 실패했습니다.");
+      toast.error(e instanceof ApiError ? e.message : "그룹 저장에 실패했습니다. 다시 시도해 주세요.");
     }
   };
 
@@ -98,7 +100,7 @@ export function SessionsView() {
       await deleteTagGroup(id);
     } catch (e) {
       setGroups(prev);
-      alert(e instanceof ApiError ? e.message : "그룹 삭제에 실패했습니다.");
+      toast.error(e instanceof ApiError ? e.message : "그룹 삭제에 실패했습니다. 다시 시도해 주세요.");
     }
   };
 
@@ -110,7 +112,7 @@ export function SessionsView() {
       setGroups([...result].sort((a, b) => a.position - b.position));
     } catch (e) {
       setGroups(prev);
-      alert(e instanceof ApiError ? e.message : "순서 변경에 실패했습니다.");
+      toast.error(e instanceof ApiError ? e.message : "순서 변경에 실패했습니다. 다시 시도해 주세요.");
     }
   };
 
@@ -151,25 +153,18 @@ export function SessionsView() {
         {loading ? (
           <div className={styles.state}>불러오는 중…</div>
         ) : error ? (
-          <div className={styles.state}>
-            <p className={styles.stateError}>{error}</p>
-            <Button variant="secondary" onClick={refetch}>
-              다시 시도
-            </Button>
-          </div>
+          <InlineState kind="error" title={error} onRetry={refetch} />
         ) : view === "list" ? (
           filtered.length === 0 ? (
-            <div className={styles.state}>
-              <div className={styles.stateEmoji}>🌱</div>
-              <p className={styles.stateTitle}>
-                {favOnly ? "즐겨찾기한 세션이 없습니다" : "아직 세션이 없습니다"}
-              </p>
-              <p className={styles.stateDesc}>
-                {favOnly
+            <InlineState
+              kind="empty"
+              title={favOnly ? "즐겨찾기한 세션이 없습니다" : "아직 세션이 없습니다"}
+              description={
+                favOnly
                   ? "세션 카드의 별을 눌러 즐겨찾기에 추가해보세요."
-                  : "확장 프로그램으로 웹 탐색을 수집하면 세션이 여기에 쌓여요."}
-              </p>
-            </div>
+                  : "확장 프로그램으로 웹 탐색을 수집하면 세션이 여기에 쌓여요."
+              }
+            />
           ) : (
             <div className={styles.grid}>
               {filtered.map((s) => (

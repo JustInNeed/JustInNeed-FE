@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Icon, Card, PageHeader, Toggle, inputClass, Button } from "@/components/ui";
+import { Icon, Card, PageHeader, Toggle, inputClass, Button, FieldMessage } from "@/components/ui";
 import { DEFAULT_EXCLUDED, INTEGRATIONS, type ExcludedUrl } from "@/lib/mock/designData";
 import { ExclusionList } from "./ExclusionList";
 import { AccountSection } from "./AccountSection";
@@ -21,6 +21,7 @@ export function SettingsView() {
   const [popup, setPopup] = useState(true);
   const [excluded, setExcluded] = useState<ExcludedUrl[]>(DEFAULT_EXCLUDED);
   const [newUrl, setNewUrl] = useState("");
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [autoStop, setAutoStop] = useState(true);
   const [contextMenu, setContextMenu] = useState(true);
   const [integrations, setIntegrations] = useState(INTEGRATIONS);
@@ -28,10 +29,11 @@ export function SettingsView() {
   const addUrl = () => {
     const v = newUrl.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
     if (!v) return;
-    if (excluded.length >= 100) return alert("최대 100개까지 등록할 수 있어요.");
-    if (excluded.some((e) => e.url === v)) return alert("이미 등록된 URL입니다.");
+    if (excluded.length >= 100) return setUrlError("URL은 최대 100개까지 등록할 수 있습니다.");
+    if (excluded.some((e) => e.url === v)) return setUrlError("이미 등록된 URL입니다.");
     setExcluded((list) => [...list, { url: v, on: true, isDefault: false }]);
     setNewUrl("");
+    setUrlError(null);
   };
 
   return (
@@ -58,9 +60,14 @@ export function SettingsView() {
               <div className={styles.addRow}>
                 <input
                   value={newUrl}
-                  onChange={(e) => setNewUrl(e.target.value)}
+                  onChange={(e) => {
+                    setNewUrl(e.target.value);
+                    setUrlError(null);
+                  }}
                   onKeyDown={(e) => e.key === "Enter" && addUrl()}
                   placeholder="https://example.com"
+                  aria-invalid={urlError ? true : undefined}
+                  aria-describedby={urlError ? "excluded-url-error" : undefined}
                   className={inputClass}
                   style={{ flex: 1 }}
                 />
@@ -68,6 +75,11 @@ export function SettingsView() {
                   <Icon name="plus" size={12} /> 추가
                 </Button>
               </div>
+              {urlError && (
+                <FieldMessage tone="error" id="excluded-url-error">
+                  {urlError}
+                </FieldMessage>
+              )}
               <ExclusionList excluded={excluded} setExcluded={setExcluded} />
             </Card>
           )}

@@ -1,0 +1,105 @@
+/* 오류 메시지 후보 C — FieldMessage · InlineState · Banner 공용 */
+
+/* FieldMessage */
+.fieldMsg {
+  margin: 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.fieldMsg svg {
+  flex-shrink: 0;
+}
+.fieldMsg_error {
+  color: var(--danger-700);
+}
+.fieldMsg_success {
+  color: var(--green-800);
+}
+
+/* InlineState */
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 16px;
+  border-radius: var(--radius);
+  text-align: center;
+}
+.state_error {
+  background: var(--danger-50);
+}
+.state_empty {
+  background: var(--surface-2);
+}
+.stateIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.state_error .stateIcon {
+  color: var(--danger-700);
+}
+.state_empty .stateIcon {
+  color: var(--green-700);
+}
+.stateTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.state_error .stateTitle {
+  color: var(--danger-700);
+}
+.state_empty .stateTitle {
+  color: var(--ink-900);
+}
+.stateDesc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-700);
+}
+.stateRetry {
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--danger-200);
+  background: var(--surface);
+  color: var(--danger-700);
+  font-size: 12px;
+  font-weight: 600;
+}
+.stateRetry:hover {
+  background: var(--danger-50);
+}
+
+/* Banner */
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.banner_warning {
+  background: var(--warning-50);
+  border: 1px solid var(--warning-200);
+  color: var(--warning-800);
+}
+.banner_error {
+  background: var(--danger-50);
+  border: 1px solid var(--danger-200);
+  color: var(--danger-700);
+}
