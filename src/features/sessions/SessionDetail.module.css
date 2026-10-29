@@ -236,6 +236,41 @@
   display: flex;
   gap: 2px;
 }
+/* 마인드맵 탭 — 좌상단 정렬 · 편집 도구 */
+.mapToolbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.segment {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.segBtn {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-500);
+  border-radius: 7px;
+}
+.segBtn:hover {
+  color: var(--ink-900);
+}
+.segBtnActive,
+.segBtnActive:hover {
+  background: var(--green-50);
+  color: var(--green-700);
+  font-weight: 600;
+}
+
 .sidebar {
   overflow-y: auto;
   display: flex;

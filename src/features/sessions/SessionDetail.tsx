@@ -26,6 +26,12 @@ const AUTO_SAVE_MS = 30_000;
 
 type AutoSaveState = { status: "idle" | "saving" | "saved"; at: number | null };
 type LeaveTarget = { kind: "cancel" } | { kind: "list" } | { kind: "href"; href: string };
+type MapLayout = "radial" | "tree";
+
+const MAP_LAYOUTS: [MapLayout, string][] = [
+  ["radial", "방사형"],
+  ["tree", "계층형"],
+];
 
 function savedAgo(at: number, now: number): string {
   const min = Math.floor((now - at) / 60_000);
@@ -63,6 +69,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const [view, setView] = useState<"text" | "graph">("text");
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showTagPicker, setShowTagPicker] = useState(false);
+  // 마인드맵 정렬 — 배치 변경 · 자동 정렬(옮긴 위치 초기화) 모두 key 로 다시 마운트
+  const [mapLayout, setMapLayout] = useState<MapLayout>("radial");
+  const [mapResetKey, setMapResetKey] = useState(0);
 
   // edit mode — 제목 + 본문(markdown) 편집
   const [editing, setEditing] = useState(false);
@@ -514,7 +523,26 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
           )
         ) : (
           <Card style={{ padding: 0, overflow: "hidden", position: "relative" }}>
+            <div className={styles.mapToolbar}>
+              <div className={styles.segment} role="group" aria-label="마인드맵 배치">
+                {MAP_LAYOUTS.map(([value, label]) => (
+                  <button
+                    key={value}
+                    onClick={() => setMapLayout(value)}
+                    aria-pressed={mapLayout === value}
+                    className={`${styles.segBtn} ${mapLayout === value ? styles.segBtnActive : ""}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <Button variant="secondary" onClick={() => setMapResetKey((k) => k + 1)} title="옮긴 노드를 처음 배치로">
+                <Icon name="refresh" size={13} /> 자동 정렬
+              </Button>
+            </div>
             <Mindmap
+              key={`${mapLayout}-${mapResetKey}`}
+              layout={mapLayout}
               nodes={nodes}
               edges={edges}
               width={1000}
