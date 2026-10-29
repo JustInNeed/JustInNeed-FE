@@ -260,7 +260,7 @@ export function ProfileView({ handle }: ProfileViewProps) {
           ) : (
             <div className={styles.sessionGrid}>
               {pinnedSessions.map((s) => (
-                <SessionCard key={s.id} session={s} />
+                <SessionCard key={s.id} session={s} onClick={() => router.push(`/sessions/${s.id}`)} />
               ))}
             </div>
           ))}
