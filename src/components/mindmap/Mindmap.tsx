@@ -241,7 +241,6 @@ export function Mindmap({
           const isCity = n.group === "city";
           const isLogi = n.group === "logi";
           const fill = isCore ? "#3D8B25" : isCity ? "#5FCF3E" : isLogi ? "#87D448" : "#A6E26B";
-          const stroke = isCore ? "#2D6A1B" : "#4DB02E";
           const isActive = selectedId === n.id || hoveredId === n.id || isMatch(n.id);
 
           return (
@@ -261,12 +260,9 @@ export function Mindmap({
               }}
             >
               {isActive && <circle r={n.size + 14} fill="url(#nodeGlow)" />}
-              <circle
-                r={n.size}
-                fill={fill}
-                stroke={isActive ? "#2D6A1B" : stroke}
-                strokeWidth={isActive ? 3 : 1.5}
-              />
+              {/* 노드는 채움만, 선택 · 호버는 노드에서 떨어진 링으로 표시 */}
+              <circle r={n.size} fill={fill} />
+              {isActive && <circle r={n.size + 4} fill="none" stroke="#2D6A1B" strokeWidth={2} />}
               {showLabels && (
                 <text
                   textAnchor="middle"
