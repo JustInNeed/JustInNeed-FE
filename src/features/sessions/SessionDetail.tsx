@@ -13,6 +13,7 @@ import {
   type SessionUpdateRequest,
 } from "@/lib/api";
 import { useApi } from "@/lib/hooks/useApi";
+import { useToast } from "@/lib/app/ToastContext";
 import { formatDateTime, formatDuration, formatTime, hostFromUrl, STATUS_LABEL, withHash } from "@/lib/format";
 import { buildSessionMindmap } from "./buildSessionMindmap";
 import { CitationPopup } from "./CitationPopup";
@@ -26,6 +27,7 @@ export interface SessionDetailProps {
 
 export function SessionDetail({ sessionId }: SessionDetailProps) {
   const router = useRouter();
+  const toast = useToast();
   const validId = Number.isFinite(sessionId);
   const fetcher = useCallback(() => getSession(sessionId), [sessionId]);
   const { data, error, loading } = useApi<SessionDetailType>(fetcher, [sessionId]);
@@ -73,7 +75,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
       setDetail(updated);
     } catch (e) {
       setDetail(prev);
-      alert(e instanceof ApiError ? e.message : "수정에 실패했습니다.");
+      toast.error(e instanceof ApiError ? e.message : "저장에 실패했습니다. 다시 시도해 주세요.");
     }
   };
 
@@ -91,7 +93,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
       await deleteSession(detail.id);
       router.push("/sessions");
     } catch (e) {
-      alert(e instanceof ApiError ? e.message : "삭제에 실패했습니다.");
+      toast.error(e instanceof ApiError ? e.message : "삭제에 실패했습니다. 다시 시도해 주세요.");
     }
   };
 

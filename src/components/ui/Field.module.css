@@ -30,3 +30,6 @@
 .input:focus {
   border-color: var(--green-400);
 }
+.input[aria-invalid="true"] {
+  border-color: var(--danger-500);
+}
