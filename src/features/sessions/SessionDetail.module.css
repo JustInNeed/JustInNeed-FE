@@ -270,6 +270,20 @@
   color: var(--green-700);
   font-weight: 600;
 }
+.mapDivider {
+  width: 1px;
+  height: 20px;
+  margin: 0 2px;
+  background: var(--line);
+}
+.mapHint {
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--ink-500);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
 
 .sidebar {
   overflow-y: auto;
