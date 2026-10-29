@@ -406,6 +406,21 @@ export const INTEGRATIONS = [
 ];
 
 // ---------- 북마크 ----------
+export interface BookmarkedMindmap {
+  postId: string; // COMMUNITY_FEED id
+  savedAgo: string;
+  /** 저장한 노드 — 원래 마인드맵(목: MINDMAP_NODES)에서 강조 표시 */
+  savedNodeIds: string[];
+}
+export const BOOKMARKED_MINDMAPS: BookmarkedMindmap[] = [
+  { postId: "c1", savedAgo: "4일 전", savedNodeIds: ["prague", "castle", "bridge", "rail"] },
+  { postId: "c2", savedAgo: "1일 전", savedNodeIds: ["paris", "eiffel", "mont", "orsay"] },
+  { postId: "c3", savedAgo: "3일 전", savedNodeIds: ["budget", "booking", "rail"] },
+  { postId: "c4", savedAgo: "5일 전", savedNodeIds: ["louvre", "orsay", "vatic", "paris"] },
+  { postId: "c5", savedAgo: "2일 전", savedNodeIds: ["rome", "tras", "pasta"] },
+  { postId: "c6", savedAgo: "4일 전", savedNodeIds: ["rail", "booking", "flight", "skyscan", "kayak"] },
+];
+
 export const BOOKMARK_TAG_BUNDLES = [
   { name: "동유럽 자료", tags: ["#프라하", "#비엔나", "#부다페스트", "#야간열차"] },
   { name: "미술관 모음", tags: ["#루브르", "#오르세", "#프라도", "#리이크스"] },
