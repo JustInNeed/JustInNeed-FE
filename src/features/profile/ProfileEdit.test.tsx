@@ -88,6 +88,17 @@ describe("프로필 수정", () => {
       expect(screen.getByText("최대 10개까지 등록할 수 있어요. (6/10)")).toBeInTheDocument();
     });
 
+    it("한글 조합 중에 누른 Enter 는 무시해 마지막 글자가 두 번 들어가지 않는다", async () => {
+      const { user } = await openEdit();
+
+      await user.type(tagInput(), "여행");
+      fireEvent.keyDown(tagInput(), { key: "Enter", isComposing: true });
+      expect(interestChips()).toEqual(MY_PROFILE.interests);
+
+      fireEvent.keyDown(tagInput(), { key: "Enter" });
+      expect(interestChips()).toEqual([...MY_PROFILE.interests, "#여행"]);
+    });
+
     it("추가 버튼으로도 추가되고 '#' 을 붙여 입력해도 한 번만 붙는다", async () => {
       const { user } = await openEdit();
 
