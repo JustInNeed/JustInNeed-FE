@@ -166,16 +166,21 @@ export const TRENDING_HASHTAGS: TrendingHashtag[] = [
 ];
 
 // ---------- 프로필 ----------
+/** 노드 공개 범위 — url: 원문 URL만 공개 (기본값), full: 내용까지 공개 */
+export type NodeVisibility = "url" | "full";
+
 export interface MockProfile {
   name: string;
   handle: string;
   avatar: string;
   bio: string;
   nodes: number;
-  sessions: number;
   likes: number;
   interests: string[];
   topTags: { tag: string; count: number }[];
+  visibility: NodeVisibility;
+  /** 핀고정(공유)한 세션 id — 프로필 세션 탭 표시 순서 */
+  pinnedSessionIds: number[];
 }
 
 export const MY_PROFILE: MockProfile = {
@@ -184,7 +189,6 @@ export const MY_PROFILE: MockProfile = {
   avatar: "🌱",
   bio: "HCI 연구하며 여행 다니는 사람. 요즘은 유럽.",
   nodes: 218,
-  sessions: 47,
   likes: 87,
   interests: ["#유럽여행", "#HCI", "#미술관", "#프론트엔드", "#독서"],
   topTags: [
@@ -194,6 +198,8 @@ export const MY_PROFILE: MockProfile = {
     { tag: "#미술관", count: 15 },
     { tag: "#예산", count: 11 },
   ],
+  visibility: "url",
+  pinnedSessionIds: [9001, 9003, 9002, 9005],
 };
 
 export function otherProfile(handle: string): MockProfile {
@@ -205,7 +211,6 @@ export function otherProfile(handle: string): MockProfile {
     avatar: post?.user.avatar ?? "🌿",
     bio: "동유럽 한 달 살이 중. 천천히 깊게 다니기.",
     nodes: 142,
-    sessions: 31,
     likes: 284,
     interests: ["#프라하", "#비엔나", "#야간열차", "#카페투어"],
     topTags: [
@@ -215,6 +220,8 @@ export function otherProfile(handle: string): MockProfile {
       { tag: "#카페", count: 14 },
       { tag: "#슬로우트래블", count: 12 },
     ],
+    visibility: "url",
+    pinnedSessionIds: [9007, 9004, 9002, 9006],
   };
 }
 

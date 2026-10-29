@@ -2,34 +2,59 @@
 
 import { useState } from "react";
 import { Icon, Card, PageHeader, Button, Field, FieldMessage, inputClass } from "@/components/ui";
-import { MOCK_SESSIONS, type MockProfile } from "@/lib/mock/designData";
+import { MOCK_SESSIONS, type MockProfile, type NodeVisibility } from "@/lib/mock/designData";
 import { formatDuration } from "@/lib/format";
+import { ApiError, updateNickname } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
+import { useToast } from "@/lib/app/ToastContext";
 import { NICKNAME_FORMAT_ERROR, NICKNAME_HINT, NICKNAME_MAX_LENGTH, isValidNickname } from "@/lib/nickname";
 import styles from "./Profile.module.css";
 
+/** 저장 시 프로필 화면에 반영할 값 (닉네임은 회원 정보로 따로 저장) */
+export type ProfileDraft = Pick<MockProfile, "bio" | "interests" | "visibility" | "pinnedSessionIds">;
+
 export interface ProfileEditProps {
   profile: MockProfile;
-  onClose: () => void;
+  onCancel: () => void;
+  onSave: (draft: ProfileDraft) => void;
 }
 
-type Visibility = "url" | "full";
-
-const VISIBILITY_OPTIONS: { v: Visibility; l: string; d: string }[] = [
+const VISIBILITY_OPTIONS: { v: NodeVisibility; l: string; d: string }[] = [
   { v: "url", l: "원문 URL만 공개", d: "리프 노드 클릭 시 출처 URL로 이동만 허용 (기본값)" },
   { v: "full", l: "내용까지 공개", d: "내용이 리프 노드로 노출됩니다" },
 ];
 
-export function ProfileEdit({ profile, onClose }: ProfileEditProps) {
-  const { member } = usePersonal();
-  // 닉네임은 목 프로필이 아니라 로그인한 회원 닉네임으로 시작 (저장은 아직 로컬 상태)
+export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
+  const { member, updateMember } = usePersonal();
+  const toast = useToast();
+  // 닉네임은 목 프로필이 아니라 로그인한 회원 닉네임으로 시작 — 바뀌었으면 저장 때 회원 API 로 변경
   const [name, setName] = useState(member.nickname ?? profile.name);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [bio, setBio] = useState(profile.bio);
   const [interests, setInterests] = useState(profile.interests);
   const [newTag, setNewTag] = useState("");
-  const [visibility, setVisibility] = useState<Visibility>("url");
-  const [pinned, setPinned] = useState<number[]>([MOCK_SESSIONS[0].id, MOCK_SESSIONS[2].id]);
+  const [visibility, setVisibility] = useState<NodeVisibility>(profile.visibility);
+  const [pinned, setPinned] = useState<number[]>(profile.pinnedSessionIds);
   const nameInvalid = !isValidNickname(name);
+  const nameErrorText = nameInvalid ? NICKNAME_FORMAT_ERROR : nameError;
+
+  const save = async () => {
+    if (nameInvalid || saving) return;
+    if (name !== (member.nickname ?? "")) {
+      setSaving(true);
+      try {
+        updateMember(await updateNickname(name));
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 409) setNameError(e.message);
+        else toast.error(e instanceof ApiError ? e.message : "저장에 실패했습니다. 다시 시도해 주세요.");
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+    onSave({ bio, interests, visibility, pinnedSessionIds: pinned });
+  };
 
   const addTag = () => {
     const raw = newTag.trim();
@@ -46,8 +71,10 @@ export function ProfileEdit({ profile, onClose }: ProfileEditProps) {
         title="프로필 수정"
         right={
           <div className={styles.actions}>
-            <Button variant="secondary" onClick={onClose}>취소</Button>
-            <Button variant="primary" onClick={onClose} disabled={nameInvalid}>저장</Button>
+            <Button variant="secondary" onClick={onCancel} disabled={saving}>취소</Button>
+            <Button variant="primary" onClick={save} disabled={nameInvalid || saving}>
+              {saving ? "저장 중…" : "저장"}
+            </Button>
           </div>
         }
       />
@@ -57,15 +84,18 @@ export function ProfileEdit({ profile, onClose }: ProfileEditProps) {
           <Field label="닉네임" hint={NICKNAME_HINT}>
             <input
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                setNameError(null);
+              }}
               maxLength={NICKNAME_MAX_LENGTH}
-              aria-invalid={nameInvalid ? true : undefined}
-              aria-describedby={nameInvalid ? "profile-nickname-error" : undefined}
+              aria-invalid={nameErrorText ? true : undefined}
+              aria-describedby={nameErrorText ? "profile-nickname-error" : undefined}
               className={inputClass}
             />
-            {nameInvalid && (
+            {nameErrorText && (
               <FieldMessage tone="error" id="profile-nickname-error">
-                {NICKNAME_FORMAT_ERROR}
+                {nameErrorText}
               </FieldMessage>
             )}
           </Field>
@@ -115,7 +145,7 @@ export function ProfileEdit({ profile, onClose }: ProfileEditProps) {
         <Card className={styles.editCard}>
           <h3 className={styles.editTitle} style={{ marginBottom: 6 }}>핀고정 세션</h3>
           <p className={styles.editDesc}>순서를 변경하고 프로필에 핀고정합니다.</p>
-          {MOCK_SESSIONS.slice(0, 5).map((s) => (
+          {MOCK_SESSIONS.map((s) => (
             <label key={s.id} className={styles.pinRow}>
               <input
                 type="checkbox"

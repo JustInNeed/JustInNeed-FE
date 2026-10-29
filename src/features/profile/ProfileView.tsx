@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Button } from "@/components/ui";
+import { Icon, Button, InlineState } from "@/components/ui";
 import { MindmapCard } from "@/components/mindmap/MindmapCard";
 import { SessionCard } from "@/features/sessions";
-import { COMMUNITY_FEED, MOCK_SESSIONS, MY_PROFILE, otherProfile } from "@/lib/mock/designData";
-import { ProfileEdit } from "./ProfileEdit";
+import type { SessionListItem } from "@/lib/api";
+import { usePersonal } from "@/lib/app/PersonalContext";
+import { useToast } from "@/lib/app/ToastContext";
+import { COMMUNITY_FEED, MOCK_SESSIONS, MY_PROFILE, otherProfile, type MockProfile } from "@/lib/mock/designData";
+import { ProfileEdit, type ProfileDraft } from "./ProfileEdit";
 import styles from "./Profile.module.css";
 
 export interface ProfileViewProps {
@@ -16,8 +19,13 @@ export interface ProfileViewProps {
 
 export function ProfileView({ handle }: ProfileViewProps) {
   const router = useRouter();
+  const toast = useToast();
+  const { member } = usePersonal();
   const isMine = !handle;
-  const profile = isMine ? MY_PROFILE : otherProfile(handle);
+  // 내 프로필은 수정 화면에서 저장한 값을 들고 있음 (목: 프로필 API 생기면 교체). 닉네임은 회원 정보 기준
+  const [myProfile, setMyProfile] = useState<MockProfile>(MY_PROFILE);
+  const myName = member.nickname ?? MY_PROFILE.name;
+  const profile = isMine ? { ...myProfile, name: myName, handle: `@${myName}` } : otherProfile(handle);
 
   const [tab, setTab] = useState<"mindmap" | "sessions">("mindmap");
   const [editing, setEditing] = useState(false);
@@ -25,7 +33,17 @@ export function ProfileView({ handle }: ProfileViewProps) {
   const [liked, setLiked] = useState(false);
   const [exploring, setExploring] = useState<Set<string>>(new Set());
 
-  if (editing) return <ProfileEdit profile={profile} onClose={() => setEditing(false)} />;
+  const saveProfile = (draft: ProfileDraft) => {
+    setMyProfile((p) => ({ ...p, ...draft }));
+    setEditing(false);
+    toast.success("프로필을 저장했어요.");
+  };
+
+  if (editing) return <ProfileEdit profile={profile} onCancel={() => setEditing(false)} onSave={saveProfile} />;
+
+  const pinnedSessions = profile.pinnedSessionIds
+    .map((id) => MOCK_SESSIONS.find((s) => s.id === id))
+    .filter((s): s is SessionListItem => !!s);
 
   const toggleExplore = (id: string) =>
     setExploring((s) => {
@@ -71,7 +89,7 @@ export function ProfileView({ handle }: ProfileViewProps) {
 
         <div className={styles.stats}>
           <Stat n={profile.nodes} l="노드" />
-          <Stat n={profile.sessions} l="공유 세션" />
+          <Stat n={pinnedSessions.length} l="공유 세션" />
           <Stat n={profile.likes} l="좋아요" />
           {!isMine && <Stat n={12} l="나도 탐색중" accent />}
         </div>
@@ -90,7 +108,7 @@ export function ProfileView({ handle }: ProfileViewProps) {
 
         <div className={styles.tabs}>
           <button onClick={() => setTab("mindmap")} className={`${styles.tab} ${tab === "mindmap" ? styles.tabOn : ""}`}>마인드맵</button>
-          <button onClick={() => setTab("sessions")} className={`${styles.tab} ${tab === "sessions" ? styles.tabOn : ""}`}>세션 ({profile.sessions})</button>
+          <button onClick={() => setTab("sessions")} className={`${styles.tab} ${tab === "sessions" ? styles.tabOn : ""}`}>세션 ({pinnedSessions.length})</button>
         </div>
 
         {tab === "mindmap" && (
@@ -127,13 +145,22 @@ export function ProfileView({ handle }: ProfileViewProps) {
           </div>
         )}
 
-        {tab === "sessions" && (
-          <div className={styles.sessionGrid}>
-            {MOCK_SESSIONS.slice(0, isMine ? 6 : 4).map((s) => (
-              <SessionCard key={s.id} session={s} />
-            ))}
-          </div>
-        )}
+        {tab === "sessions" &&
+          (pinnedSessions.length === 0 ? (
+            <div className={styles.sessionEmpty}>
+              <InlineState
+                kind="empty"
+                title="공유한 세션이 없어요."
+                description={isMine ? "프로필 수정에서 세션을 핀고정하면 여기에 보여요." : undefined}
+              />
+            </div>
+          ) : (
+            <div className={styles.sessionGrid}>
+              {pinnedSessions.map((s) => (
+                <SessionCard key={s.id} session={s} />
+              ))}
+            </div>
+          ))}
       </div>
     </div>
   );

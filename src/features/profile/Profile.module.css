@@ -141,6 +141,9 @@
   gap: 14px;
   padding-bottom: 28px;
 }
+.sessionEmpty {
+  padding-bottom: 28px;
+}
 .exploreBtn {
   margin-left: auto;
   font-size: 11px;
