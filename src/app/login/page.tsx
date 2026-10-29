@@ -13,12 +13,19 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
 export default function LoginPage() {
   const [lastProvider, setLast] = useState<ProviderId | null>(null);
-  const [loggedOut, setLoggedOut] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
   useEffect(() => {
     setLast(getLastProvider());
-    if (consumeAuthToast()?.kind === "logout") {
-      setLoggedOut(true);
-      const t = setTimeout(() => setLoggedOut(false), 4500);
+    const kind = consumeAuthToast()?.kind;
+    const msg =
+      kind === "logout"
+        ? "로그아웃되었습니다. 확장 프로그램도 함께 종료되었어요."
+        : kind === "withdraw"
+          ? "탈퇴가 완료되었어요."
+          : null;
+    if (msg) {
+      setToastMsg(msg);
+      const t = setTimeout(() => setToastMsg(null), 4500);
       return () => clearTimeout(t);
     }
   }, []);
@@ -32,7 +39,7 @@ export default function LoginPage() {
   return (
     <AuthScreen>
       <LandingStep lastProviderId={lastProvider} onPick={onPick} />
-      {loggedOut && <AuthToast kind="logout" msg="로그아웃되었습니다. 확장 프로그램도 함께 종료되었어요." />}
+      {toastMsg && <AuthToast kind="logout" msg={toastMsg} />}
     </AuthScreen>
   );
 }

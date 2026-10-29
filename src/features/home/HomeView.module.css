@@ -43,6 +43,11 @@
 .iconBtn:hover {
   border-color: var(--green-300);
 }
+.iconBtnOn {
+  color: var(--green-800);
+  background: var(--green-50);
+  border-color: var(--green-400);
+}
 .popover {
   position: absolute;
   top: 16px;

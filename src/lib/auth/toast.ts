@@ -1,6 +1,6 @@
-// 로그인/로그아웃 직후 1회 노출되는 토스트 플래그 (sessionStorage).
+// 로그인/로그아웃/탈퇴 직후 1회 노출되는 토스트 플래그 (sessionStorage).
 // 콜백 페이지가 심고, (personal) 레이아웃 / 로그인 페이지가 꺼내서 표시한다.
-export type AuthToastKind = "login" | "logout";
+export type AuthToastKind = "login" | "logout" | "withdraw";
 export interface AuthToastFlag {
   kind: AuthToastKind;
   justSignedUp?: boolean;
