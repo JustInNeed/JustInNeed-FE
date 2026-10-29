@@ -222,6 +222,12 @@
 .sessionEmpty {
   padding-bottom: 28px;
 }
+.state {
+  padding: 80px 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-500);
+}
 .exploreBtn {
   margin-left: auto;
   font-size: 11px;

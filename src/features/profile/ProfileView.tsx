@@ -11,18 +11,7 @@ import type { SessionListItem } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import { useToast } from "@/lib/app/ToastContext";
 import { withHash } from "@/lib/format";
-import {
-  COMMUNITY_FEED,
-  MINDMAP_EDGES,
-  MINDMAP_NODES,
-  MINDMAP_NODE_URLS,
-  MOCK_SESSIONS,
-  MY_PROFILE,
-  otherProfile,
-  relatedSessionsFor,
-  type CommunityPost,
-  type MockProfile,
-} from "@/lib/mock/designData";
+import type { ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
 import { ProfileEdit, type ProfileDraft } from "./ProfileEdit";
 import styles from "./Profile.module.css";
 
@@ -32,20 +21,73 @@ const BOOKMARK_OPTIONS = [
   { l: "미니 마인드맵으로 저장", d: "노드 간 관계까지 함께 담아요" },
 ];
 
+// 내 프로필 데이터가 없을 때 — 이름 · 핸들은 로그인 회원 닉네임으로 채우고 나머지는 빈 상태로 보여준다
+const EMPTY_PAGE: ProfilePageData = {
+  profile: {
+    name: "",
+    handle: "",
+    avatar: "🌱",
+    bio: "",
+    nodes: 0,
+    likes: 0,
+    interests: [],
+    topTags: [],
+    visibility: "url",
+    pinnedSessionIds: [],
+  },
+  mindmaps: [],
+  fullMindmap: { nodes: [], edges: [], nodeUrls: {} },
+  sessions: [],
+};
+
 export interface ProfileViewProps {
   /** 없으면 내 프로필 */
   handle?: string;
+  /** 프로필 API 가 생기기 전까지는 null — 내 프로필은 닉네임만 채운 빈 프로필, 다른 사용자는 빈 상태 */
+  data: ProfilePageData | null;
+  loading?: boolean;
+  /** 불러오기 실패 메시지 */
+  error?: string | null;
+  onRetry?: () => void;
 }
 
-export function ProfileView({ handle }: ProfileViewProps) {
+export function ProfileView({ handle, data, loading = false, error = null, onRetry }: ProfileViewProps) {
+  if (loading) return <ProfileState><div className={styles.state}>불러오는 중…</div></ProfileState>;
+  if (error) {
+    return (
+      <ProfileState>
+        <InlineState kind="error" title="프로필을 불러오지 못했어요." description={error} onRetry={onRetry} />
+      </ProfileState>
+    );
+  }
+  if (!handle) return <ProfileScreen data={data ?? EMPTY_PAGE} />;
+  if (!data) {
+    return (
+      <ProfileState>
+        <InlineState kind="empty" title="아직 볼 수 있는 프로필 정보가 없어요." description={`${withAt(handle)} 님이 공유한 내용이 생기면 여기에 보여요.`} />
+      </ProfileState>
+    );
+  }
+  return <ProfileScreen handle={handle} data={data} />;
+}
+
+function ProfileState({ children }: { children: ReactNode }) {
+  return (
+    <div className={styles.page}>
+      <div className={styles.inner}>{children}</div>
+    </div>
+  );
+}
+
+function ProfileScreen({ handle, data }: { handle?: string; data: ProfilePageData }) {
   const router = useRouter();
   const toast = useToast();
   const { member } = usePersonal();
   const isMine = !handle;
-  // 내 프로필은 수정 화면에서 저장한 값을 들고 있음 (목: 프로필 API 생기면 교체). 닉네임은 회원 정보 기준
-  const [myProfile, setMyProfile] = useState<MockProfile>(MY_PROFILE);
-  const myName = member.nickname ?? MY_PROFILE.name;
-  const profile = isMine ? { ...myProfile, name: myName, handle: `@${myName}` } : otherProfile(handle);
+  // 내 프로필은 수정 화면에서 저장한 값을 덮어 보여줌 (프로필 저장 API 생기면 교체). 닉네임은 회원 정보 기준
+  const [saved, setSaved] = useState<ProfileDraft | null>(null);
+  const myName = member.nickname ?? data.profile.name;
+  const profile = isMine ? { ...data.profile, ...saved, name: myName, handle: `@${myName}` } : data.profile;
 
   const [tab, setTab] = useState<"mindmap" | "sessions">("mindmap");
   const [editing, setEditing] = useState(false);
@@ -56,7 +98,7 @@ export function ProfileView({ handle }: ProfileViewProps) {
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
   const bookmarkRef = useRef<HTMLDivElement>(null);
   // 마인드맵 카드 → 상세 팝업 → 크게 보기 (리프 노드는 원문 URL로). 크게 보기를 닫으면 팝업으로 돌아간다
-  const [detail, setDetail] = useState<CommunityPost | null>(null);
+  const [detail, setDetail] = useState<ProfileMindmap | null>(null);
   const [fullView, setFullView] = useState(false);
   const closeDetail = useCallback(() => setDetail(null), []);
   const closeFullView = useCallback(() => setFullView(false), []);
@@ -78,24 +120,28 @@ export function ProfileView({ handle }: ProfileViewProps) {
   }, [bookmarkOpen]);
 
   const saveProfile = (draft: ProfileDraft) => {
-    setMyProfile((p) => ({ ...p, ...draft }));
+    setSaved(draft);
     setEditing(false);
     toast.success("프로필을 저장했어요.");
   };
 
-  if (editing) return <ProfileEdit profile={profile} onCancel={() => setEditing(false)} onSave={saveProfile} />;
+  if (editing) {
+    return <ProfileEdit profile={profile} sessions={data.sessions} onCancel={() => setEditing(false)} onSave={saveProfile} />;
+  }
 
   // 다른 사용자 프로필에선 비공개 해시태그와 그 노드를 빼고 보여줌
   const hiddenTags = isMine ? [] : profile.topTags.filter((t) => !t.isPublic);
   const hidden = new Set(hiddenTags.map((t) => t.tag));
   const visibleTags = (tags: string[]) => tags.filter((t) => !hidden.has(withHash(t)));
+  const withVisibleTags = (s: SessionListItem) => ({ ...s, tags: visibleTags(s.tags) });
   const shownTopTags = profile.topTags.filter((t) => !hidden.has(t.tag));
   const nodeCount = profile.nodes - hiddenTags.reduce((n, t) => n + t.count, 0);
+  const owner = { name: profile.name, avatar: profile.avatar, handle: profile.handle };
 
   const pinnedSessions = profile.pinnedSessionIds
-    .map((id) => MOCK_SESSIONS.find((s) => s.id === id))
+    .map((id) => data.sessions.find((s) => s.id === id))
     .filter((s): s is SessionListItem => !!s)
-    .map((s) => ({ ...s, tags: visibleTags(s.tags) }));
+    .map(withVisibleTags);
 
   const toggleSelect = (tag: string) => {
     const next = selected.includes(tag) ? selected.filter((x) => x !== tag) : [...selected, tag];
@@ -176,32 +222,34 @@ export function ProfileView({ handle }: ProfileViewProps) {
           </div>
         </div>
 
-        <p className={styles.bio}>{profile.bio}</p>
+        {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
 
         <div className={styles.stats}>
           <Stat n={nodeCount} l="노드" />
           <Stat n={pinnedSessions.length} l="공유 세션" />
           <Stat n={profile.likes + (liked ? 1 : 0)} l="좋아요" />
-          {!isMine && <Stat n={12} l="나도 탐색중" accent />}
+          {!isMine && <Stat n={data.exploringCount ?? 0} l="나도 탐색중" accent />}
         </div>
 
-        <div className={styles.tagRow}>
-          {shownTopTags.map((t) =>
-            // 비공개 태그는 내 프로필에서만 흐리게 보임
-            tagChip(
-              `top-${t.tag}`,
-              t.tag,
-              t.isPublic ? styles.topTag : `${styles.topTag} ${styles.topTagPrivate}`,
-              <>
-                {!t.isPublic && <Icon name="lock" size={11} stroke={2} />}
-                {t.tag}
-                <span className={styles.countBadge}>{t.count}</span>
-              </>,
-              t.isPublic ? undefined : "비공개 · 나만 보여요",
-            ),
-          )}
-          {profile.interests.map((h) => tagChip(`interest-${h}`, h, styles.interest, h))}
-        </div>
+        {(shownTopTags.length > 0 || profile.interests.length > 0) && (
+          <div className={styles.tagRow}>
+            {shownTopTags.map((t) =>
+              // 비공개 태그는 내 프로필에서만 흐리게 보임
+              tagChip(
+                `top-${t.tag}`,
+                t.tag,
+                t.isPublic ? styles.topTag : `${styles.topTag} ${styles.topTagPrivate}`,
+                <>
+                  {!t.isPublic && <Icon name="lock" size={11} stroke={2} />}
+                  {t.tag}
+                  <span className={styles.countBadge}>{t.count}</span>
+                </>,
+                t.isPublic ? undefined : "비공개 · 나만 보여요",
+              ),
+            )}
+            {profile.interests.map((h) => tagChip(`interest-${h}`, h, styles.interest, h))}
+          </div>
+        )}
 
         {selected.length > 0 && (
           <div className={styles.selectBar}>
@@ -232,47 +280,45 @@ export function ProfileView({ handle }: ProfileViewProps) {
           <button onClick={() => setTab("sessions")} className={`${styles.tab} ${tab === "sessions" ? styles.tabOn : ""}`}>세션 ({pinnedSessions.length})</button>
         </div>
 
-        {tab === "mindmap" && (
-          <div className={styles.mapGrid}>
-            {COMMUNITY_FEED.slice(0, isMine ? 4 : 6).map((p) => (
-              <MindmapCard
-                key={p.id}
-                seed={p.id}
-                nodes={p.nodes}
-                height={220}
-                title={p.title}
-                tags={visibleTags(p.hashtags).slice(0, 2)}
-                topLeft={isMine ? <span title="핀고정됨"><Icon name="pin" size={11} stroke={2} /></span> : undefined}
-                topRight={`노드 ${p.nodes}`}
-                onClick={() =>
-                  // 목: 피드 게시물을 빌려 쓰므로 작성자 · 해시태그는 이 프로필 기준으로 바꿔 보여줌
-                  setDetail({
-                    ...p,
-                    user: { name: profile.name, avatar: profile.avatar, handle: profile.handle },
-                    hashtags: visibleTags(p.hashtags),
-                  })
-                }
-                footer={
-                  <>
-                    <span>♡ {p.likes}</span>
-                    <span>◇ {p.bookmarks}</span>
-                    {!isMine && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleExplore(p.id);
-                        }}
-                        className={`${styles.exploreBtn} ${exploring.has(p.id) ? styles.exploreBtnOn : ""}`}
-                      >
-                        {exploring.has(p.id) ? "✓ 탐색중" : "+ 나도 탐색"}
-                      </button>
-                    )}
-                  </>
-                }
-              />
-            ))}
-          </div>
-        )}
+        {tab === "mindmap" &&
+          (data.mindmaps.length === 0 ? (
+            <div className={styles.sessionEmpty}>
+              <InlineState kind="empty" title="공유한 마인드맵이 없어요." />
+            </div>
+          ) : (
+            <div className={styles.mapGrid}>
+              {data.mindmaps.map((p) => (
+                <MindmapCard
+                  key={p.id}
+                  seed={p.id}
+                  nodes={p.nodes}
+                  height={220}
+                  title={p.title}
+                  tags={visibleTags(p.hashtags).slice(0, 2)}
+                  topLeft={isMine ? <span title="핀고정됨"><Icon name="pin" size={11} stroke={2} /></span> : undefined}
+                  topRight={`노드 ${p.nodes}`}
+                  onClick={() => setDetail(p)}
+                  footer={
+                    <>
+                      <span>♡ {p.likes}</span>
+                      <span>◇ {p.bookmarks}</span>
+                      {!isMine && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExplore(p.id);
+                          }}
+                          className={`${styles.exploreBtn} ${exploring.has(p.id) ? styles.exploreBtnOn : ""}`}
+                        >
+                          {exploring.has(p.id) ? "✓ 탐색중" : "+ 나도 탐색"}
+                        </button>
+                      )}
+                    </>
+                  }
+                />
+              ))}
+            </div>
+          ))}
 
         {tab === "sessions" &&
           (pinnedSessions.length === 0 ? (
@@ -294,8 +340,9 @@ export function ProfileView({ handle }: ProfileViewProps) {
 
       {detail && !fullView && (
         <MindmapDetailModal
-          post={detail}
-          sessions={relatedSessionsFor(detail)}
+          // 작성자는 이 프로필 주인, 해시태그 · 관련 세션 태그는 비공개를 뺀 값
+          post={{ ...detail, user: owner, hashtags: visibleTags(detail.hashtags) }}
+          sessions={detail.sessions.map(withVisibleTags)}
           onClose={closeDetail}
           // 이미 이 사람 프로필이라 작성자 이름을 누르면 팝업만 닫힌다
           onOpenProfile={() => {}}
@@ -308,14 +355,14 @@ export function ProfileView({ handle }: ProfileViewProps) {
         />
       )}
       {detail && fullView && (
-        <MindmapFullView
-          title={`${profile.name}님의 전체 마인드맵`}
-          mindmap={{ nodes: MINDMAP_NODES, edges: MINDMAP_EDGES, nodeUrls: MINDMAP_NODE_URLS }}
-          onClose={closeFullView}
-        />
+        <MindmapFullView title={`${profile.name}님의 전체 마인드맵`} mindmap={data.fullMindmap} onClose={closeFullView} />
       )}
     </div>
   );
+}
+
+function withAt(handle: string) {
+  return handle.startsWith("@") ? handle : `@${handle}`;
 }
 
 function Stat({ n, l, accent }: { n: number; l: string; accent?: boolean }) {
