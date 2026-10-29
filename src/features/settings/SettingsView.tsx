@@ -13,7 +13,8 @@ type Section = "collection" | "extension" | "integration" | "account";
 const SECTIONS: { id: Section; l: string }[] = [
   { id: "collection", l: "데이터 수집" },
   { id: "extension", l: "확장 프로그램" },
-  { id: "integration", l: "외부 플랫폼" },
+  // 외부 플랫폼 연동은 준비 전이라 메뉴에서 숨김 (섹션 코드는 유지, 다시 노출할 때 아래 줄만 복구)
+  // { id: "integration", l: "외부 플랫폼" },
   { id: "account", l: "계정" },
 ];
 
@@ -40,7 +41,7 @@ export function SettingsView() {
 
   return (
     <div className={styles.page}>
-      <PageHeader title="설정" subtitle="확장 프로그램과 데이터 수집을 관리해요" />
+      <PageHeader title="설정" />
       <div className={styles.grid}>
         <nav className={styles.nav}>
           {SECTIONS.map((s) => (
