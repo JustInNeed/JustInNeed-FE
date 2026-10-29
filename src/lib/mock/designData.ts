@@ -48,6 +48,48 @@ export const MINDMAP_EDGES: MindmapEdge[] = [
   ["rome", "travel-blog"], ["paris", "travel-blog"], ["eu", "reddit"],
 ];
 
+// ---------- 홈 마인드맵 필터 · 검색 (목: 홈 집계 API 생기면 교체) ----------
+export type GraphPeriod = "today" | "week" | "month" | "all";
+
+/** 노드를 마지막으로 본 시점과 연결된 해시태그 (# 없는 raw) */
+export const MINDMAP_NODE_META: Record<string, { seen: Exclude<GraphPeriod, "all">; tags: string[] }> = {
+  eu: { seen: "week", tags: ["유럽여행"] },
+  rome: { seen: "today", tags: ["로마"] },
+  colos: { seen: "today", tags: ["로마", "콜로세움"] },
+  vatic: { seen: "today", tags: ["로마"] },
+  tras: { seen: "today", tags: ["로마"] },
+  pasta: { seen: "today", tags: ["로마"] },
+  paris: { seen: "week", tags: ["파리"] },
+  eiffel: { seen: "week", tags: ["파리"] },
+  louvre: { seen: "week", tags: ["파리"] },
+  orsay: { seen: "week", tags: ["파리"] },
+  mont: { seen: "week", tags: ["파리"] },
+  barca: { seen: "month", tags: ["바르셀로나"] },
+  sagrada: { seen: "month", tags: ["바르셀로나"] },
+  park: { seen: "month", tags: ["바르셀로나"] },
+  tapas: { seen: "month", tags: ["바르셀로나"] },
+  prague: { seen: "month", tags: ["프라하"] },
+  castle: { seen: "month", tags: ["프라하"] },
+  bridge: { seen: "month", tags: ["프라하"] },
+  flight: { seen: "today", tags: ["항공권"] },
+  visa: { seen: "week", tags: ["항공권"] },
+  skyscan: { seen: "today", tags: ["항공권"] },
+  kayak: { seen: "week", tags: ["항공권"] },
+  rail: { seen: "month", tags: ["유레일"] },
+  booking: { seen: "month", tags: ["유레일"] },
+  budget: { seen: "week", tags: ["예산"] },
+  packing: { seen: "month", tags: ["짐싸기"] },
+  "travel-blog": { seen: "week", tags: ["로마", "파리"] },
+  reddit: { seen: "month", tags: ["유럽여행"] },
+};
+
+export const GRAPH_TAG_GROUPS: { id: number; name: string; tags: string[] }[] = [
+  { id: 1, name: "유럽 여행 준비", tags: ["로마", "파리", "콜로세움", "항공권", "숙소"] },
+  { id: 2, name: "React 학습", tags: ["React", "TypeScript", "훅", "상태관리"] },
+];
+
+export const GRAPH_FILTER_TAGS = ["로마", "파리", "항공권", "예산", "바르셀로나", "프라하"];
+
 // ---------- 세션 (API SessionListItem 형태, 프로필/북마크/검색 화면용) ----------
 const s = (
   id: number,

@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Card, PageHeader, StatCard, HashChip } from "@/components/ui";
 import { Mindmap } from "@/components/mindmap/Mindmap";
 import { HOME_TIMELINE, HOME_TOP_TAGS, HOME_WEEK_ACTIVITY, MINDMAP_EDGES, MINDMAP_NODES } from "@/lib/mock/designData";
+import { GraphFilterPopover } from "./GraphFilterPopover";
+import { GraphSearch } from "./GraphSearch";
+import { DEFAULT_GRAPH_FILTER, countApplied, dimmedNodeIds, type GraphFilter } from "./graphFilter";
 import styles from "./HomeView.module.css";
 
 export function HomeView() {
@@ -12,6 +15,39 @@ export function HomeView() {
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [range, setRange] = useState<"today" | "week">("today");
+
+  // 그래프 필터 · 검색 (디자인 A-1 · A-2)
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filter, setFilter] = useState<GraphFilter>(DEFAULT_GRAPH_FILTER);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const toolsRef = useRef<HTMLDivElement>(null);
+
+  const dimmedIds = useMemo(() => dimmedNodeIds(MINDMAP_NODES, filter), [filter]);
+  const matchIds = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!searchOpen || !q) return undefined;
+    return new Set(MINDMAP_NODES.filter((n) => n.label.toLowerCase().includes(q)).map((n) => n.id));
+  }, [searchOpen, query]);
+  const filterActive = filterOpen || countApplied(filter) > 0;
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQuery("");
+  };
+
+  // 바깥을 누르면 필터 팝오버 · 검색을 닫는다
+  useEffect(() => {
+    if (!filterOpen && !searchOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (toolsRef.current?.contains(e.target as Node)) return;
+      setFilterOpen(false);
+      setSearchOpen(false);
+      setQuery("");
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [filterOpen, searchOpen]);
 
   const focusId = selected || hovered;
   const focusNode = focusId ? MINDMAP_NODES.find((n) => n.id === focusId) : undefined;
@@ -24,9 +60,53 @@ export function HomeView() {
       <PageHeader title="홈" subtitle="당신이 탐색해 온 모든 흐름을 한눈에" />
       <div className={styles.body}>
         <div className={styles.graphBox}>
-          <div className={styles.graphTools}>
-            <button className={styles.iconBtn} aria-label="필터"><Icon name="filter" size={14} /></button>
-            <button className={styles.iconBtn} aria-label="검색"><Icon name="search" size={14} /></button>
+          <div className={styles.graphTools} ref={toolsRef}>
+            <button
+              className={`${styles.iconBtn} ${filterActive ? styles.iconBtnOn : ""}`}
+              aria-label="필터"
+              aria-expanded={filterOpen}
+              onClick={() => {
+                setFilterOpen((v) => !v);
+                closeSearch();
+              }}
+            >
+              <Icon name="filter" size={14} />
+            </button>
+            {searchOpen ? (
+              <GraphSearch
+                nodes={MINDMAP_NODES}
+                edges={MINDMAP_EDGES}
+                query={query}
+                onQueryChange={setQuery}
+                onSelectNode={(id) => {
+                  setSelected(id);
+                  closeSearch();
+                }}
+                onSelectSession={(id) => router.push(`/sessions/${id}`)}
+                onClose={closeSearch}
+              />
+            ) : (
+              <button
+                className={styles.iconBtn}
+                aria-label="검색"
+                onClick={() => {
+                  setSearchOpen(true);
+                  setFilterOpen(false);
+                }}
+              >
+                <Icon name="search" size={14} />
+              </button>
+            )}
+            {filterOpen && (
+              <GraphFilterPopover
+                applied={filter}
+                nodes={MINDMAP_NODES}
+                onApply={(f) => {
+                  setFilter(f);
+                  setFilterOpen(false);
+                }}
+              />
+            )}
           </div>
           <Mindmap
             nodes={MINDMAP_NODES}
@@ -37,6 +117,9 @@ export function HomeView() {
             onSelect={(id) => setSelected((cur) => (cur === id ? null : id))}
             hoveredId={hovered}
             onHover={setHovered}
+            dimmedIds={dimmedIds}
+            matchIds={matchIds}
+            showHint={false}
           />
           {focusNode && (
             <div className={styles.popover}>
