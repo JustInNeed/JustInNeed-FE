@@ -72,6 +72,7 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 600;
   padding: 6px 12px;
@@ -100,7 +101,6 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 .topTagPrivate {
-  gap: 4px;
   background: var(--surface-2);
   color: var(--ink-500);
   border: 1px dashed var(--line-2);
@@ -111,6 +111,7 @@
 .interest {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 500;
   padding: 6px 12px;
@@ -118,6 +119,74 @@
   background: var(--surface-2);
   color: var(--ink-700);
   border: 1px solid var(--line);
+}
+/* 다른 사용자 프로필 — 태그 선택 후 북마크 */
+.topTag.tagSelectable:hover {
+  background: var(--green-800);
+}
+.interest.tagSelectable:hover {
+  border-color: var(--green-300);
+}
+.topTag.tagOn {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--green-400);
+}
+.interest.tagOn {
+  background: var(--green-50);
+  border-color: var(--green-400);
+  color: var(--green-800);
+}
+.selectBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  margin: -8px 0 18px;
+  padding: 6px 6px 6px 14px;
+  background: var(--green-50);
+  border: 1px solid var(--green-200);
+  border-radius: 12px;
+}
+.selectCount {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green-800);
+}
+.bookmarkWrap {
+  position: relative;
+}
+.bookmarkPop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  width: 220px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+}
+.bookmarkOpt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: left;
+}
+.bookmarkOpt:hover {
+  background: var(--surface-2);
+}
+.bookmarkOptTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+.bookmarkOptDesc {
+  font-size: 11px;
+  color: var(--ink-500);
 }
 .tabs {
   display: flex;

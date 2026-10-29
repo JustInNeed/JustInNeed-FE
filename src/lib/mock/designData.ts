@@ -224,8 +224,9 @@ export function otherProfile(handle: string): MockProfile {
       { tag: "#프라하", count: 32, isPublic: true },
       { tag: "#비엔나", count: 28, isPublic: true },
       { tag: "#야간열차", count: 16, isPublic: true },
-      { tag: "#카페", count: 14, isPublic: true },
-      { tag: "#슬로우트래블", count: 12, isPublic: true },
+      // 비공개 예시 — 다른 사용자 프로필 보기에서 태그와 그 노드가 빠짐
+      { tag: "#카페", count: 14, isPublic: false },
+      { tag: "#슬로우트래블", count: 12, isPublic: false },
     ],
     visibility: "url",
     pinnedSessionIds: [9007, 9004, 9002, 9006],
