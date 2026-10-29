@@ -14,7 +14,7 @@ import styles from "./SettingsView.module.css";
  * 계정 섹션 — 닉네임 변경, 연결된 소셜 계정, 로그아웃.
  * 중복 확인은 백엔드 전용 API 부재로 로컬 시뮬레이션. 저장은 형식만 맞으면 가능하고, 실제 중복은 서버 409 로 확인.
  */
-export function AccountSection() {
+export function AccountSection({ onWithdraw }: { onWithdraw: () => void }) {
   const { member, updateMember, logout } = usePersonal();
   const toast = useToast();
   const current = member.nickname ?? "";
@@ -109,6 +109,17 @@ export function AccountSection() {
       <Button variant="secondary" onClick={logout} style={{ color: "#c44", marginTop: 8 }}>
         로그아웃
       </Button>
+
+      <div className={styles.divider} />
+      <div className={styles.withdrawRow}>
+        <div>
+          <div className={styles.withdrawTitle}>회원 탈퇴</div>
+          <div className={styles.withdrawDesc}>더 이상 JustInNeed를 사용하지 않으시나요?</div>
+        </div>
+        <Button variant="secondary" onClick={onWithdraw} className={styles.withdrawBtn}>
+          회원 탈퇴
+        </Button>
+      </div>
     </Card>
   );
 }
