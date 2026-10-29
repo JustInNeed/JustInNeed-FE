@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Card, Button, HashChip, Markdown, InlineState } from "@/components/ui";
+import { Icon, Card, Button, Markdown, InlineState } from "@/components/ui";
 import { Mindmap } from "@/components/mindmap/Mindmap";
 import {
   ApiError,
@@ -190,6 +190,10 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const addTag = (raw: string) => {
     const next = [...detail.tags, raw];
     setShowTagPicker(false);
+    persist({ tags: next }, { tags: next });
+  };
+  const removeTag = (tag: string) => {
+    const next = detail.tags.filter((t) => t !== tag);
     persist({ tags: next }, { tags: next });
   };
 
@@ -384,7 +388,20 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   }}
                   title="드래그로 순서 변경"
                 >
-                  <HashChip label={withHash(h)} size="sm" />
+                  {withHash(h)}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeTag(h);
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    draggable={false}
+                    className={styles.tagRemove}
+                    aria-label={`${withHash(h)} 삭제`}
+                    title="삭제"
+                  >
+                    <Icon name="x" size={10} />
+                  </button>
                 </span>
               ))}
               <div className={styles.tagPickerWrap}>

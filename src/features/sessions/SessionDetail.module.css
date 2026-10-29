@@ -116,11 +116,36 @@
   flex-wrap: wrap;
   gap: 5px;
 }
+/* HashChip sm 과 같은 모양 + 개별 삭제 × */
 .tagDrag {
   display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px 3px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--green-50);
+  color: var(--green-800);
+  border: 1px solid var(--green-100);
   border-radius: 999px;
   outline-offset: 1px;
   cursor: grab;
+  user-select: none;
+}
+.tagRemove {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--green-700);
+  transition: background 0.12s;
+}
+.tagRemove:hover {
+  background: var(--green-100);
+  color: var(--green-900);
 }
 .tagPickerWrap {
   position: relative;
