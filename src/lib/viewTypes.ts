@@ -157,6 +157,51 @@ export interface BannerTip {
   body: string;
 }
 
+/** 읽기 행동 4분류 — 화면 표기는 영어 (Deep Reading / Reading / Scanning / Idle) */
+export type ReadingLevel = "DEEP_READING" | "READING" | "SCANNING" | "IDLE";
+
+/** 탐색 성향 통계 */
+export interface ExplorationStats {
+  avgUrlsPerSession: number;
+  avgDwellSec: number;
+  avgSessionMinutes: number;
+}
+
+export interface CategoryShare {
+  name: string;
+  pct: number;
+  count: number;
+}
+
+/** 시간대별 히트맵 — [요일 월~일][3시간 구간 00 · 03 · … · 21시], 값 0~1 */
+export type WeekHourGrid = number[][];
+
+/** 카드 아래 분석 · 추천 문구. "**강조**" 로 감싼 부분은 강조해 보여준다 */
+export interface AnalysisNote {
+  analysis: string;
+  recommendation?: string;
+}
+
+export interface AnalyticsData {
+  /** "이번 주 인사이트" 슬라이드 후보 — 이번 주 세션 */
+  weekSessions: SessionListItem[];
+  /** "오늘의 웹 서핑 팁" 후보 */
+  surfingTips: BannerTip[];
+  /** "오늘의 추천 행동" 후보 */
+  actionRecommendations: BannerTip[];
+  exploration: ExplorationStats;
+  /** 최근 7일 읽기 행동 비율 (%) */
+  readingBehavior: Record<ReadingLevel, number>;
+  categoryRatio: CategoryShare[];
+  heatmap: { surfing: WeekHourGrid; focus: WeekHourGrid };
+  notes: {
+    exploration: AnalysisNote;
+    reading: AnalysisNote;
+    category: AnalysisNote;
+    timePattern: AnalysisNote;
+  };
+}
+
 // ---------- 설정 ----------
 export interface ExcludedUrl {
   url: string;

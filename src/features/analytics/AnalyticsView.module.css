@@ -2,6 +2,18 @@
   overflow-y: auto;
   height: 100%;
 }
+/* 불러오는 중 · 빈 상태 · 실패 */
+.state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  font-size: 13px;
+  color: var(--ink-500);
+}
+.stateWrap {
+  padding: 0 28px 28px;
+}
 .grid {
   padding: 0 28px 28px;
   display: grid;
