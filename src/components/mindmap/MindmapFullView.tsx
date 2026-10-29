@@ -4,18 +4,12 @@ import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui";
 import { hostFromUrl } from "@/lib/format";
-import type { MindmapEdge, MindmapNode } from "@/lib/types";
+import type { FullMindmap } from "@/lib/viewTypes";
 import { Mindmap } from "./Mindmap";
 import { useOverlayClose } from "./useOverlayClose";
 import styles from "./MindmapFullView.module.css";
 
-/** 작성자의 전체 마인드맵 — 노드 · 연결선과 리프 노드의 원문 URL */
-export interface FullMindmap {
-  nodes: MindmapNode[];
-  edges: MindmapEdge[];
-  /** 노드 id → 원문 URL (연결이 1개인 리프 노드만 눌러서 열린다) */
-  nodeUrls: Record<string, string>;
-}
+export type { FullMindmap };
 
 export interface MindmapFullViewProps {
   title: string;
