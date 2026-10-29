@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Card, Button, HashChip, Markdown } from "@/components/ui";
+import { Icon, Card, Button, HashChip, Markdown, InlineState } from "@/components/ui";
 import { Mindmap } from "@/components/mindmap/Mindmap";
 import {
   ApiError,
@@ -47,7 +47,16 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const router = useRouter();
   const toast = useToast();
   const validId = Number.isFinite(sessionId);
-  const fetcher = useCallback(() => getSession(sessionId), [sessionId]);
+  // useApi 는 메시지만 돌려주므로 404 · 403 구분용 상태 코드는 따로 보관
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
+  const fetcher = useCallback(
+    () =>
+      getSession(sessionId).catch((e: unknown) => {
+        setErrorStatus(e instanceof ApiError ? e.status : null);
+        throw e;
+      }),
+    [sessionId],
+  );
   const { data, error, loading } = useApi<SessionDetailType>(fetcher, [sessionId]);
 
   const [detail, setDetail] = useState<SessionDetailType | null>(null);
@@ -129,7 +138,27 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     [detail],
   );
 
-  if (!validId) return <div className={styles.state}>잘못된 세션 주소입니다.</div>;
+  const blocked = !validId
+    ? 404
+    : error && !detail && (errorStatus === 404 || errorStatus === 403)
+      ? errorStatus
+      : null;
+  if (blocked) {
+    return (
+      <div className={styles.state}>
+        <div className={styles.stateBox}>
+          {blocked === 404 ? (
+            <InlineState kind="empty" title="세션을 찾을 수 없어요" description="삭제됐거나 주소가 잘못됐어요." />
+          ) : (
+            <InlineState kind="empty" title="볼 수 없는 세션이에요" description="비공개 세션이라 볼 수 없어요." />
+          )}
+        </div>
+        <Button variant="secondary" onClick={() => router.push("/sessions")}>
+          세션 목록으로
+        </Button>
+      </div>
+    );
+  }
   if (loading && !detail) return <div className={styles.state}>불러오는 중…</div>;
   if (error && !detail) {
     return (

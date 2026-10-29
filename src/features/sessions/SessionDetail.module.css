@@ -19,6 +19,10 @@
   margin: 0;
   color: #c44;
 }
+.stateBox {
+  width: 100%;
+  max-width: 360px;
+}
 
 .bodyMuted {
   font-size: 14px;
