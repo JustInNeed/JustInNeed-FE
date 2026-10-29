@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http } from "msw";
 import { useState, type ReactNode } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PersonalProvider } from "@/lib/app/PersonalContext";
 import { NICKNAME_FORMAT_ERROR } from "@/lib/nickname";
 import { MEMBER } from "@/test/fixtures/member";
@@ -9,6 +9,12 @@ import { MY_PROFILE, MY_PROFILE_PAGE } from "@/test/fixtures/profile";
 import { API, fail, ok, server } from "@/test/msw/server";
 import { renderApp, renderPersonal } from "@/test/render";
 import { ProfileView } from "./ProfileView";
+
+// 카드 · 팝업의 미리보기 그래프는 장식(aria-hidden)이라 가벼운 div 로 바꿔 DOM 을 줄인다 (요소 수천 개 → 쿼리가 느려짐)
+vi.mock("@/components/mindmap/MindmapPreview", async () => {
+  const { createElement } = await import("react");
+  return { MindmapPreview: ({ children }: { children?: ReactNode }) => createElement("div", null, children) };
+});
 
 const titleOf = (id: number) => MY_PROFILE_PAGE.sessions.find((s) => s.id === id)!.title;
 
