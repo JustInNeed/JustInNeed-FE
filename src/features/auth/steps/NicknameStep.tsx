@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Icon } from "@/components/ui";
 import { NICKNAME_FORMAT_ERROR, NICKNAME_MAX_LENGTH, isValidNickname } from "@/lib/nickname";
 import styles from "../auth.module.css";
+import { SignupSteps } from "./SignupSteps";
 
 export interface NicknameStepProps {
   onSubmit: (nickname: string) => void;
@@ -19,6 +20,7 @@ export function NicknameStep({ onSubmit, submitting = false, error = null, provi
 
   return (
     <div className={`${styles.card} ${styles.pad}`}>
+      <SignupSteps current={2} />
       <h2 className={styles.h2}>닉네임을 정해주세요</h2>
       <p className={styles.desc}>다른 사용자에게 보여질 이름이에요. 가입 후에도 언제든 변경할 수 있어요.</p>
 
