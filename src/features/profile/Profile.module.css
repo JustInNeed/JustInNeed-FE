@@ -204,6 +204,10 @@
   display: flex;
   gap: 8px;
 }
+/* 10/10 이면 추가 버튼 비활성 */
+.addBtn:disabled {
+  opacity: 0.45;
+}
 .radioRow {
   display: flex;
   align-items: flex-start;

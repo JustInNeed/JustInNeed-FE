@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Icon, Card, PageHeader, Button, Field, FieldMessage, inputClass } from "@/components/ui";
 import { MOCK_SESSIONS, type MockProfile, type NodeVisibility } from "@/lib/mock/designData";
-import { formatDuration } from "@/lib/format";
+import { formatDuration, withHash } from "@/lib/format";
+import { MAX_HASHTAGS, validateHashtag } from "@/lib/hashtag";
 import { ApiError, updateNickname } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import { useToast } from "@/lib/app/ToastContext";
@@ -34,6 +35,7 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
   const [bio, setBio] = useState(profile.bio);
   const [interests, setInterests] = useState(profile.interests);
   const [newTag, setNewTag] = useState("");
+  const [tagError, setTagError] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<NodeVisibility>(profile.visibility);
   const [pinned, setPinned] = useState<number[]>(profile.pinnedSessionIds);
   const nameInvalid = !isValidNickname(name);
@@ -56,12 +58,16 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
     onSave({ bio, interests, visibility, pinnedSessionIds: pinned });
   };
 
+  const tagsFull = interests.length >= MAX_HASHTAGS;
+
   const addTag = () => {
-    const raw = newTag.trim();
-    if (!raw || interests.length >= 10) return;
-    const tag = raw.startsWith("#") ? raw : `#${raw}`;
-    if (interests.includes(tag)) return;
-    setInterests([...interests, tag]);
+    // interests 는 '#' 포함 표시값, 검증은 raw 기준
+    const r = validateHashtag(newTag, interests.map((t) => t.replace(/^#/, "")));
+    if (!r.ok) {
+      setTagError(r.msg);
+      return;
+    }
+    setInterests([...interests, withHash(r.value)]);
     setNewTag("");
   };
 
@@ -106,10 +112,19 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
 
         <Card className={styles.editCard}>
           <h3 className={styles.editTitle} style={{ marginBottom: 6 }}>관심 해시태그</h3>
-          <p className={styles.editDesc}>최대 10개까지 등록할 수 있어요. ({interests.length}/10)</p>
+          <p className={styles.editDesc}>
+            최대 {MAX_HASHTAGS}개까지 등록할 수 있어요. ({interests.length}/{MAX_HASHTAGS})
+          </p>
           <div className={styles.interestList}>
             {interests.map((h, i) => (
-              <button key={h} onClick={() => setInterests(interests.filter((_, j) => j !== i))} className={styles.interestChip}>
+              <button
+                key={h}
+                onClick={() => {
+                  setInterests(interests.filter((_, j) => j !== i));
+                  setTagError(null);
+                }}
+                className={styles.interestChip}
+              >
                 {h} <span className={styles.interestX}>×</span>
               </button>
             ))}
@@ -117,16 +132,27 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
           <div className={styles.addRow}>
             <input
               value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addTag()}
+              onChange={(e) => {
+                setNewTag(e.target.value);
+                setTagError(null);
+              }}
+              // 한글 조합 중 Enter 는 무시 (마지막 글자 중복 입력 방지)
+              onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && addTag()}
               placeholder="새 해시태그 추가"
+              aria-invalid={tagError ? true : undefined}
+              aria-describedby={tagError ? "profile-tag-error" : undefined}
               className={inputClass}
               style={{ flex: 1 }}
             />
-            <Button variant="primary" onClick={addTag}>
+            <Button variant="primary" onClick={addTag} disabled={tagsFull} className={styles.addBtn}>
               <Icon name="plus" size={12} /> 추가
             </Button>
           </div>
+          {tagError && (
+            <FieldMessage tone="error" id="profile-tag-error">
+              {tagError}
+            </FieldMessage>
+          )}
         </Card>
 
         <Card className={styles.editCard}>
