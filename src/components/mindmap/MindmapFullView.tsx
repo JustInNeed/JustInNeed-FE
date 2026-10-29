@@ -4,44 +4,47 @@ import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui";
 import { hostFromUrl } from "@/lib/format";
-import { MINDMAP_EDGES, MINDMAP_NODES, MINDMAP_NODE_URLS } from "@/lib/mock/designData";
+import type { FullMindmap } from "@/lib/viewTypes";
 import { Mindmap } from "./Mindmap";
 import { useOverlayClose } from "./useOverlayClose";
 import styles from "./MindmapFullView.module.css";
 
+export type { FullMindmap };
+
 export interface MindmapFullViewProps {
   title: string;
+  mindmap: FullMindmap;
   onClose: () => void;
   /** 넘기면 이 노드들만 색칠해 강조하고 나머지는 흐리게 (북마크 → 원래 마인드맵에서 보기) */
   highlightIds?: readonly string[];
 }
 
 /** 작성자의 전체 마인드맵을 화면 가득 보여주는 오버레이. 리프 노드를 누르면 원문 URL 을 새 탭으로 연다. */
-export function MindmapFullView({ title, onClose, highlightIds }: MindmapFullViewProps) {
+export function MindmapFullView({ title, mindmap, onClose, highlightIds }: MindmapFullViewProps) {
+  const { nodes, edges, nodeUrls } = mindmap;
   useOverlayClose(onClose);
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const downAt = useRef<{ x: number; y: number } | null>(null);
   const dragged = useRef(false);
 
-  // 목: 작성자 마인드맵 대신 MINDMAP_NODES 를 사용
   const leafUrls = useMemo(() => {
     const degree = new Map<string, number>();
-    MINDMAP_EDGES.forEach(([a, b]) => {
+    edges.forEach(([a, b]) => {
       degree.set(a, (degree.get(a) ?? 0) + 1);
       degree.set(b, (degree.get(b) ?? 0) + 1);
     });
     const map = new Map<string, string>();
-    Object.entries(MINDMAP_NODE_URLS).forEach(([id, url]) => {
+    Object.entries(nodeUrls).forEach(([id, url]) => {
       if (degree.get(id) === 1) map.set(id, url);
     });
     return map;
-  }, []);
+  }, [edges, nodeUrls]);
 
   const highlight = useMemo(() => (highlightIds?.length ? new Set(highlightIds) : undefined), [highlightIds]);
   const dimmedIds = useMemo(
-    () => (highlight ? new Set(MINDMAP_NODES.filter((n) => !highlight.has(n.id)).map((n) => n.id)) : undefined),
-    [highlight],
+    () => (highlight ? new Set(nodes.filter((n) => !highlight.has(n.id)).map((n) => n.id)) : undefined),
+    [highlight, nodes],
   );
 
   const onSelect = (id: string) => {
@@ -55,7 +58,7 @@ export function MindmapFullView({ title, onClose, highlightIds }: MindmapFullVie
   };
 
   const hoveredUrl = hovered ? leafUrls.get(hovered) : undefined;
-  const hoveredLabel = MINDMAP_NODES.find((n) => n.id === hovered)?.label;
+  const hoveredLabel = nodes.find((n) => n.id === hovered)?.label;
 
   return createPortal(
     <div
@@ -77,7 +80,7 @@ export function MindmapFullView({ title, onClose, highlightIds }: MindmapFullVie
                   저장한 노드 {highlight.size}개만 강조했어요
                 </>
               ) : (
-                `노드 ${MINDMAP_NODES.length}개`
+                `노드 ${nodes.length}개`
               )}
             </div>
           </div>
@@ -98,8 +101,8 @@ export function MindmapFullView({ title, onClose, highlightIds }: MindmapFullVie
         >
           <div className={styles.graph}>
             <Mindmap
-              nodes={MINDMAP_NODES}
-              edges={MINDMAP_EDGES}
+              nodes={nodes}
+              edges={edges}
               selectedId={selected}
               onSelect={onSelect}
               hoveredId={hovered}

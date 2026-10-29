@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Icon } from "@/components/ui";
 import {
   NICKNAME_AVAILABLE_MESSAGE,
+  NICKNAME_CHECK_FAILED_MESSAGE,
   NICKNAME_FORMAT_ERROR,
   NICKNAME_MAX_LENGTH,
   NICKNAME_TAKEN_MESSAGE,
-  isNicknameTaken,
+  checkNicknameAvailable,
   isValidNickname,
+  type CheckNickname,
 } from "@/lib/nickname";
 import styles from "../auth.module.css";
 import { SignupSteps } from "./SignupSteps";
@@ -18,21 +20,41 @@ export interface NicknameStepProps {
   error?: string | null;
   /** "{provider} 계정 인증 완료" 표시용 (선택). */
   providerLabel?: string;
+  /** 중복 확인 — 기본은 형식만 보고 통과 (lib/nickname) */
+  checkNickname?: CheckNickname;
 }
 
-export function NicknameStep({ onSubmit, submitting = false, error = null, providerLabel }: NicknameStepProps) {
+type CheckStatus = null | "checking" | "ok" | "taken" | "failed";
+
+export function NicknameStep({
+  onSubmit,
+  submitting = false,
+  error = null,
+  providerLabel,
+  checkNickname = checkNicknameAvailable,
+}: NicknameStepProps) {
   const [nickname, setNickname] = useState("");
-  const [status, setStatus] = useState<null | "ok" | "taken">(null);
+  const [status, setStatus] = useState<CheckStatus>(null);
+  // 확인 중에 입력이 바뀌면 늦게 온 결과는 버린다
+  const latest = useRef(nickname);
   // 제출 에러는 그 닉네임을 그대로 두는 동안만 보여준다
   const [submitted, setSubmitted] = useState<string | null>(null);
   const formatOk = isValidNickname(nickname);
-  const canCheck = formatOk && !submitting;
+  const canCheck = formatOk && status !== "checking" && !submitting;
   const canSubmit = formatOk && status === "ok" && !submitting;
   const serverError = error && nickname === submitted ? error : null;
 
-  const onCheck = () => {
+  const onCheck = async () => {
     if (!canCheck) return;
-    setStatus(isNicknameTaken(nickname) ? "taken" : "ok");
+    const value = nickname;
+    setStatus("checking");
+    let next: CheckStatus;
+    try {
+      next = (await checkNickname(value)) ? "ok" : "taken";
+    } catch {
+      next = "failed";
+    }
+    if (latest.current === value) setStatus(next);
   };
 
   const submit = () => {
@@ -53,6 +75,7 @@ export function NicknameStep({ onSubmit, submitting = false, error = null, provi
           autoFocus
           value={nickname}
           onChange={(e) => {
+            latest.current = e.target.value;
             setNickname(e.target.value);
             setStatus(null);
           }}
@@ -65,7 +88,7 @@ export function NicknameStep({ onSubmit, submitting = false, error = null, provi
           style={{ minWidth: 0 }}
         />
         <button onClick={onCheck} disabled={!canCheck} className={`${styles.checkBtn} ${canCheck ? styles.checkBtnOn : ""}`}>
-          중복 확인
+          {status === "checking" ? "확인 중…" : "중복 확인"}
         </button>
       </div>
 
@@ -80,8 +103,10 @@ export function NicknameStep({ onSubmit, submitting = false, error = null, provi
           </span>
         ) : status === "taken" ? (
           <span className={styles.statusError}>{NICKNAME_TAKEN_MESSAGE}</span>
+        ) : status === "failed" ? (
+          <span className={styles.statusError}>{NICKNAME_CHECK_FAILED_MESSAGE}</span>
         ) : (
-          formatOk && <span className={styles.statusHint}>중복 확인 버튼을 눌러주세요.</span>
+          formatOk && status === null && <span className={styles.statusHint}>중복 확인 버튼을 눌러주세요.</span>
         )}
       </div>
 

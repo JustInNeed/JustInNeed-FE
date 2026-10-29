@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon, Button } from "@/components/ui";
-import type { ExcludedUrl } from "@/lib/mock/designData";
+import type { ExcludedUrl } from "@/lib/viewTypes";
 import styles from "./SettingsView.module.css";
 
 export interface ExclusionListProps {

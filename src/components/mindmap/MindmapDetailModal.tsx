@@ -5,14 +5,14 @@ import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui";
 import type { SessionListItem } from "@/lib/api";
 import { formatDateTime, formatDuration, STATUS_LABEL, withHash } from "@/lib/format";
-import type { CommunityPost } from "@/lib/mock/designData";
+import type { CommunityPost } from "@/lib/viewTypes";
 import { MindmapPreview } from "./MindmapPreview";
 import { useOverlayClose } from "./useOverlayClose";
 import styles from "./MindmapDetailModal.module.css";
 
 export interface MindmapDetailModalProps {
   post: CommunityPost;
-  /** 이 마인드맵의 출처가 된 세션 (목: relatedSessionsFor) */
+  /** 이 마인드맵의 출처가 된 세션 */
   sessions: SessionListItem[];
   onClose: () => void;
   /** 작성자 이름 클릭 — 팝업을 닫고 프로필로 이동 */

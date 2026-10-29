@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Icon, Card, PageHeader, Toggle, inputClass, Button, FieldMessage } from "@/components/ui";
-import { DEFAULT_EXCLUDED, INTEGRATIONS, type ExcludedUrl } from "@/lib/mock/designData";
+import { useEffect, useState } from "react";
+import { Icon, Card, PageHeader, Toggle, inputClass, Button, FieldMessage, InlineState } from "@/components/ui";
+import type { CheckNickname } from "@/lib/nickname";
+import type { ExcludedUrl, Integration } from "@/lib/viewTypes";
 import { ExclusionList } from "./ExclusionList";
 import { normalizeExcludedUrl } from "./excludedUrl";
 import { AccountSection } from "./AccountSection";
@@ -19,16 +20,43 @@ const SECTIONS: { id: Section; l: string }[] = [
   { id: "account", l: "계정" },
 ];
 
-export function SettingsView() {
+const NO_INTEGRATIONS: Integration[] = [];
+
+/** props 로 받은 목록을 화면에서 고칠 수 있게 복사해 둔다. 새 목록이 오면(다시 불러오기 등) 덮어쓴다. */
+function useEditableList<T>(source: T[]) {
+  const [list, setList] = useState(source);
+  useEffect(() => setList(source), [source]);
+  return [list, setList] as const;
+}
+
+export interface SettingsViewProps {
+  /** 수집 제외 URL 목록 — API 연결 전에는 빈 배열 */
+  excludedUrls: ExcludedUrl[];
+  /** 수집 제외 목록을 불러오지 못했을 때 메시지 */
+  error?: string | null;
+  onRetry?: () => void;
+  /** 외부 플랫폼 연동 목록 (메뉴 숨김 상태) */
+  integrations?: Integration[];
+  /** 계정 섹션 닉네임 중복 확인 — 없으면 기본 확인 (lib/nickname) */
+  checkNickname?: CheckNickname;
+}
+
+export function SettingsView({
+  excludedUrls,
+  error = null,
+  onRetry,
+  integrations: integrationsProp = NO_INTEGRATIONS,
+  checkNickname,
+}: SettingsViewProps) {
   const [section, setSection] = useState<Section>("collection");
   const [withdrawing, setWithdrawing] = useState(false);
   const [popup, setPopup] = useState(true);
-  const [excluded, setExcluded] = useState<ExcludedUrl[]>(DEFAULT_EXCLUDED);
+  const [excluded, setExcluded] = useEditableList(excludedUrls);
   const [newUrl, setNewUrl] = useState("");
   const [urlError, setUrlError] = useState<string | null>(null);
   const [autoStop, setAutoStop] = useState(true);
   const [contextMenu, setContextMenu] = useState(true);
-  const [integrations, setIntegrations] = useState(INTEGRATIONS);
+  const [integrations, setIntegrations] = useEditableList(integrationsProp);
 
   const addUrl = () => {
     if (!newUrl.trim()) return;
@@ -65,30 +93,40 @@ export function SettingsView() {
             <Card className={styles.card}>
               <h3 className={styles.cardTitle}>수집 제외 URL</h3>
               <p className={styles.cardDesc}>이 사이트들에서는 행동 데이터를 수집하지 않아요. 최대 100개까지 등록 가능합니다.</p>
-              <div className={styles.addRow}>
-                <input
-                  value={newUrl}
-                  onChange={(e) => {
-                    setNewUrl(e.target.value);
-                    setUrlError(null);
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && addUrl()}
-                  placeholder="https://example.com"
-                  aria-invalid={urlError ? true : undefined}
-                  aria-describedby={urlError ? "excluded-url-error" : undefined}
-                  className={inputClass}
-                  style={{ flex: 1 }}
-                />
-                <Button variant="primary" onClick={addUrl}>
-                  <Icon name="plus" size={12} /> 추가
-                </Button>
-              </div>
-              {urlError && (
-                <FieldMessage tone="error" id="excluded-url-error">
-                  {urlError}
-                </FieldMessage>
+              {error ? (
+                <InlineState kind="error" title={error} onRetry={onRetry} />
+              ) : (
+                <>
+                  <div className={styles.addRow}>
+                    <input
+                      value={newUrl}
+                      onChange={(e) => {
+                        setNewUrl(e.target.value);
+                        setUrlError(null);
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && addUrl()}
+                      placeholder="https://example.com"
+                      aria-invalid={urlError ? true : undefined}
+                      aria-describedby={urlError ? "excluded-url-error" : undefined}
+                      className={inputClass}
+                      style={{ flex: 1 }}
+                    />
+                    <Button variant="primary" onClick={addUrl}>
+                      <Icon name="plus" size={12} /> 추가
+                    </Button>
+                  </div>
+                  {urlError && (
+                    <FieldMessage tone="error" id="excluded-url-error">
+                      {urlError}
+                    </FieldMessage>
+                  )}
+                  {excluded.length === 0 ? (
+                    <InlineState kind="empty" title="아직 등록한 URL이 없어요" description="수집하지 않을 사이트 주소를 위에 입력해 추가해 보세요." />
+                  ) : (
+                    <ExclusionList excluded={excluded} setExcluded={setExcluded} />
+                  )}
+                </>
               )}
-              <ExclusionList excluded={excluded} setExcluded={setExcluded} />
             </Card>
           )}
 
@@ -106,20 +144,18 @@ export function SettingsView() {
             <Card className={styles.card}>
               <h3 className={styles.cardTitle} style={{ marginBottom: 14 }}>연동된 외부 플랫폼</h3>
               {integrations.map((p, i) => (
-                <div key={p.l} className={styles.integRow}>
+                <div key={p.name} className={styles.integRow}>
                   <div>
-                    <div className={styles.integName}>{p.l}</div>
-                    <div className={styles.integStatus} style={{ color: p.on ? "var(--green-600)" : "var(--ink-500)" }}>{p.s}</div>
+                    <div className={styles.integName}>{p.name}</div>
+                    <div className={styles.integStatus} style={{ color: p.connected ? "var(--green-600)" : "var(--ink-500)" }}>
+                      {p.connected ? "연결됨" : "미연결"}
+                    </div>
                   </div>
                   <Button
-                    variant={p.on ? "secondary" : "primary"}
-                    onClick={() =>
-                      setIntegrations((list) =>
-                        list.map((x, j) => (j === i ? { ...x, on: !x.on, s: x.on ? "미연결" : "연결됨" } : x)),
-                      )
-                    }
+                    variant={p.connected ? "secondary" : "primary"}
+                    onClick={() => setIntegrations((list) => list.map((x, j) => (j === i ? { ...x, connected: !x.connected } : x)))}
                   >
-                    {p.on ? "해제" : "연결"}
+                    {p.connected ? "해제" : "연결"}
                   </Button>
                 </div>
               ))}
@@ -130,7 +166,7 @@ export function SettingsView() {
             (withdrawing ? (
               <WithdrawSection onBack={() => setWithdrawing(false)} />
             ) : (
-              <AccountSection onWithdraw={() => setWithdrawing(true)} />
+              <AccountSection onWithdraw={() => setWithdrawing(true)} checkNickname={checkNickname} />
             ))}
         </div>
       </div>

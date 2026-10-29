@@ -1,8 +1,20 @@
-// 디자인 시안(Claude Design "JustInNeed") 의 샘플 데이터.
-// ⚠️ 백엔드 API가 없는 화면(홈·분석·커뮤니티·검색·북마크·프로필·설정)에서만 사용한다.
-//    세션 목록/상세는 실제 API(lib/api)를 쓰며 이 파일을 참조하지 않는다.
+// 디자인 시안(Claude Design "JustInNeed") 기준 화면 데이터 — 테스트 픽스처.
+// 앱 화면은 이 데이터를 직접 쓰지 않고 props로 받는다. 테스트는 이 값을 넘겨
+// "이 데이터면 이렇게 보인다"를 검증하고, API를 연결하면 같은 값을 MSW 응답으로도 쓴다.
 import type { SessionListItem } from "@/lib/api";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
+import type {
+  BannerTip,
+  BookmarkedMindmap,
+  CommunityPost,
+  GraphPeriod,
+  RelatedUrl,
+  TimelineSite,
+  TimelineSlot,
+  TrendingHashtag,
+  WeekSession,
+  WeekSessionVisit,
+} from "@/lib/viewTypes";
 
 // ---------- 개인 홈 마인드맵 (force-directed) ----------
 export const MINDMAP_NODES: MindmapNode[] = [
@@ -73,7 +85,6 @@ export const MINDMAP_NODE_URLS: Record<string, string> = {
 };
 
 // ---------- 홈 마인드맵 필터 · 검색 (목: 홈 집계 API 생기면 교체) ----------
-export type GraphPeriod = "today" | "week" | "month" | "all";
 
 /** 노드를 마지막으로 본 시점과 연결된 해시태그 (# 없는 raw) */
 export const MINDMAP_NODE_META: Record<string, { seen: Exclude<GraphPeriod, "all">; tags: string[] }> = {
@@ -146,23 +157,6 @@ export const MOCK_SESSIONS: SessionListItem[] = [
 ];
 
 // ---------- 커뮤니티 ----------
-export interface CommunityUser {
-  name: string;
-  avatar: string;
-  handle: string; // '@' 포함
-}
-export interface CommunityPost {
-  id: string;
-  user: CommunityUser;
-  title: string;
-  snippet: string;
-  hashtags: string[]; // '#' 포함 (표시용)
-  nodes: number;
-  likes: number;
-  bookmarks: number;
-  exploring: number;
-  when: string;
-}
 
 export const COMMUNITY_FEED: CommunityPost[] = [
   { id: "c1", user: { name: "wanderlust", avatar: "🌿", handle: "@wanderlust" }, title: "동유럽 3주 살이 전체 동선", snippet: "프라하 → 비엔나 → 부다페스트 → 크라쿠프 → 베를린. 각 도시 4~5일씩 잡고 야간열차로 이동.", hashtags: ["#프라하", "#동유럽", "#야간열차"], nodes: 142, likes: 284, bookmarks: 91, exploring: 12, when: "3시간 전" },
@@ -180,11 +174,6 @@ export function relatedSessionsFor(post: CommunityPost): SessionListItem[] {
   return (matched.length ? matched : MOCK_SESSIONS).slice(0, 3);
 }
 
-/** 추천 마인드맵과 함께 보여줄 연관 URL (마인드맵 id → 최대 2개) */
-export interface RelatedUrl {
-  title: string;
-  url: string;
-}
 export const COMMUNITY_RELATED_URLS: Record<string, RelatedUrl[]> = {
   c1: [
     { title: "ÖBB 나이트젯 야간열차 노선", url: "https://www.nightjet.com/en" },
@@ -209,11 +198,6 @@ export const COMMUNITY_RELATED_URLS: Record<string, RelatedUrl[]> = {
   ],
 };
 
-export interface TrendingHashtag {
-  tag: string;
-  count: number;
-  trend: number;
-}
 export const TRENDING_HASHTAGS: TrendingHashtag[] = [
   { tag: "#쉥겐비자", count: 1284, trend: 18 },
   { tag: "#유레일패스", count: 982, trend: 12 },
@@ -235,73 +219,7 @@ export const TRENDING_HASHTAGS_WEEK: TrendingHashtag[] = [
   { tag: "#스위스패스", count: 1690, trend: -3 },
 ];
 
-// ---------- 프로필 ----------
-/** 노드 공개 범위 — url: 원문 URL만 공개 (기본값), full: 내용까지 공개 */
-export type NodeVisibility = "url" | "full";
-
-/** 내 노드에서 모은 해시태그. 비공개면 다른 사용자 프로필 보기에서 태그와 그 노드가 빠짐 */
-export interface ProfileHashtag {
-  tag: string; // '#' 포함
-  count: number;
-  isPublic: boolean;
-}
-
-export interface MockProfile {
-  name: string;
-  handle: string;
-  avatar: string;
-  bio: string;
-  nodes: number;
-  likes: number;
-  interests: string[];
-  topTags: ProfileHashtag[];
-  visibility: NodeVisibility;
-  /** 핀고정(공유)한 세션 id — 프로필 세션 탭 표시 순서 */
-  pinnedSessionIds: number[];
-}
-
-export const MY_PROFILE: MockProfile = {
-  name: "sprout.kr",
-  handle: "@sprout.kr",
-  avatar: "🌱",
-  bio: "HCI 연구하며 여행 다니는 사람. 요즘은 유럽.",
-  nodes: 218,
-  likes: 87,
-  interests: ["#유럽여행", "#HCI", "#미술관", "#프론트엔드", "#독서"],
-  topTags: [
-    { tag: "#파리", count: 28, isPublic: true },
-    { tag: "#로마", count: 24, isPublic: true },
-    { tag: "#항공권", count: 18, isPublic: true },
-    { tag: "#미술관", count: 15, isPublic: true },
-    { tag: "#예산", count: 11, isPublic: false },
-  ],
-  visibility: "url",
-  pinnedSessionIds: [9001, 9003, 9002, 9005],
-};
-
-export function otherProfile(handle: string): MockProfile {
-  const h = handle.startsWith("@") ? handle : `@${handle}`;
-  const post = COMMUNITY_FEED.find((p) => p.user.handle === h);
-  return {
-    name: h.replace("@", "") || "wanderlust",
-    handle: h || "@wanderlust",
-    avatar: post?.user.avatar ?? "🌿",
-    bio: "동유럽 한 달 살이 중. 천천히 깊게 다니기.",
-    nodes: 142,
-    likes: 284,
-    interests: ["#프라하", "#비엔나", "#야간열차", "#카페투어"],
-    topTags: [
-      { tag: "#프라하", count: 32, isPublic: true },
-      { tag: "#비엔나", count: 28, isPublic: true },
-      { tag: "#야간열차", count: 16, isPublic: true },
-      // 비공개 예시 — 다른 사용자 프로필 보기에서 태그와 그 노드가 빠짐
-      { tag: "#카페", count: 14, isPublic: false },
-      { tag: "#슬로우트래블", count: 12, isPublic: false },
-    ],
-    visibility: "url",
-    pinnedSessionIds: [9007, 9004, 9002, 9006],
-  };
-}
+// ---------- 프로필 → profile.ts ----------
 
 // ---------- 홈 대시보드 ----------
 export const HOME_TOP_TAGS = [
@@ -315,16 +233,6 @@ export const HOME_WEEK_ACTIVITY = [
   { d: "금", mins: 77 }, { d: "토", mins: 120 }, { d: "일", mins: 58 },
 ];
 
-export interface TimelineSite {
-  name: string;
-  favicon: string;
-  color: string;
-}
-export interface TimelineSlot {
-  time: string;
-  tags: string[];
-  sites: TimelineSite[];
-}
 export const HOME_TIMELINE: TimelineSlot[] = [
   { time: "09:00 — 10:30", tags: ["#아침루틴", "#커피"], sites: [{ name: "velog.io", favicon: "V", color: "#20c997" }, { name: "medium.com", favicon: "M", color: "#000" }] },
   { time: "10:30 — 12:00", tags: ["#자바", "#스프링", "#JPA"], sites: [{ name: "docs.spring.io", favicon: "S", color: "#6db33f" }, { name: "baeldung.com", favicon: "B", color: "#5d2f86" }, { name: "stackoverflow", favicon: "SO", color: "#f48024" }] },
@@ -335,16 +243,6 @@ export const HOME_TIMELINE: TimelineSlot[] = [
 
 // "이번 주" 타임라인용 세션 목록. dayOffset 0 = 오늘, -6 = 6일 전.
 // 화면에서는 날짜별로 묶어 대표 해시태그 · 사이트만 뽑아 보여준다 (weekTimeline.ts).
-export interface WeekSessionVisit {
-  site: TimelineSite;
-  dwellSec: number;
-}
-export interface WeekSession {
-  dayOffset: number;
-  startedAt: string;
-  tags: string[];
-  visits: WeekSessionVisit[];
-}
 const SITE = {
   velog: { name: "velog.io", favicon: "V", color: "#20c997" },
   medium: { name: "medium.com", favicon: "M", color: "#000" },
@@ -379,10 +277,6 @@ export const HOME_WEEK_SESSIONS: WeekSession[] = [
 export const WEEKLY_SESSIONS = MOCK_SESSIONS;
 
 // "오늘의 웹 서핑 팁" · "오늘의 추천 행동" 슬라이드는 각 목록에서 하나를 랜덤으로 보여준다 (AnalyticsView).
-export interface BannerTip {
-  title: string;
-  body: string;
-}
 
 export const SURFING_TIPS: BannerTip[] = [
   { title: '검색어에 큰따옴표("")를 씌워 "키워드" 형태로 검색하면 정확한 결과를 찾을 수 있어요.', body: "검색 방식만 바꿔도 정보의 질이 크게 달라져요." },
@@ -418,39 +312,9 @@ export const EXPLORATION_STATS = [
 ];
 
 // ---------- 설정 ----------
-/** 닉네임 중복 확인 시뮬레이션용 "이미 사용 중" 목록 (소문자) — 중복 확인 API 생기면 교체 */
-export const TAKEN_NICKNAMES: string[] = ["admin", "test"];
-
-export interface ExcludedUrl {
-  url: string;
-  on: boolean;
-  isDefault: boolean;
-}
-export const DEFAULT_EXCLUDED: ExcludedUrl[] = [
-  { url: "instagram.com", on: true, isDefault: true },
-  { url: "mail.google.com", on: true, isDefault: true },
-  { url: "youtube.com/shorts", on: true, isDefault: true },
-  { url: "twitter.com", on: false, isDefault: true },
-  { url: "tiktok.com", on: true, isDefault: true },
-  { url: "tistory.com/feed", on: true, isDefault: false },
-  { url: "tistory.com/skin", on: true, isDefault: false },
-  { url: "tistory.com", on: true, isDefault: false },
-  { url: "naver.com/blog", on: true, isDefault: false },
-];
-
-export const INTEGRATIONS = [
-  { l: "Google Docs", s: "연결됨", on: true },
-  { l: "Notion", s: "연결됨", on: true },
-  { l: "카카오톡", s: "미연결", on: false },
-];
+// 수집 제외 URL · 외부 연동 목록은 settings.ts 로 옮김
 
 // ---------- 북마크 ----------
-export interface BookmarkedMindmap {
-  postId: string; // COMMUNITY_FEED id
-  savedAgo: string;
-  /** 저장한 노드 — 원래 마인드맵(목: MINDMAP_NODES)에서 강조 표시 */
-  savedNodeIds: string[];
-}
 export const BOOKMARKED_MINDMAPS: BookmarkedMindmap[] = [
   { postId: "c1", savedAgo: "4일 전", savedNodeIds: ["prague", "castle", "bridge", "rail"] },
   { postId: "c2", savedAgo: "1일 전", savedNodeIds: ["paris", "eiffel", "mont", "orsay"] },

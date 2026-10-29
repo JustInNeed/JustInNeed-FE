@@ -1,7 +1,7 @@
 // 홈 "이번 주" 탐색 타임라인 — 최근 7일(오늘 포함)을 날짜별로 묶어 대표 해시태그 · 사이트를 뽑는다.
 // - 대표 해시태그: 그날 세션 중 등장한 세션 수가 많은 순, 같으면 더 최근 세션의 태그 우선
 // - 대표 사이트: 그날 방문 도메인 중 방문 횟수가 많은 순, 같으면 체류 시간 합이 긴 쪽 우선
-import type { TimelineSite, WeekSession } from "@/lib/mock/designData";
+import type { TimelineSite, WeekSession } from "@/lib/viewTypes";
 
 const MAX_TAGS = 3;
 const MAX_SITES = 3;

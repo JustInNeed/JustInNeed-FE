@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Icon } from "@/components/ui";
-import type { CommunityPost, CommunityUser, TrendingHashtag } from "@/lib/mock/designData";
+import type { CommunityPost, CommunityUser, TrendingHashtag } from "@/lib/viewTypes";
 import styles from "./Community.module.css";
 
 export interface ProfileResult extends CommunityUser {

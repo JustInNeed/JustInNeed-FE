@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { Icon } from "@/components/ui";
+import type { SessionListItem } from "@/lib/api";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import { searchGraph, type GraphSearchResult } from "./graphFilter";
@@ -10,6 +11,8 @@ import styles from "./GraphTools.module.css";
 export interface GraphSearchProps {
   nodes: MindmapNode[];
   edges: MindmapEdge[];
+  /** 제목으로 함께 찾을 세션 */
+  sessions: SessionListItem[];
   query: string;
   onQueryChange: (query: string) => void;
   onSelectNode: (id: string) => void;
@@ -18,8 +21,17 @@ export interface GraphSearchProps {
 }
 
 /** 검색 버튼이 펼쳐진 입력창 + 결과 드롭다운 (디자인 A-2). ↑↓ 이동 · Enter 선택 · Esc 닫기 */
-export function GraphSearch({ nodes, edges, query, onQueryChange, onSelectNode, onSelectSession, onClose }: GraphSearchProps) {
-  const results = useMemo(() => searchGraph(query, nodes, edges), [query, nodes, edges]);
+export function GraphSearch({
+  nodes,
+  edges,
+  sessions,
+  query,
+  onQueryChange,
+  onSelectNode,
+  onSelectSession,
+  onClose,
+}: GraphSearchProps) {
+  const results = useMemo(() => searchGraph(query, nodes, edges, sessions), [query, nodes, edges, sessions]);
   const [active, setActive] = useState(0);
   const activeIndex = Math.min(active, Math.max(results.length - 1, 0));
 

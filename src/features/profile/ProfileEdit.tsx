@@ -1,22 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Icon, Card, PageHeader, Button, Field, FieldMessage, Toggle, inputClass } from "@/components/ui";
+import { Icon, Card, PageHeader, Button, Field, FieldMessage, Toggle, InlineState, inputClass } from "@/components/ui";
 import type { SessionListItem } from "@/lib/api";
-import { MOCK_SESSIONS, type MockProfile, type NodeVisibility } from "@/lib/mock/designData";
 import { formatDuration, withHash } from "@/lib/format";
 import { MAX_HASHTAGS, validateHashtag } from "@/lib/hashtag";
 import { ApiError, updateNickname } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import { useToast } from "@/lib/app/ToastContext";
 import { NICKNAME_FORMAT_ERROR, NICKNAME_HINT, NICKNAME_MAX_LENGTH, isValidNickname } from "@/lib/nickname";
+import type { NodeVisibility, ProfileData } from "@/lib/viewTypes";
 import styles from "./Profile.module.css";
 
 /** 저장 시 프로필 화면에 반영할 값 (닉네임은 회원 정보로 따로 저장) */
-export type ProfileDraft = Pick<MockProfile, "bio" | "interests" | "topTags" | "visibility" | "pinnedSessionIds">;
+export type ProfileDraft = Pick<ProfileData, "bio" | "interests" | "topTags" | "visibility" | "pinnedSessionIds">;
 
 export interface ProfileEditProps {
-  profile: MockProfile;
+  profile: ProfileData;
+  /** 핀고정할 수 있는 내 세션 */
+  sessions: SessionListItem[];
   onCancel: () => void;
   onSave: (draft: ProfileDraft) => void;
 }
@@ -26,10 +28,10 @@ const VISIBILITY_OPTIONS: { v: NodeVisibility; l: string; d: string }[] = [
   { v: "full", l: "내용까지 공개", d: "내용이 리프 노드로 노출됩니다" },
 ];
 
-export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
+export function ProfileEdit({ profile, sessions, onCancel, onSave }: ProfileEditProps) {
   const { member, updateMember } = usePersonal();
   const toast = useToast();
-  // 닉네임은 목 프로필이 아니라 로그인한 회원 닉네임으로 시작 — 바뀌었으면 저장 때 회원 API 로 변경
+  // 닉네임은 프로필 데이터가 아니라 로그인한 회원 닉네임으로 시작 — 바뀌었으면 저장 때 회원 API 로 변경
   const [name, setName] = useState(member.nickname ?? profile.name);
   const [nameError, setNameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -70,7 +72,7 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
     endDrag();
   };
 
-  const unpinned = MOCK_SESSIONS.filter((s) => !pinned.includes(s.id));
+  const unpinned = sessions.filter((s) => !pinned.includes(s.id));
 
   const pinRow = (s: SessionListItem, isPinned: boolean) => (
     <>
@@ -237,8 +239,9 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
             {pinned.length > 1 && <span className={styles.dragHint}>드래그로 순서 변경</span>}
           </h3>
           <p className={styles.editDesc}>핀고정한 세션이 이 순서대로 프로필에 공유돼요.</p>
+          {sessions.length === 0 && <InlineState kind="empty" title="핀고정할 세션이 없어요." />}
           {pinned.map((id, i) => {
-            const s = MOCK_SESSIONS.find((x) => x.id === id);
+            const s = sessions.find((x) => x.id === id);
             if (!s) return null;
             return (
               <label
