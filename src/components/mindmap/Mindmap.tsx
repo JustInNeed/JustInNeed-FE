@@ -140,16 +140,26 @@ export function Mindmap({
   }, []);
 
   // pan + zoom
-  const onWheel = (e: React.WheelEvent) => {
-    const delta = -e.deltaY * 0.001;
-    const k = Math.max(0.4, Math.min(2.5, transform.k * (1 + delta)));
-    const rect = svgRef.current!.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const nx = mx - (mx - transform.x) * (k / transform.k);
-    const ny = my - (my - transform.y) * (k / transform.k);
-    setTransform({ x: nx, y: ny, k });
-  };
+  // 휠 확대 중 페이지가 스크롤되지 않게 — React onWheel 은 passive 라 preventDefault 가 안 먹어서 네이티브로 붙인다
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = -e.deltaY * 0.001;
+      const rect = svg.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      setTransform((t) => {
+        const k = Math.max(0.4, Math.min(2.5, t.k * (1 + delta)));
+        const nx = mx - (mx - t.x) * (k / t.k);
+        const ny = my - (my - t.y) * (k / t.k);
+        return { x: nx, y: ny, k };
+      });
+    };
+    svg.addEventListener("wheel", onWheel, { passive: false });
+    return () => svg.removeEventListener("wheel", onWheel);
+  }, []);
 
   const onMouseDown = (e: React.MouseEvent) => {
     const target = e.target as Element;
@@ -197,7 +207,6 @@ export function Mindmap({
       height="100%"
       viewBox={`0 0 ${width} ${height}`}
       style={{ background: "transparent", cursor: pan ? "grabbing" : "grab", userSelect: "none" }}
-      onWheel={onWheel}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
