@@ -18,6 +18,12 @@ export interface MindmapProps {
   hoveredId?: string | null;
   onHover?: (id: string | null) => void;
   showLabels?: boolean;
+  /** 필터에서 걸러진 노드 — 흐리게 표시 */
+  dimmedIds?: ReadonlySet<string>;
+  /** 검색어와 일치하는 노드 — 테두리 강조, 이웃 노드와 연결선까지 강조하고 나머지는 흐리게 */
+  matchIds?: ReadonlySet<string>;
+  /** 좌하단 조작 안내 표시 여부 */
+  showHint?: boolean;
 }
 
 export function Mindmap({
@@ -30,6 +36,9 @@ export function Mindmap({
   hoveredId,
   onHover,
   showLabels = true,
+  dimmedIds,
+  matchIds,
+  showHint = true,
 }: MindmapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [nodes, setNodes] = useState<SimNode[]>(() =>
@@ -166,17 +175,20 @@ export function Mindmap({
     setDrag(null);
   };
 
-  // Connected node ids for highlight
+  // Connected node ids for highlight (선택/호버 우선, 없으면 검색 일치 노드 기준)
   const connectedIds = new Set<string>();
   const focusId = selectedId || hoveredId;
-  if (focusId) {
-    connectedIds.add(focusId);
+  const focusRoots = focusId ? [focusId] : matchIds ? Array.from(matchIds) : [];
+  focusRoots.forEach((root) => {
+    connectedIds.add(root);
     edges.forEach(([a, b]) => {
-      if (a === focusId) connectedIds.add(b);
-      if (b === focusId) connectedIds.add(a);
+      if (a === root) connectedIds.add(b);
+      if (b === root) connectedIds.add(a);
     });
-  }
+  });
   const isFocused = (id: string) => connectedIds.size === 0 || connectedIds.has(id);
+  const isDimmed = (id: string) => dimmedIds?.has(id) ?? false;
+  const isMatch = (id: string) => !focusId && (matchIds?.has(id) ?? false);
 
   return (
     <svg
@@ -205,7 +217,9 @@ export function Mindmap({
           const b = nodes.find((n) => n.id === bId);
           if (!a || !b) return null;
           const focused = isFocused(aId) && isFocused(bId);
-          const op = 0.35 * (focused ? 1 : 0.3);
+          const dimmed = isDimmed(aId) || isDimmed(bId);
+          const hot = focused && (isMatch(aId) || isMatch(bId));
+          const op = hot ? 0.9 : 0.35 * (focused && !dimmed ? 1 : 0.3);
           return (
             <line
               key={i}
@@ -213,8 +227,8 @@ export function Mindmap({
               y1={a.y}
               x2={b.x}
               y2={b.y}
-              stroke="#4DB02E"
-              strokeWidth={1.2}
+              stroke={hot ? "#2D6A1B" : "#4DB02E"}
+              strokeWidth={hot ? 2.2 : 1.2}
               strokeOpacity={op}
             />
           );
@@ -222,13 +236,13 @@ export function Mindmap({
         {/* Nodes */}
         {nodes.map((n) => {
           const focused = isFocused(n.id);
-          const opacity = focused ? 1 : 0.35;
+          const opacity = isDimmed(n.id) ? 0.25 : focused ? 1 : 0.35;
           const isCore = n.group === "core";
           const isCity = n.group === "city";
           const isLogi = n.group === "logi";
           const fill = isCore ? "#3D8B25" : isCity ? "#5FCF3E" : isLogi ? "#87D448" : "#A6E26B";
           const stroke = isCore ? "#2D6A1B" : "#4DB02E";
-          const isActive = selectedId === n.id || hoveredId === n.id;
+          const isActive = selectedId === n.id || hoveredId === n.id || isMatch(n.id);
 
           return (
             <g
@@ -271,12 +285,14 @@ export function Mindmap({
       </g>
 
       {/* Mini control hint */}
-      <g transform={`translate(16, ${height - 36})`} style={{ pointerEvents: "none" }}>
-        <rect width="220" height="22" rx="11" fill="#FFFFFF" fillOpacity="0.85" stroke="#E8EDE2" />
-        <text x="12" y="15" fontSize="10" fill="#6B7563" fontFamily="Pretendard">
-          드래그로 이동 · 휠로 줌 · 노드 클릭으로 선택
-        </text>
-      </g>
+      {showHint && (
+        <g transform={`translate(16, ${height - 36})`} style={{ pointerEvents: "none" }}>
+          <rect width="220" height="22" rx="11" fill="#FFFFFF" fillOpacity="0.85" stroke="#E8EDE2" />
+          <text x="12" y="15" fontSize="10" fill="#6B7563" fontFamily="Pretendard">
+            드래그로 이동 · 휠로 줌 · 노드 클릭으로 선택
+          </text>
+        </g>
+      )}
     </svg>
   );
 }

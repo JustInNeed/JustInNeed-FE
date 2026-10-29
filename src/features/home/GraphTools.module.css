@@ -1,0 +1,245 @@
+/* 홈 마인드맵 필터 팝오버 · 검색 드롭다운 (디자인 A-1 · A-2) */
+
+.panel {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  width: 300px;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+}
+
+/* 필터 · 검색 공통: 본문 높이 고정 + 스크롤 */
+.scroll {
+  max-height: 196px;
+  overflow-y: auto;
+}
+.scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border: none;
+  border-radius: 6px;
+}
+
+/* ---- 필터 ---- */
+.filter {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.filterHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.filterTitle {
+  font-size: 14px;
+  font-weight: 700;
+}
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green-800);
+  background: var(--green-50);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.filterBody {
+  margin-right: -10px;
+  padding-right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-700);
+}
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 2px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.option input {
+  margin: 0;
+  accent-color: var(--green-600);
+}
+.optionOn {
+  font-weight: 600;
+  color: var(--green-900);
+}
+.optionLabel {
+  flex: 1;
+}
+.optionCount {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-500);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-700);
+}
+.chipOn {
+  font-weight: 600;
+  border-color: var(--green-400);
+  background: var(--green-50);
+  color: var(--green-900);
+}
+.divider {
+  height: 1px;
+  background: var(--line);
+}
+.filterFoot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.footBtn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-700);
+}
+.footBtnPrimary {
+  border-color: var(--green-600);
+  background: var(--green-600);
+  color: #fff;
+}
+
+/* ---- 검색 ---- */
+.searchBox {
+  width: 300px;
+  height: 32px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 0 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--green-400);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(135, 212, 72, 0.18);
+  color: var(--green-700);
+}
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--ink-900);
+}
+.searchClear {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--ink-500);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.results {
+  left: 38px;
+  padding: 8px;
+}
+.resultList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.resultGroup {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-500);
+  padding: 6px 8px 4px;
+}
+.resultGroup + .resultGroup,
+.result + .resultGroup {
+  padding-top: 10px;
+}
+.result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 9px;
+  text-align: left;
+  width: 100%;
+  color: var(--ink-500);
+}
+.resultActive {
+  background: var(--green-50);
+}
+.resultDot {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  background: var(--green-500);
+  border: 1.5px solid var(--green-600);
+  box-sizing: border-box;
+}
+.resultName {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--ink-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.resultActive .resultName {
+  font-weight: 600;
+  color: var(--green-900);
+}
+.resultMeta {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--ink-500);
+}
+.resultEmpty {
+  padding: 14px 8px;
+  font-size: 13px;
+  color: var(--ink-500);
+}
+.resultHint {
+  margin-top: 6px;
+  padding: 8px 8px 4px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--ink-500);
+}
