@@ -2,7 +2,14 @@
 
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Icon, Card, PageHeader } from "@/components/ui";
-import { CATEGORY_RATIO, EXPLORATION_STATS, READING_BEHAVIOR, ROLLING_SLIDES, WEEKLY_SESSIONS } from "@/lib/mock/designData";
+import {
+  ACTION_RECOMMENDATIONS,
+  CATEGORY_RATIO,
+  EXPLORATION_STATS,
+  READING_BEHAVIOR,
+  SURFING_TIPS,
+  WEEKLY_SESSIONS,
+} from "@/lib/mock/designData";
 import { formatDate, formatDuration, withHash } from "@/lib/format";
 import styles from "./AnalyticsView.module.css";
 
@@ -111,12 +118,13 @@ function AnalysisRecBox({ analysis, recommendation }: { analysis: ReactNode; rec
 
 function RollingBanner() {
   const [i, setI] = useState(0);
-  // 이번 주 세션 중 랜덤 1개 — 서버 렌더와 어긋나지 않게 마운트 후에 고른다
-  const [pick, setPick] = useState(0);
+  // 이번 주 세션 · 웹 서핑 팁 · 추천 행동을 각각 랜덤 1개 — 서버 렌더와 어긋나지 않게 마운트 후에 고른다
+  const [pick, setPick] = useState({ session: 0, tip: 0, rec: 0 });
   useEffect(() => {
-    setPick(Math.floor(Math.random() * WEEKLY_SESSIONS.length));
+    const rand = (n: number) => Math.floor(Math.random() * n);
+    setPick({ session: rand(WEEKLY_SESSIONS.length), tip: rand(SURFING_TIPS.length), rec: rand(ACTION_RECOMMENDATIONS.length) });
   }, []);
-  const session = WEEKLY_SESSIONS[pick];
+  const session = WEEKLY_SESSIONS[pick.session];
   const slides = [
     {
       eyebrow: "이번 주 인사이트",
@@ -126,7 +134,8 @@ function RollingBanner() {
         .filter(Boolean)
         .join(" · "),
     },
-    ...ROLLING_SLIDES,
+    { eyebrow: "오늘의 웹 서핑 팁", icon: "sprout" as const, ...SURFING_TIPS[pick.tip] },
+    { eyebrow: "오늘의 추천 행동", icon: "compass" as const, ...ACTION_RECOMMENDATIONS[pick.rec] },
   ];
   useEffect(() => {
     const t = setInterval(() => setI((v) => (v + 1) % slides.length), 5000);

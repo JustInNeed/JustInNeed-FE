@@ -293,9 +293,22 @@ export const HOME_WEEK_SESSIONS: WeekSession[] = [
 // 목: MOCK_SESSIONS 를 이번 주 세션으로 사용 — BE API 생기면 교체
 export const WEEKLY_SESSIONS = MOCK_SESSIONS;
 
-export const ROLLING_SLIDES = [
-  { eyebrow: "오늘의 웹 서핑 팁", icon: "sprout" as const, title: '검색어에 큰따옴표("")를 씌워 "키워드" 형태로 검색하면 정확한 결과를 찾을 수 있습니다.', body: "검색 방식만 바꿔도 정보의 질이 크게 달라집니다." },
-  { eyebrow: "오늘의 추천 행동", icon: "compass" as const, title: "커뮤니티 탐색 비중이 18%로 높은 편이에요. 문제 해결엔 좋지만 전체 구조를 잡는 데는 한계가 있어요.", body: "공식 문서를 한 번쯤 정독하며 기초를 다져보는 건 어떨까요?" },
+// "오늘의 웹 서핑 팁" · "오늘의 추천 행동" 슬라이드는 각 목록에서 하나를 랜덤으로 보여준다 (AnalyticsView).
+export interface BannerTip {
+  title: string;
+  body: string;
+}
+
+export const SURFING_TIPS: BannerTip[] = [
+  { title: '검색어에 큰따옴표("")를 씌워 "키워드" 형태로 검색하면 정확한 결과를 찾을 수 있어요.', body: "검색 방식만 바꿔도 정보의 질이 크게 달라져요." },
+  { title: '검색 결과가 너무 많다면 "키워드 -제외어" 형태로 불필요한 단어를 빼보세요.', body: "예) computer science -java · 원하지 않는 정보가 줄어 더 정확한 결과를 찾을 수 있어요." },
+  { title: '신뢰하는 사이트에서만 찾고 싶다면 "site:github.com 키워드"처럼 범위를 좁혀보세요.', body: "출처를 제한하면 원하는 정보를 더 빠르게 찾을 수 있어요." },
+];
+
+export const ACTION_RECOMMENDATIONS: BannerTip[] = [
+  { title: "공식 문서도 한 번 정독해보세요.", body: "지금 공부하는 주제의 공식 문서나 원문을 한 번쯤 읽으며 핵심 개념을 정리해보는 건 어떨까요?" },
+  { title: "커뮤니티 탐색 비중이 18%로 높은 편이에요. 문제 해결엔 좋지만 전체 구조를 잡는 데는 한계가 있어요.", body: "공식 문서를 한 번쯤 정독하며 기초를 다져보는 건 어떨까요?" },
+  { title: "특정 사이트에 정보 탐색이 몰려 있어요.", body: "다양한 출처를 함께 참고하면 같은 주제도 더 넓고 깊게 이해할 수 있어요." },
 ];
 
 export const READING_BEHAVIOR = [
