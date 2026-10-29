@@ -5,7 +5,15 @@ import { Card, Field, FieldMessage, inputClass, Button } from "@/components/ui";
 import { ApiError, SOCIAL_PROVIDER_LABEL, updateNickname } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import { useToast } from "@/lib/app/ToastContext";
-import { NICKNAME_FORMAT_ERROR, NICKNAME_HINT, NICKNAME_MAX_LENGTH, isValidNickname } from "@/lib/nickname";
+import {
+  NICKNAME_AVAILABLE_MESSAGE,
+  NICKNAME_FORMAT_ERROR,
+  NICKNAME_HINT,
+  NICKNAME_MAX_LENGTH,
+  NICKNAME_TAKEN_MESSAGE,
+  isNicknameTaken,
+  isValidNickname,
+} from "@/lib/nickname";
 import { PROVIDERS } from "@/features/auth/providers";
 import type { ProviderId } from "@/lib/types";
 import styles from "./SettingsView.module.css";
@@ -28,12 +36,11 @@ export function AccountSection({ onWithdraw }: { onWithdraw: () => void }) {
   const canCheck = isChanged && isFormatValid;
   const canSave = isChanged && isFormatValid && !saving;
   const showInvalidHint = isChanged && !isFormatValid;
-  const errorText = showInvalidHint ? NICKNAME_FORMAT_ERROR : saveError ?? (status === "taken" ? "이미 사용 중인 닉네임입니다." : null);
+  const errorText = showInvalidHint ? NICKNAME_FORMAT_ERROR : saveError ?? (status === "taken" ? NICKNAME_TAKEN_MESSAGE : null);
 
   const onCheck = () => {
     if (!canCheck) return;
-    const taken = ["admin", "test"].includes(nickname.toLowerCase());
-    setStatus(taken ? "taken" : "ok");
+    setStatus(isNicknameTaken(nickname) ? "taken" : "ok");
   };
 
   const onSave = async () => {
@@ -83,7 +90,7 @@ export function AccountSection({ onWithdraw }: { onWithdraw: () => void }) {
         ) : (
           status === "ok" && (
             <FieldMessage tone="success" id="account-nickname-message">
-              사용 가능한 닉네임입니다.
+              {NICKNAME_AVAILABLE_MESSAGE}
             </FieldMessage>
           )
         )}

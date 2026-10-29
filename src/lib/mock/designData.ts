@@ -320,6 +320,9 @@ export const EXPLORATION_STATS = [
 ];
 
 // ---------- 설정 ----------
+/** 닉네임 중복 확인 시뮬레이션용 "이미 사용 중" 목록 (소문자) — 중복 확인 API 생기면 교체 */
+export const TAKEN_NICKNAMES: string[] = ["admin", "test"];
+
 export interface ExcludedUrl {
   url: string;
   on: boolean;
