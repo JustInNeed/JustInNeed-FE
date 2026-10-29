@@ -12,20 +12,35 @@ export interface SessionCardProps {
 export function SessionCard({ session, onClick, onToggleFavorite }: SessionCardProps) {
   const duration = formatDuration(session.startedAt, session.endedAt);
   return (
-    <div className={styles.card} onClick={onClick} role="button" tabIndex={0}>
+    <div
+      className={styles.card}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        // 카드 자체에 포커스가 있을 때만 (별 버튼의 Enter 는 버튼이 처리)
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+    >
       <div className={styles.top}>
         <h3 className={styles.title}>{session.title}</h3>
-        <button
-          className={styles.favBtn}
-          style={{ color: session.isFavorite ? "var(--green-600)" : "var(--ink-300)" }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite?.(session.id);
-          }}
-          aria-label="즐겨찾기"
-        >
-          <Icon name={session.isFavorite ? "starFilled" : "star"} size={16} />
-        </button>
+        {onToggleFavorite && (
+          <button
+            className={styles.favBtn}
+            style={{ color: session.isFavorite ? "var(--green-600)" : "var(--ink-300)" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(session.id);
+            }}
+            aria-label="즐겨찾기"
+          >
+            <Icon name={session.isFavorite ? "starFilled" : "star"} size={16} />
+          </button>
+        )}
       </div>
       <div className={styles.meta}>
         <span className={styles.metaItem}>
