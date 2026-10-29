@@ -649,8 +649,71 @@
   border-radius: 14px;
   padding: 18px;
 }
+.bundleHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
 .bundleTitle {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 14px;
   font-weight: 600;
+}
+
+/* 북마크 해제 버튼 */
+.unbookmark {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  margin: -6px -6px 0 0;
+  border-radius: 8px;
+  color: var(--green-600);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.unbookmark:hover {
+  background: var(--green-50);
+}
+/* MindmapCard 좌상단 원형 배지 안 */
+.unbookmarkDark {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: 50%;
+  color: var(--green-400);
+}
+.unbookmarkDark:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* SessionCard 를 고치지 않고 카드 하단에 북마크 해제 줄을 얹는다 */
+.bmSession {
+  position: relative;
+}
+.bmSession > div:first-child {
+  height: 100%;
+  padding-bottom: 54px;
+}
+.bmSessionFoot {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 10px;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  pointer-events: none;
+  transition: transform 0.15s;
+}
+.bmSessionFoot > button {
+  pointer-events: auto;
+  margin: 0 -6px 0 0;
+}
+.bmSession:hover .bmSessionFoot {
+  transform: translateY(-1px);
 }
