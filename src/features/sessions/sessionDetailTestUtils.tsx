@@ -8,7 +8,7 @@ import { renderPersonal } from "@/test/render";
 import { SessionDetail } from "./SessionDetail";
 
 /** PATCH 에 다르게 응답하고 싶을 때 — undefined 를 돌려주면 백엔드처럼 반영해서 응답 */
-export type PatchReply = (body: SessionUpdateRequest) => Response | Promise<Response> | undefined;
+export type PatchReply = (body: SessionUpdateRequest) => Response | undefined | Promise<Response | undefined>;
 
 export function serveSession(detail: SessionDetailData = ROME_DETAIL, reply?: PatchReply) {
   let current = detail;
