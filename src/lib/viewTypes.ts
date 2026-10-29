@@ -6,6 +6,29 @@ import type { MindmapEdge, MindmapNode } from "@/lib/types";
 // ---------- 홈 마인드맵 필터 · 검색 ----------
 export type GraphPeriod = "today" | "week" | "month" | "all";
 
+/** 노드를 마지막으로 본 시점과 연결된 해시태그 (# 없는 raw) */
+export interface GraphNodeMeta {
+  seen: Exclude<GraphPeriod, "all">;
+  tags: string[];
+}
+
+export interface GraphTagGroup {
+  id: number;
+  name: string;
+  tags: string[]; // '#' 없는 raw
+}
+
+/** 홈 마인드맵과 필터 재료 */
+export interface HomeGraph {
+  nodes: MindmapNode[];
+  edges: MindmapEdge[];
+  /** 노드 id → 메타. 메타가 없는 노드는 필터에 걸리지 않는다 */
+  nodeMeta: Record<string, GraphNodeMeta>;
+  tagGroups: GraphTagGroup[];
+  /** 필터 팝오버에 보여줄 해시태그 (# 없는 raw) */
+  filterTags: string[];
+}
+
 // ---------- 커뮤니티 ----------
 export interface CommunityUser {
   name: string;
@@ -86,6 +109,46 @@ export interface WeekSession {
   startedAt: string;
   tags: string[];
   visits: WeekSessionVisit[];
+}
+
+/** 홈 통계 카드 — 증감은 지난주 대비 */
+export interface HomeStats {
+  totalNodes: number;
+  nodeDelta: number;
+  hashtagCount: number;
+  weekSessions: number;
+  sessionDelta: number;
+  avgSessionMinutes: number;
+  /** Deep Reading 비율 (%) */
+  deepReadingPct: number;
+  /** Deep Reading 비율 증감 (%p) */
+  deepReadingDelta: number;
+}
+
+/** 이번 주 활동 막대 — 요일별 탐색 시간 */
+export interface DayActivity {
+  day: string; // "월"
+  minutes: number;
+}
+
+export interface HomeTopTag {
+  tag: string; // '#' 포함
+  count: number;
+}
+
+export interface HomeData {
+  graph: HomeGraph;
+  stats: HomeStats;
+  /** range: 표시용 기간 ("4.20 — 4.26") */
+  weekActivity: { range: string; days: DayActivity[] };
+  /** 상위 해시태그 (많은 순, 최대 10개) */
+  topTags: HomeTopTag[];
+  /** 오늘의 탐색 타임라인 (시간대별) */
+  todayTimeline: TimelineSlot[];
+  /** "이번 주" 타임라인 재료 — 최근 7일 세션 */
+  weekSessions: WeekSession[];
+  /** 그래프 검색 · "관련 세션 보기" 대상 (최근 순) */
+  sessions: SessionListItem[];
 }
 
 // ---------- 분석 ----------

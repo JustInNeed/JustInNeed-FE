@@ -1,20 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import type { MindmapNode } from "@/lib/types";
-import { GRAPH_FILTER_TAGS, GRAPH_TAG_GROUPS } from "@/lib/mock/designData";
 import { withHash } from "@/lib/format";
+import type { HomeGraph } from "@/lib/viewTypes";
 import { DEFAULT_GRAPH_FILTER, PERIOD_OPTIONS, countApplied, groupNodeCount, type GraphFilter } from "./graphFilter";
 import styles from "./GraphTools.module.css";
 
 export interface GraphFilterPopoverProps {
   applied: GraphFilter;
-  nodes: MindmapNode[];
+  /** 노드 · 해시태그 그룹 · 필터용 해시태그 */
+  graph: HomeGraph;
   onApply: (filter: GraphFilter) => void;
 }
 
 /** 필터 버튼 아래 팝오버 — 기간 · 해시태그 그룹 · 해시태그 (디자인 A-1). [적용] 전까지는 그래프에 반영하지 않는다. */
-export function GraphFilterPopover({ applied, nodes, onApply }: GraphFilterPopoverProps) {
+export function GraphFilterPopover({ applied, graph, onApply }: GraphFilterPopoverProps) {
   const [draft, setDraft] = useState<GraphFilter>(applied);
   const count = countApplied(draft);
 
@@ -46,39 +46,43 @@ export function GraphFilterPopover({ applied, nodes, onApply }: GraphFilterPopov
           ))}
         </fieldset>
 
-        <fieldset className={styles.fieldset}>
-          <legend className={styles.legend}>해시태그 그룹</legend>
-          {GRAPH_TAG_GROUPS.map((g) => {
-            const on = draft.groupIds.includes(g.id);
-            return (
-              <label key={g.id} className={`${styles.option} ${on ? styles.optionOn : ""}`}>
-                <input type="checkbox" checked={on} onChange={() => toggleGroup(g.id)} />
-                <span className={styles.optionLabel}>{g.name}</span>
-                <span className={styles.optionCount}>노드 {groupNodeCount(nodes, g.id)}</span>
-              </label>
-            );
-          })}
-        </fieldset>
-
-        <fieldset className={styles.fieldset}>
-          <legend className={styles.legend}>해시태그</legend>
-          <div className={styles.chips}>
-            {GRAPH_FILTER_TAGS.map((t) => {
-              const on = draft.tags.includes(t);
+        {graph.tagGroups.length > 0 && (
+          <fieldset className={styles.fieldset}>
+            <legend className={styles.legend}>해시태그 그룹</legend>
+            {graph.tagGroups.map((g) => {
+              const on = draft.groupIds.includes(g.id);
               return (
-                <button
-                  key={t}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => toggleTag(t)}
-                  className={`${styles.chip} ${on ? styles.chipOn : ""}`}
-                >
-                  {withHash(t)}
-                </button>
+                <label key={g.id} className={`${styles.option} ${on ? styles.optionOn : ""}`}>
+                  <input type="checkbox" checked={on} onChange={() => toggleGroup(g.id)} />
+                  <span className={styles.optionLabel}>{g.name}</span>
+                  <span className={styles.optionCount}>노드 {groupNodeCount(graph, g)}</span>
+                </label>
               );
             })}
-          </div>
-        </fieldset>
+          </fieldset>
+        )}
+
+        {graph.filterTags.length > 0 && (
+          <fieldset className={styles.fieldset}>
+            <legend className={styles.legend}>해시태그</legend>
+            <div className={styles.chips}>
+              {graph.filterTags.map((t) => {
+                const on = draft.tags.includes(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => toggleTag(t)}
+                    className={`${styles.chip} ${on ? styles.chipOn : ""}`}
+                  >
+                    {withHash(t)}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
       </div>
 
       <div className={styles.divider} />
