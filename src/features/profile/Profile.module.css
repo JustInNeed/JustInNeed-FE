@@ -278,3 +278,44 @@
   font-size: 11px;
   color: var(--ink-500);
 }
+
+/* 핀고정 해제 확인 모달 (LeaveConfirmModal 과 같은 모양) */
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 30, 18, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+.confirmModal {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.confirmTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+.confirmBody {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-700);
+}
+.confirmActions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

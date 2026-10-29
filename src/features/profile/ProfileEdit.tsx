@@ -41,11 +41,19 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
   const [pinned, setPinned] = useState<number[]>(profile.pinnedSessionIds);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const [unpinTarget, setUnpinTarget] = useState<number | null>(null);
   const nameInvalid = !isValidNickname(name);
   const nameErrorText = nameInvalid ? NICKNAME_FORMAT_ERROR : nameError;
 
-  const togglePin = (id: number) =>
-    setPinned((ps) => (ps.includes(id) ? ps.filter((x) => x !== id) : [...ps, id]));
+  // 해제는 확인 후 반영 — 세션은 지우지 않고 공유 목록에서만 빠짐 (비공개)
+  const togglePin = (id: number) => {
+    if (pinned.includes(id)) setUnpinTarget(id);
+    else setPinned((ps) => [...ps, id]);
+  };
+  const confirmUnpin = () => {
+    setPinned((ps) => ps.filter((x) => x !== unpinTarget));
+    setUnpinTarget(null);
+  };
 
   const endDrag = () => {
     setDragIdx(null);
@@ -250,6 +258,37 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
             </label>
           ))}
         </Card>
+      </div>
+
+      {unpinTarget !== null && <UnpinConfirmModal onCancel={() => setUnpinTarget(null)} onConfirm={confirmUnpin} />}
+    </div>
+  );
+}
+
+function UnpinConfirmModal({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <div
+      className={styles.confirmOverlay}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onCancel();
+      }}
+    >
+      <div role="dialog" aria-modal="true" aria-labelledby="unpin-confirm-title" className={styles.confirmModal}>
+        <h2 id="unpin-confirm-title" className={styles.confirmTitle}>
+          핀고정을 해제할까요?
+        </h2>
+        <p className={styles.confirmBody}>공유 세션 목록에서 빠지고 비공개로 바뀌어요. 세션 내용은 삭제되지 않아요.</p>
+        <div className={styles.confirmActions}>
+          <Button variant="secondary" onClick={onCancel} autoFocus>
+            취소
+          </Button>
+          <Button variant="primary" onClick={onConfirm}>
+            해제
+          </Button>
+        </div>
       </div>
     </div>
   );
