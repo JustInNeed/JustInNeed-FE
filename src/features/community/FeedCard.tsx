@@ -10,12 +10,13 @@ export interface FeedCardProps {
   bookmarked: boolean;
   onToggleLike: () => void;
   onToggleBookmark: () => void;
-  onOpenProfile: (handle: string) => void;
+  /** 카드 클릭 — 마인드맵 상세 팝업 열기 */
+  onOpen: () => void;
 }
 
-export function FeedCard({ post, liked, bookmarked, onToggleLike, onToggleBookmark, onOpenProfile }: FeedCardProps) {
+export function FeedCard({ post, liked, bookmarked, onToggleLike, onToggleBookmark, onOpen }: FeedCardProps) {
   return (
-    <div className={styles.feedCard} onClick={() => onOpenProfile(post.user.handle)} role="button">
+    <div className={styles.feedCard} onClick={onOpen} role="button">
       <div className={styles.feedHead}>
         <div className={styles.avatar}>{post.user.avatar}</div>
         <div className={styles.feedUser}>
