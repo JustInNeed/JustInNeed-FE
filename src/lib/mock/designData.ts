@@ -248,6 +248,46 @@ export const HOME_TIMELINE: TimelineSlot[] = [
   { time: "17:00 — 18:00", tags: ["#예산", "#환전"], sites: [{ name: "kbstar.com", favicon: "K", color: "#fac810" }, { name: "wise.com", favicon: "W", color: "#163300" }] },
 ];
 
+// "이번 주" 타임라인용 세션 목록. dayOffset 0 = 오늘, -6 = 6일 전.
+// 화면에서는 날짜별로 묶어 대표 해시태그 · 사이트만 뽑아 보여준다 (weekTimeline.ts).
+export interface WeekSessionVisit {
+  site: TimelineSite;
+  dwellSec: number;
+}
+export interface WeekSession {
+  dayOffset: number;
+  startedAt: string;
+  tags: string[];
+  visits: WeekSessionVisit[];
+}
+const SITE = {
+  velog: { name: "velog.io", favicon: "V", color: "#20c997" },
+  medium: { name: "medium.com", favicon: "M", color: "#000" },
+  spring: { name: "docs.spring.io", favicon: "S", color: "#6db33f" },
+  baeldung: { name: "baeldung.com", favicon: "B", color: "#5d2f86" },
+  so: { name: "stackoverflow", favicon: "SO", color: "#f48024" },
+  sky: { name: "skyscanner.net", favicon: "SK", color: "#0770e3" },
+  paris: { name: "parisinfo.com", favicon: "P", color: "#d6336c" },
+  trip: { name: "tripadvisor.co.kr", favicon: "T", color: "#00aa6c" },
+  naver: { name: "naver.com/blog", favicon: "N", color: "#03c75a" },
+  kb: { name: "kbstar.com", favicon: "K", color: "#fac810" },
+  wise: { name: "wise.com", favicon: "W", color: "#163300" },
+} satisfies Record<string, TimelineSite>;
+const v = (site: TimelineSite, dwellSec: number): WeekSessionVisit => ({ site, dwellSec });
+
+export const HOME_WEEK_SESSIONS: WeekSession[] = [
+  { dayOffset: -6, startedAt: "10:10", tags: ["#파리", "#항공권"], visits: [v(SITE.sky, 420), v(SITE.sky, 180), v(SITE.paris, 300)] },
+  { dayOffset: -6, startedAt: "21:40", tags: ["#파리", "#일정"], visits: [v(SITE.paris, 520), v(SITE.naver, 90)] },
+  { dayOffset: -4, startedAt: "09:30", tags: ["#자바", "#스프링", "#JPA"], visits: [v(SITE.spring, 600), v(SITE.baeldung, 240), v(SITE.so, 60)] },
+  { dayOffset: -4, startedAt: "14:00", tags: ["#JPA", "#스프링"], visits: [v(SITE.baeldung, 300), v(SITE.so, 120), v(SITE.so, 45)] },
+  { dayOffset: -3, startedAt: "20:15", tags: ["#JPA", "#연관관계"], visits: [v(SITE.velog, 380), v(SITE.baeldung, 200)] },
+  { dayOffset: -2, startedAt: "13:20", tags: ["#로마", "#콜로세움"], visits: [v(SITE.trip, 260), v(SITE.naver, 310)] },
+  { dayOffset: -2, startedAt: "22:05", tags: ["#로마", "#먹거리"], visits: [v(SITE.naver, 180), v(SITE.naver, 140)] },
+  { dayOffset: -1, startedAt: "18:30", tags: ["#예산", "#환전"], visits: [v(SITE.kb, 150), v(SITE.wise, 200)] },
+  { dayOffset: 0, startedAt: "09:00", tags: ["#아침루틴", "#커피"], visits: [v(SITE.velog, 240), v(SITE.medium, 300)] },
+  { dayOffset: 0, startedAt: "10:30", tags: ["#자바", "#스프링", "#JPA"], visits: [v(SITE.spring, 500), v(SITE.velog, 120)] },
+];
+
 // ---------- 분석/추천 ----------
 // "이번 주 인사이트" 슬라이드는 이번 주 세션 중 하나를 랜덤으로 보여준다 (AnalyticsView).
 // 목: MOCK_SESSIONS 를 이번 주 세션으로 사용 — BE API 생기면 교체

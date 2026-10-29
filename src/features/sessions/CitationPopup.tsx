@@ -101,9 +101,6 @@ export function CitationPopup({ node, session, onClose }: CitationPopupProps) {
             <Icon name="link" size={11} /> 원문 열기
           </Button>
         )}
-        <Button variant="secondary" className={styles.footerBtn}>
-          <Icon name="bookmark" size={11} /> 북마크
-        </Button>
       </div>
     </div>
   );

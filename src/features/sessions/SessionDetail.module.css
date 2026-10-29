@@ -112,6 +112,12 @@
   flex-wrap: wrap;
   gap: 5px;
 }
+.tagDrag {
+  display: inline-flex;
+  border-radius: 999px;
+  outline-offset: 1px;
+  cursor: grab;
+}
 .tagPickerWrap {
   position: relative;
 }
@@ -133,8 +139,18 @@
 
 .actions {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-shrink: 0;
+}
+.autoSave {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 2px;
+  font-size: 12px;
+  color: var(--ink-500);
+  white-space: nowrap;
 }
 
 .tabs {
@@ -180,6 +196,19 @@
 }
 .sectionEyebrow:not(:first-child) {
   margin-top: 8px;
+}
+.bodyHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.bodyHead .sectionEyebrow {
+  margin-bottom: 0;
+}
+.bodyTools {
+  display: flex;
+  gap: 2px;
 }
 .bodyDivider {
   margin: 24px 0 20px;

@@ -49,7 +49,9 @@ export type IconName =
   | "alert"
   | "warning"
   | "exclaim"
-  | "refresh";
+  | "refresh"
+  | "copy"
+  | "download";
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -249,6 +251,19 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M21 12a9 9 0 1 1-3-6.7" />
       <path d="M21 4v5h-5" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M12 4v11" />
+      <path d="M7 10l5 5 5-5" />
+      <path d="M5 20h14" />
     </>
   ),
 };
