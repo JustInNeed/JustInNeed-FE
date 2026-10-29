@@ -169,6 +169,13 @@ export const TRENDING_HASHTAGS: TrendingHashtag[] = [
 /** 노드 공개 범위 — url: 원문 URL만 공개 (기본값), full: 내용까지 공개 */
 export type NodeVisibility = "url" | "full";
 
+/** 내 노드에서 모은 해시태그. 비공개면 다른 사용자 프로필 보기에서 태그와 그 노드가 빠짐 */
+export interface ProfileHashtag {
+  tag: string; // '#' 포함
+  count: number;
+  isPublic: boolean;
+}
+
 export interface MockProfile {
   name: string;
   handle: string;
@@ -177,7 +184,7 @@ export interface MockProfile {
   nodes: number;
   likes: number;
   interests: string[];
-  topTags: { tag: string; count: number }[];
+  topTags: ProfileHashtag[];
   visibility: NodeVisibility;
   /** 핀고정(공유)한 세션 id — 프로필 세션 탭 표시 순서 */
   pinnedSessionIds: number[];
@@ -192,11 +199,11 @@ export const MY_PROFILE: MockProfile = {
   likes: 87,
   interests: ["#유럽여행", "#HCI", "#미술관", "#프론트엔드", "#독서"],
   topTags: [
-    { tag: "#파리", count: 28 },
-    { tag: "#로마", count: 24 },
-    { tag: "#항공권", count: 18 },
-    { tag: "#미술관", count: 15 },
-    { tag: "#예산", count: 11 },
+    { tag: "#파리", count: 28, isPublic: true },
+    { tag: "#로마", count: 24, isPublic: true },
+    { tag: "#항공권", count: 18, isPublic: true },
+    { tag: "#미술관", count: 15, isPublic: true },
+    { tag: "#예산", count: 11, isPublic: false },
   ],
   visibility: "url",
   pinnedSessionIds: [9001, 9003, 9002, 9005],
@@ -214,11 +221,11 @@ export function otherProfile(handle: string): MockProfile {
     likes: 284,
     interests: ["#프라하", "#비엔나", "#야간열차", "#카페투어"],
     topTags: [
-      { tag: "#프라하", count: 32 },
-      { tag: "#비엔나", count: 28 },
-      { tag: "#야간열차", count: 16 },
-      { tag: "#카페", count: 14 },
-      { tag: "#슬로우트래블", count: 12 },
+      { tag: "#프라하", count: 32, isPublic: true },
+      { tag: "#비엔나", count: 28, isPublic: true },
+      { tag: "#야간열차", count: 16, isPublic: true },
+      { tag: "#카페", count: 14, isPublic: true },
+      { tag: "#슬로우트래블", count: 12, isPublic: true },
     ],
     visibility: "url",
     pinnedSessionIds: [9007, 9004, 9002, 9006],

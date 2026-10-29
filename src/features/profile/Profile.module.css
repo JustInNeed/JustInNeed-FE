@@ -99,6 +99,15 @@
   border: 2px solid var(--bg);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
+.topTagPrivate {
+  gap: 4px;
+  background: var(--surface-2);
+  color: var(--ink-500);
+  border: 1px dashed var(--line-2);
+}
+.topTagPrivate .countBadge {
+  background: var(--ink-400);
+}
 .interest {
   display: inline-flex;
   align-items: center;
@@ -207,6 +216,10 @@
 /* 10/10 이면 추가 버튼 비활성 */
 .addBtn:disabled {
   opacity: 0.45;
+}
+.tagPublicRow {
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
 }
 .radioRow {
   display: flex;

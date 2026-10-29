@@ -95,12 +95,21 @@ export function ProfileView({ handle }: ProfileViewProps) {
         </div>
 
         <div className={styles.tagRow}>
-          {profile.topTags.map((t) => (
-            <span key={t.tag} className={styles.topTag}>
-              {t.tag}
-              <span className={styles.countBadge}>{t.count}</span>
-            </span>
-          ))}
+          {profile.topTags.map((t) =>
+            t.isPublic ? (
+              <span key={t.tag} className={styles.topTag}>
+                {t.tag}
+                <span className={styles.countBadge}>{t.count}</span>
+              </span>
+            ) : (
+              // 비공개 태그는 내 프로필에서만 흐리게 보임
+              <span key={t.tag} className={`${styles.topTag} ${styles.topTagPrivate}`} title="비공개 · 나만 보여요">
+                <Icon name="lock" size={11} stroke={2} />
+                {t.tag}
+                <span className={styles.countBadge}>{t.count}</span>
+              </span>
+            ),
+          )}
           {profile.interests.map((h) => (
             <span key={h} className={styles.interest}>{h}</span>
           ))}

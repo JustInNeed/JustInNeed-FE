@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Icon, Card, PageHeader, Button, Field, FieldMessage, inputClass } from "@/components/ui";
+import { Icon, Card, PageHeader, Button, Field, FieldMessage, Toggle, inputClass } from "@/components/ui";
 import type { SessionListItem } from "@/lib/api";
 import { MOCK_SESSIONS, type MockProfile, type NodeVisibility } from "@/lib/mock/designData";
 import { formatDuration, withHash } from "@/lib/format";
@@ -13,7 +13,7 @@ import { NICKNAME_FORMAT_ERROR, NICKNAME_HINT, NICKNAME_MAX_LENGTH, isValidNickn
 import styles from "./Profile.module.css";
 
 /** 저장 시 프로필 화면에 반영할 값 (닉네임은 회원 정보로 따로 저장) */
-export type ProfileDraft = Pick<MockProfile, "bio" | "interests" | "visibility" | "pinnedSessionIds">;
+export type ProfileDraft = Pick<MockProfile, "bio" | "interests" | "topTags" | "visibility" | "pinnedSessionIds">;
 
 export interface ProfileEditProps {
   profile: MockProfile;
@@ -38,6 +38,7 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
   const [newTag, setNewTag] = useState("");
   const [tagError, setTagError] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<NodeVisibility>(profile.visibility);
+  const [topTags, setTopTags] = useState(profile.topTags);
   const [pinned, setPinned] = useState<number[]>(profile.pinnedSessionIds);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
@@ -102,7 +103,7 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
         setSaving(false);
       }
     }
-    onSave({ bio, interests, visibility, pinnedSessionIds: pinned });
+    onSave({ bio, interests, topTags, visibility, pinnedSessionIds: pinned });
   };
 
   const tagsFull = interests.length >= MAX_HASHTAGS;
@@ -212,6 +213,21 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
                 <div className={styles.radioDesc}>{o.d}</div>
               </div>
             </label>
+          ))}
+        </Card>
+
+        <Card className={styles.editCard}>
+          <h3 className={styles.editTitle} style={{ marginBottom: 6 }}>해시태그 공개 설정</h3>
+          <p className={styles.editDesc}>비공개 해시태그와 그 노드는 다른 사용자에게 보이지 않아요.</p>
+          {topTags.map((t) => (
+            <div key={t.tag} className={styles.tagPublicRow}>
+              <Toggle
+                label={t.tag}
+                desc={`노드 ${t.count}개 · ${t.isPublic ? "공개" : "비공개"}`}
+                on={t.isPublic}
+                onChange={(v) => setTopTags((ts) => ts.map((x) => (x.tag === t.tag ? { ...x, isPublic: v } : x)))}
+              />
+            </div>
           ))}
         </Card>
 
