@@ -48,6 +48,30 @@ export const MINDMAP_EDGES: MindmapEdge[] = [
   ["rome", "travel-blog"], ["paris", "travel-blog"], ["eu", "reddit"],
 ];
 
+/** 리프 노드(연결 1개)의 원문 URL — 전체 마인드맵 보기에서 누르면 새 탭으로 연다 */
+export const MINDMAP_NODE_URLS: Record<string, string> = {
+  budget: "https://wise.com/kr/currency-converter/eur-to-krw-rate",
+  packing: "https://www.ricksteves.com/travel-tips/packing-light",
+  visa: "https://travel-europe.europa.eu/etias_en",
+  colos: "https://www.colosseo.it/en/",
+  vatic: "https://www.museivaticani.va/",
+  tras: "https://www.turismoroma.it/en/places/trastevere",
+  pasta: "https://www.tripadvisor.co.kr/Restaurants-g187791-Rome_Lazio.html",
+  eiffel: "https://www.toureiffel.paris/en",
+  louvre: "https://www.louvre.fr/en",
+  orsay: "https://www.musee-orsay.fr/en",
+  mont: "https://www.parisinfo.com/",
+  sagrada: "https://sagradafamilia.org/en/",
+  park: "https://parkguell.barcelona/en",
+  tapas: "https://www.barcelonaturisme.com/",
+  castle: "https://www.hrad.cz/en/prague-castle-for-visitors",
+  bridge: "https://www.prague.eu/en",
+  skyscan: "https://www.skyscanner.co.kr/",
+  kayak: "https://www.kayak.co.kr/",
+  booking: "https://www.booking.com/",
+  reddit: "https://www.reddit.com/r/travel/",
+};
+
 // ---------- 홈 마인드맵 필터 · 검색 (목: 홈 집계 API 생기면 교체) ----------
 export type GraphPeriod = "today" | "week" | "month" | "all";
 
