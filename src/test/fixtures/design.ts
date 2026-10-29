@@ -9,7 +9,6 @@ import type {
   CommunityPost,
   ExcludedUrl,
   GraphPeriod,
-  ProfileData,
   RelatedUrl,
   TimelineSite,
   TimelineSlot,
@@ -221,52 +220,7 @@ export const TRENDING_HASHTAGS_WEEK: TrendingHashtag[] = [
   { tag: "#스위스패스", count: 1690, trend: -3 },
 ];
 
-// ---------- 프로필 ----------
-
-
-
-export const MY_PROFILE: ProfileData = {
-  name: "sprout.kr",
-  handle: "@sprout.kr",
-  avatar: "🌱",
-  bio: "HCI 연구하며 여행 다니는 사람. 요즘은 유럽.",
-  nodes: 218,
-  likes: 87,
-  interests: ["#유럽여행", "#HCI", "#미술관", "#프론트엔드", "#독서"],
-  topTags: [
-    { tag: "#파리", count: 28, isPublic: true },
-    { tag: "#로마", count: 24, isPublic: true },
-    { tag: "#항공권", count: 18, isPublic: true },
-    { tag: "#미술관", count: 15, isPublic: true },
-    { tag: "#예산", count: 11, isPublic: false },
-  ],
-  visibility: "url",
-  pinnedSessionIds: [9001, 9003, 9002, 9005],
-};
-
-export function otherProfile(handle: string): ProfileData {
-  const h = handle.startsWith("@") ? handle : `@${handle}`;
-  const post = COMMUNITY_FEED.find((p) => p.user.handle === h);
-  return {
-    name: h.replace("@", "") || "wanderlust",
-    handle: h || "@wanderlust",
-    avatar: post?.user.avatar ?? "🌿",
-    bio: "동유럽 한 달 살이 중. 천천히 깊게 다니기.",
-    nodes: 142,
-    likes: 284,
-    interests: ["#프라하", "#비엔나", "#야간열차", "#카페투어"],
-    topTags: [
-      { tag: "#프라하", count: 32, isPublic: true },
-      { tag: "#비엔나", count: 28, isPublic: true },
-      { tag: "#야간열차", count: 16, isPublic: true },
-      // 비공개 예시 — 다른 사용자 프로필 보기에서 태그와 그 노드가 빠짐
-      { tag: "#카페", count: 14, isPublic: false },
-      { tag: "#슬로우트래블", count: 12, isPublic: false },
-    ],
-    visibility: "url",
-    pinnedSessionIds: [9007, 9004, 9002, 9006],
-  };
-}
+// ---------- 프로필 → profile.ts ----------
 
 // ---------- 홈 대시보드 ----------
 export const HOME_TOP_TAGS = [
