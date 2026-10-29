@@ -2,13 +2,16 @@
 
 import { Icon, HashChip } from "@/components/ui";
 import { hostFromUrl } from "@/lib/format";
-import type { CommunityPost, RelatedUrl } from "@/lib/mock/designData";
+import type { CommunityPost, RelatedUrl } from "@/lib/viewTypes";
 import styles from "./Community.module.css";
 
 export interface FeedCardProps {
   post: CommunityPost;
   liked: boolean;
   bookmarked: boolean;
+  /** 표시할 좋아요 · 북마크 수 (내 반응 반영) */
+  likes: number;
+  bookmarks: number;
   onToggleLike: () => void;
   onToggleBookmark: () => void;
   /** 카드 클릭 — 마인드맵 상세 팝업 열기 */
@@ -17,7 +20,7 @@ export interface FeedCardProps {
   relatedUrls?: RelatedUrl[];
 }
 
-export function FeedCard({ post, liked, bookmarked, onToggleLike, onToggleBookmark, onOpen, relatedUrls }: FeedCardProps) {
+export function FeedCard({ post, liked, bookmarked, likes, bookmarks, onToggleLike, onToggleBookmark, onOpen, relatedUrls }: FeedCardProps) {
   return (
     <div className={styles.feedCard} onClick={onOpen} role="button">
       <div className={styles.feedHead}>
@@ -66,9 +69,11 @@ export function FeedCard({ post, liked, bookmarked, onToggleLike, onToggleBookma
           }}
           className={styles.feedAction}
           style={{ color: liked ? "var(--green-600)" : "inherit" }}
+          aria-label="좋아요"
+          aria-pressed={liked}
         >
           <Icon name="heart" size={13} stroke={liked ? 0 : 1.7} fill={liked ? "currentColor" : undefined} />
-          <span>{post.likes + (liked ? 1 : 0)}</span>
+          <span>{likes}</span>
         </button>
         <button
           onClick={(e) => {
@@ -77,9 +82,11 @@ export function FeedCard({ post, liked, bookmarked, onToggleLike, onToggleBookma
           }}
           className={styles.feedAction}
           style={{ color: bookmarked ? "var(--green-600)" : "inherit" }}
+          aria-label="북마크"
+          aria-pressed={bookmarked}
         >
           <Icon name="bookmark" size={13} stroke={bookmarked ? 0 : 1.7} fill={bookmarked ? "currentColor" : undefined} />
-          <span>{post.bookmarks + (bookmarked ? 1 : 0)}</span>
+          <span>{bookmarks}</span>
         </button>
         <span className={styles.feedAction}>
           <Icon name="users" size={13} />
