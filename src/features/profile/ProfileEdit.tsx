@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Icon, Card, PageHeader, Button, Field, FieldMessage, inputClass } from "@/components/ui";
+import type { SessionListItem } from "@/lib/api";
 import { MOCK_SESSIONS, type MockProfile, type NodeVisibility } from "@/lib/mock/designData";
 import { formatDuration, withHash } from "@/lib/format";
 import { MAX_HASHTAGS, validateHashtag } from "@/lib/hashtag";
@@ -38,8 +39,46 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
   const [tagError, setTagError] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<NodeVisibility>(profile.visibility);
   const [pinned, setPinned] = useState<number[]>(profile.pinnedSessionIds);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const nameInvalid = !isValidNickname(name);
   const nameErrorText = nameInvalid ? NICKNAME_FORMAT_ERROR : nameError;
+
+  const togglePin = (id: number) =>
+    setPinned((ps) => (ps.includes(id) ? ps.filter((x) => x !== id) : [...ps, id]));
+
+  const endDrag = () => {
+    setDragIdx(null);
+    setDragOverIdx(null);
+  };
+  const onPinDrop = (i: number) => {
+    if (dragIdx !== null && dragIdx !== i) {
+      const next = [...pinned];
+      const [moved] = next.splice(dragIdx, 1);
+      next.splice(i, 0, moved);
+      setPinned(next);
+    }
+    endDrag();
+  };
+
+  const unpinned = MOCK_SESSIONS.filter((s) => !pinned.includes(s.id));
+
+  const pinRow = (s: SessionListItem, isPinned: boolean) => (
+    <>
+      {isPinned ? <span className={styles.pinGrip} aria-hidden /> : <span className={styles.pinGripSpace} />}
+      <input
+        type="checkbox"
+        checked={isPinned}
+        onChange={() => togglePin(s.id)}
+        style={{ accentColor: "var(--green-500)" }}
+      />
+      <div className={styles.pinMain}>
+        <div className={styles.pinTitle}>{s.title}</div>
+        <div className={styles.pinMeta}>{formatDuration(s.startedAt, s.endedAt)} · {s.pageCount}개 URL</div>
+      </div>
+      {isPinned && <Icon name="pin" size={14} />}
+    </>
+  );
 
   const save = async () => {
     if (nameInvalid || saving) return;
@@ -169,21 +208,45 @@ export function ProfileEdit({ profile, onCancel, onSave }: ProfileEditProps) {
         </Card>
 
         <Card className={styles.editCard}>
-          <h3 className={styles.editTitle} style={{ marginBottom: 6 }}>핀고정 세션</h3>
-          <p className={styles.editDesc}>순서를 변경하고 프로필에 핀고정합니다.</p>
-          {MOCK_SESSIONS.map((s) => (
+          <h3 className={styles.editTitle} style={{ marginBottom: 6 }}>
+            핀고정 세션
+            {pinned.length > 1 && <span className={styles.dragHint}>드래그로 순서 변경</span>}
+          </h3>
+          <p className={styles.editDesc}>핀고정한 세션이 이 순서대로 프로필에 공유돼요.</p>
+          {pinned.map((id, i) => {
+            const s = MOCK_SESSIONS.find((x) => x.id === id);
+            if (!s) return null;
+            return (
+              <label
+                key={id}
+                draggable
+                onDragStart={(e) => {
+                  setDragIdx(i);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (dragIdx !== null && dragIdx !== i) setDragOverIdx(i);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  onPinDrop(i);
+                }}
+                onDragEnd={endDrag}
+                className={[
+                  styles.pinRow,
+                  dragIdx === i ? styles.pinRowDragging : "",
+                  dragOverIdx === i && dragIdx !== i ? styles.pinRowOver : "",
+                ].filter(Boolean).join(" ")}
+                title="드래그로 순서 변경"
+              >
+                {pinRow(s, true)}
+              </label>
+            );
+          })}
+          {unpinned.map((s) => (
             <label key={s.id} className={styles.pinRow}>
-              <input
-                type="checkbox"
-                checked={pinned.includes(s.id)}
-                onChange={() => setPinned((ps) => (ps.includes(s.id) ? ps.filter((x) => x !== s.id) : [...ps, s.id]))}
-                style={{ accentColor: "var(--green-500)" }}
-              />
-              <div className={styles.pinMain}>
-                <div className={styles.pinTitle}>{s.title}</div>
-                <div className={styles.pinMeta}>{formatDuration(s.startedAt, s.endedAt)} · {s.pageCount}개 URL</div>
-              </div>
-              {pinned.includes(s.id) && <Icon name="pin" size={14} />}
+              {pinRow(s, false)}
             </label>
           ))}
         </Card>

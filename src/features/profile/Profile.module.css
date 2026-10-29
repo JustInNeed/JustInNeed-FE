@@ -241,6 +241,32 @@
   border-top: 1px solid var(--line);
   cursor: pointer;
 }
+.pinRowDragging {
+  opacity: 0.4;
+}
+.pinRowOver {
+  outline: 2px solid var(--green-700);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+/* 핀고정된 행만 잡고 끌 수 있음 — 점 6개 손잡이 */
+.pinGrip,
+.pinGripSpace {
+  width: 10px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.pinGrip {
+  background-image: radial-gradient(circle, var(--ink-400) 1.2px, transparent 1.5px);
+  background-size: 5px 5px;
+  cursor: grab;
+}
+.dragHint {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ink-400);
+}
 .pinMain {
   flex: 1;
 }
