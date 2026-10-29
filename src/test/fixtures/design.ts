@@ -7,7 +7,6 @@ import type {
   BannerTip,
   BookmarkedMindmap,
   CommunityPost,
-  ExcludedUrl,
   GraphPeriod,
   RelatedUrl,
   TimelineSite,
