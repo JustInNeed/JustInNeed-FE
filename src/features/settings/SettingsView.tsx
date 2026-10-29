@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon, Card, PageHeader, Toggle, inputClass, Button, FieldMessage, InlineState } from "@/components/ui";
+import type { CheckNickname } from "@/lib/nickname";
 import type { ExcludedUrl, Integration } from "@/lib/viewTypes";
 import { ExclusionList } from "./ExclusionList";
 import { normalizeExcludedUrl } from "./excludedUrl";
@@ -36,9 +37,17 @@ export interface SettingsViewProps {
   onRetry?: () => void;
   /** 외부 플랫폼 연동 목록 (메뉴 숨김 상태) */
   integrations?: Integration[];
+  /** 계정 섹션 닉네임 중복 확인 — 없으면 기본 확인 (lib/nickname) */
+  checkNickname?: CheckNickname;
 }
 
-export function SettingsView({ excludedUrls, error = null, onRetry, integrations: integrationsProp = NO_INTEGRATIONS }: SettingsViewProps) {
+export function SettingsView({
+  excludedUrls,
+  error = null,
+  onRetry,
+  integrations: integrationsProp = NO_INTEGRATIONS,
+  checkNickname,
+}: SettingsViewProps) {
   const [section, setSection] = useState<Section>("collection");
   const [withdrawing, setWithdrawing] = useState(false);
   const [popup, setPopup] = useState(true);
@@ -157,7 +166,7 @@ export function SettingsView({ excludedUrls, error = null, onRetry, integrations
             (withdrawing ? (
               <WithdrawSection onBack={() => setWithdrawing(false)} />
             ) : (
-              <AccountSection onWithdraw={() => setWithdrawing(true)} />
+              <AccountSection onWithdraw={() => setWithdrawing(true)} checkNickname={checkNickname} />
             ))}
         </div>
       </div>

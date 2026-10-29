@@ -360,8 +360,6 @@ export const EXPLORATION_STATS = [
 
 // ---------- 설정 ----------
 // 수집 제외 URL · 외부 연동 목록은 settings.ts 로 옮김
-/** 닉네임 중복 확인 시뮬레이션용 "이미 사용 중" 목록 (소문자) — 중복 확인 API 생기면 교체 */
-export const TAKEN_NICKNAMES: string[] = ["admin", "test"];
 
 // ---------- 북마크 ----------
 export const BOOKMARKED_MINDMAPS: BookmarkedMindmap[] = [
