@@ -71,3 +71,25 @@ export function searchGraph(query: string, nodes: MindmapNode[], edges: MindmapE
   );
   return [...nodeResults, ...sessionResults];
 }
+
+/**
+ * 노드와 가장 잘 맞는 세션 — 노드 라벨이 담긴 태그 +2, 노드 해시태그와 같은 태그 +1. 맞는 게 없으면 undefined.
+ * 동점이면 목록 앞쪽(최근) 세션.
+ */
+export function relatedSession(node: MindmapNode): SessionListItem | undefined {
+  const label = node.label.replace(/\s/g, "").toLowerCase();
+  const nodeTags = new Set((MINDMAP_NODE_META[node.id]?.tags ?? []).map((t) => t.toLowerCase()));
+  let best: SessionListItem | undefined;
+  let bestScore = 0;
+  for (const session of MOCK_SESSIONS) {
+    const score = session.tags.reduce((sum, raw) => {
+      const t = raw.toLowerCase();
+      return sum + (label.includes(t) ? 2 : 0) + (nodeTags.has(t) ? 1 : 0);
+    }, 0);
+    if (score > bestScore) {
+      best = session;
+      bestScore = score;
+    }
+  }
+  return best;
+}

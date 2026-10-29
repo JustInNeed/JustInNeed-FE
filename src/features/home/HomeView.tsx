@@ -14,7 +14,7 @@ import {
 } from "@/lib/mock/designData";
 import { GraphFilterPopover } from "./GraphFilterPopover";
 import { GraphSearch } from "./GraphSearch";
-import { DEFAULT_GRAPH_FILTER, countApplied, dimmedNodeIds, type GraphFilter } from "./graphFilter";
+import { DEFAULT_GRAPH_FILTER, countApplied, dimmedNodeIds, relatedSession, type GraphFilter } from "./graphFilter";
 import { buildWeekTimeline } from "./weekTimeline";
 import styles from "./HomeView.module.css";
 
@@ -62,6 +62,7 @@ export function HomeView() {
   const connected = focusNode
     ? MINDMAP_EDGES.filter(([a, b]) => a === focusNode.id || b === focusNode.id).length
     : 0;
+  const focusSession = focusNode ? relatedSession(focusNode) : undefined;
 
   return (
     <div className={styles.page}>
@@ -133,8 +134,14 @@ export function HomeView() {
             <div className={styles.popover}>
               <div className={styles.popEyebrow}>선택됨</div>
               <div className={styles.popTitle}>{focusNode.label}</div>
-              <div className={styles.popMeta}>연결된 노드 {connected}개 · 출처 5개</div>
-              <button className={styles.popBtn} onClick={() => router.push("/sessions")}>
+              <div className={styles.popMeta}>
+                연결된 노드 {connected}개{focusSession && ` · 출처 ${focusSession.pageCount}개`}
+              </div>
+              {/* 가장 잘 맞는 세션 상세로, 없으면 세션 목록으로 */}
+              <button
+                className={styles.popBtn}
+                onClick={() => router.push(focusSession ? `/sessions/${focusSession.id}` : "/sessions")}
+              >
                 관련 세션 보기 <Icon name="chevronRight" size={12} />
               </button>
             </div>
