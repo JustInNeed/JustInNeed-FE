@@ -8,12 +8,23 @@ import type { ProviderId } from "@/lib/types";
 import { getLastProvider, setLastProvider } from "@/lib/auth/tokens";
 import { consumeAuthToast } from "@/lib/auth/toast";
 import { AuthToast } from "@/components/layout/AuthToast";
+import { useToast } from "@/lib/app/ToastContext";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
 export default function LoginPage() {
   const [lastProvider, setLast] = useState<ProviderId | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toast = useToast();
+
+  // OAuth 실패 시 BE / 콜백이 /login?error=oauth 로 돌려보냄 → 로그인 화면 그대로 + 에러 토스트
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") !== "oauth") return;
+    toast.error("로그인에 실패했어요. 다시 시도해 주세요.");
+    window.history.replaceState(null, "", "/login");
+  }, [toast]);
+
   useEffect(() => {
     setLast(getLastProvider());
     const kind = consumeAuthToast()?.kind;

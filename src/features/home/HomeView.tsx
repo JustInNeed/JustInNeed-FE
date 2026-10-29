@@ -4,10 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Card, PageHeader, StatCard, HashChip } from "@/components/ui";
 import { Mindmap } from "@/components/mindmap/Mindmap";
-import { HOME_TIMELINE, HOME_TOP_TAGS, HOME_WEEK_ACTIVITY, MINDMAP_EDGES, MINDMAP_NODES } from "@/lib/mock/designData";
+import {
+  HOME_TIMELINE,
+  HOME_TOP_TAGS,
+  HOME_WEEK_ACTIVITY,
+  HOME_WEEK_SESSIONS,
+  MINDMAP_EDGES,
+  MINDMAP_NODES,
+} from "@/lib/mock/designData";
 import { GraphFilterPopover } from "./GraphFilterPopover";
 import { GraphSearch } from "./GraphSearch";
 import { DEFAULT_GRAPH_FILTER, countApplied, dimmedNodeIds, type GraphFilter } from "./graphFilter";
+import { buildWeekTimeline } from "./weekTimeline";
 import styles from "./HomeView.module.css";
 
 export function HomeView() {
@@ -166,8 +174,10 @@ export function HomeView() {
           <Card style={{ padding: 22 }}>
             <div className={styles.cardHead}>
               <div>
-                <h3 className={styles.cardTitle}>오늘의 탐색 타임라인</h3>
-                <p className={styles.cardDesc}>시간대별 수집 해시태그 · 방문 사이트</p>
+                <h3 className={styles.cardTitle}>{range === "today" ? "오늘의 탐색 타임라인" : "이번 주 탐색 타임라인"}</h3>
+                <p className={styles.cardDesc}>
+                  {range === "today" ? "시간대별 수집 해시태그 · 방문 사이트" : "요일별 대표 해시태그 · 방문 사이트"}
+                </p>
               </div>
               <div className={styles.rangeBtns}>
                 <button
@@ -184,7 +194,7 @@ export function HomeView() {
                 </button>
               </div>
             </div>
-            <BrowsingTimeline />
+            {range === "today" ? <BrowsingTimeline /> : <WeekTimeline />}
           </Card>
         </div>
       </div>
@@ -238,6 +248,53 @@ function BrowsingTimeline() {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// 이번 주: 오늘 타임라인과 같은 틀, 시간대 자리에 날짜 · 요일. 기록 없는 날은 "기록 없음".
+function WeekTimeline() {
+  const days = useMemo(() => buildWeekTimeline(HOME_WEEK_SESSIONS), []);
+  return (
+    <div className={styles.timeline}>
+      <div className={styles.spine} />
+      <div className={styles.slots}>
+        {days.map((d) => {
+          const empty = d.tags.length === 0 && d.sites.length === 0;
+          return (
+            <div key={d.key} className={styles.slot}>
+              <div className={`${styles.slotDot} ${empty ? styles.slotDotEmpty : ""}`} />
+              <div className={styles.slotRow}>
+                <div className={`${styles.slotTime} ${empty ? styles.slotTimeEmpty : ""}`}>
+                  {d.label}
+                  {d.isToday && <span className={styles.slotToday}>오늘</span>}
+                </div>
+                <div className={styles.slotMain}>
+                  {empty ? (
+                    <span className={styles.slotEmpty}>기록 없음</span>
+                  ) : (
+                    <>
+                      <div className={styles.slotTags}>
+                        {d.tags.map((t) => (
+                          <HashChip key={t} label={t} size="sm" />
+                        ))}
+                      </div>
+                      <div className={styles.slotSites}>
+                        {d.sites.map((site) => (
+                          <div key={site.name} className={styles.site}>
+                            <span className={styles.siteIcon} style={{ background: site.color }}>{site.favicon}</span>
+                            {site.name}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

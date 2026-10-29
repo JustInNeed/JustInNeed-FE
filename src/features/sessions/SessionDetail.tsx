@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Card, Button, HashChip, Markdown } from "@/components/ui";
 import { Mindmap } from "@/components/mindmap/Mindmap";
@@ -19,7 +19,25 @@ import { buildSessionMindmap } from "./buildSessionMindmap";
 import { CitationPopup } from "./CitationPopup";
 import { SessionEditor } from "./SessionEditor";
 import { AddHashtagPopover } from "./AddHashtagPopover";
+import { LeaveConfirmModal } from "./LeaveConfirmModal";
 import styles from "./SessionDetail.module.css";
+
+const AUTO_SAVE_MS = 30_000;
+
+type AutoSaveState = { status: "idle" | "saving" | "saved"; at: number | null };
+type LeaveTarget = { kind: "cancel" } | { kind: "list" } | { kind: "href"; href: string };
+
+function savedAgo(at: number, now: number): string {
+  const min = Math.floor((now - at) / 60_000);
+  if (min < 1) return "방금 전";
+  if (min < 60) return `${min}분 전`;
+  return `${Math.floor(min / 60)}시간 전`;
+}
+
+/** LLM 줄글이 이미 `# 제목` 으로 시작하면 내보낼 때 제목을 또 붙이지 않는다. */
+function startsWithHeading(markdown: string): boolean {
+  return /^#\s/.test(markdown.trimStart());
+}
 
 export interface SessionDetailProps {
   sessionId: number;
@@ -42,6 +60,66 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const [draftTitle, setDraftTitle] = useState("");
   const [draftMarkdown, setDraftMarkdown] = useState("");
   const [draftInsights, setDraftInsights] = useState<string[]>([]);
+
+  // 30초 자동 저장 — 변경이 있을 때만 저장. 저장 / 취소 버튼 옆 회색 상태 문구, 실패는 토스트로만
+  const [baseline, setBaseline] = useState("");
+  const [autoSave, setAutoSave] = useState<AutoSaveState>({ status: "idle", at: null });
+  const [now, setNow] = useState(() => Date.now());
+  const savingRef = useRef(false);
+  const autoSaveTick = useRef<() => void>(() => {});
+
+  // 저장 안 하고 나가기 경고
+  const [leaveTarget, setLeaveTarget] = useState<LeaveTarget | null>(null);
+  const [leaving, setLeaving] = useState(false);
+
+  // 줄글 복사용 본문 렌더 영역, 해시태그 드래그 순서 변경
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [tagDragIdx, setTagDragIdx] = useState<number | null>(null);
+  const [tagOverIdx, setTagOverIdx] = useState<number | null>(null);
+
+  const draftKey = JSON.stringify([draftTitle, draftMarkdown, draftInsights]);
+  const dirty = editing && draftKey !== baseline;
+
+  useEffect(() => {
+    if (!editing) return;
+    const t = setInterval(() => autoSaveTick.current(), AUTO_SAVE_MS);
+    return () => clearInterval(t);
+  }, [editing]);
+
+  // "저장됨 · N분 전" 갱신
+  useEffect(() => {
+    if (autoSave.status !== "saved") return;
+    const t = setInterval(() => setNow(Date.now()), 20_000);
+    return () => clearInterval(t);
+  }, [autoSave.status]);
+
+  // 새로고침 · 탭 닫기 → 브라우저 기본 확인창
+  useEffect(() => {
+    if (!dirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  // 사이드바 등 앱 안 링크로 이동 → Link 가 처리하기 전에 가로채서 경고 모달
+  useEffect(() => {
+    if (!dirty) return;
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element | null)?.closest?.("a[href]");
+      if (!(a instanceof HTMLAnchorElement) || a.target === "_blank") return;
+      const url = new URL(a.href);
+      if (url.origin !== window.location.origin) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setLeaveTarget({ kind: "href", href: url.pathname + url.search });
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [dirty]);
 
   useEffect(() => {
     if (data) setDetail(data);
@@ -97,12 +175,94 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     }
   };
 
+  const onTagDrop = (i: number) => {
+    if (tagDragIdx !== null && tagDragIdx !== i) {
+      const next = [...detail.tags];
+      const [moved] = next.splice(tagDragIdx, 1);
+      next.splice(i, 0, moved);
+      persist({ tags: next }, { tags: next });
+    }
+    setTagDragIdx(null);
+    setTagOverIdx(null);
+  };
+
   const enterEdit = () => {
-    setDraftTitle(detail.title);
-    setDraftMarkdown(detail.summary?.markdown ?? "");
-    setDraftInsights(detail.summary?.insights ?? []);
+    const title = detail.title;
+    const markdown = detail.summary?.markdown ?? "";
+    const ins = detail.summary?.insights ?? [];
+    setDraftTitle(title);
+    setDraftMarkdown(markdown);
+    setDraftInsights(ins);
+    setBaseline(JSON.stringify([title, markdown, ins]));
+    setAutoSave({ status: "idle", at: null });
     setView("text");
     setEditing(true);
+  };
+
+  // 편집 모드는 유지한 채 초안만 저장 (자동 저장 · 저장하고 나가기)
+  const saveDraft = async (failMessage: string): Promise<boolean> => {
+    if (savingRef.current) return false;
+    savingRef.current = true;
+    const key = draftKey;
+    setAutoSave((s) => ({ ...s, status: "saving" }));
+    try {
+      const updated = await updateSession(detail.id, {
+        title: draftTitle,
+        editedMarkdown: draftMarkdown,
+        insights: draftInsights,
+      });
+      setDetail(updated);
+      setBaseline(key);
+      const t = Date.now();
+      setNow(t);
+      setAutoSave({ status: "saved", at: t });
+      return true;
+    } catch {
+      setAutoSave((s) => ({ ...s, status: s.at ? "saved" : "idle" }));
+      toast.info(failMessage, { icon: "exclaim" });
+      return false;
+    } finally {
+      savingRef.current = false;
+    }
+  };
+  autoSaveTick.current = () => {
+    if (dirty) void saveDraft("자동 저장에 실패했어요. 저장 버튼을 눌러 저장해 주세요.");
+  };
+
+  const proceedLeave = (target: LeaveTarget) => {
+    setLeaveTarget(null);
+    setEditing(false);
+    if (target.kind === "list") router.push("/sessions");
+    else if (target.kind === "href") router.push(target.href);
+  };
+  const requestLeave = (target: LeaveTarget) => (dirty ? setLeaveTarget(target) : proceedLeave(target));
+  const saveAndLeave = async () => {
+    if (!leaveTarget) return;
+    setLeaving(true);
+    const ok = await saveDraft("저장에 실패했어요. 다시 시도해 주세요.");
+    setLeaving(false);
+    if (ok) proceedLeave(leaveTarget);
+  };
+
+  const copyText = async () => {
+    const md = detail.summary?.markdown ?? "";
+    const body = bodyRef.current?.innerText.trim() ?? md;
+    try {
+      await navigator.clipboard.writeText(startsWithHeading(md) ? body : `${detail.title}\n\n${body}`);
+      toast.success("줄글을 복사했어요.");
+    } catch {
+      toast.error("복사하지 못했어요. 다시 시도해 주세요.");
+    }
+  };
+  const downloadMarkdown = () => {
+    const md = detail.summary?.markdown ?? "";
+    const content = startsWithHeading(md) ? `${md}\n` : `# ${detail.title}\n\n${md}\n`;
+    const url = URL.createObjectURL(new Blob([content], { type: "text/markdown;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${detail.title.replace(/[\\/:*?"<>|]+/g, "_").trim() || "session"}.md`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   const saveEdit = async () => {
     await persist(
@@ -123,7 +283,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <button onClick={() => router.push("/sessions")} className={styles.back}>
+        <button onClick={() => requestLeave({ kind: "list" })} className={styles.back}>
           ← 세션 목록
         </button>
         <div className={styles.headerRow}>
@@ -178,8 +338,35 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
             </div>
 
             <div className={styles.tags}>
-              {detail.tags.map((h) => (
-                <HashChip key={h} label={withHash(h)} size="sm" />
+              {detail.tags.map((h, i) => (
+                <span
+                  key={h}
+                  draggable
+                  onDragStart={(e) => {
+                    setTagDragIdx(i);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (tagDragIdx !== null && tagDragIdx !== i) setTagOverIdx(i);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    onTagDrop(i);
+                  }}
+                  onDragEnd={() => {
+                    setTagDragIdx(null);
+                    setTagOverIdx(null);
+                  }}
+                  className={styles.tagDrag}
+                  style={{
+                    opacity: tagDragIdx === i ? 0.4 : 1,
+                    outline: tagOverIdx === i && tagDragIdx !== i ? "2px solid var(--green-700)" : "none",
+                  }}
+                  title="드래그로 순서 변경"
+                >
+                  <HashChip label={withHash(h)} size="sm" />
+                </span>
               ))}
               <div className={styles.tagPickerWrap}>
                 <button onClick={() => setShowTagPicker((v) => !v)} className={styles.addTag}>
@@ -199,7 +386,15 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
           <div className={styles.actions}>
             {editing ? (
               <>
-                <Button variant="secondary" onClick={() => setEditing(false)}>
+                {autoSave.status !== "idle" && (
+                  <span className={styles.autoSave} role="status">
+                    <Icon name={autoSave.status === "saving" ? "refresh" : "check"} size={13} stroke={2.2} />
+                    {autoSave.status === "saving" || autoSave.at === null
+                      ? "저장 중…"
+                      : `저장됨 · ${savedAgo(autoSave.at, now)}`}
+                  </span>
+                )}
+                <Button variant="secondary" onClick={() => requestLeave({ kind: "cancel" })}>
                   취소
                 </Button>
                 <Button variant="primary" onClick={saveEdit}>
@@ -258,9 +453,28 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
             />
           ) : (
             <Card style={{ padding: 28, overflowY: "auto" }}>
-              <div className={styles.sectionEyebrow}>본문</div>
+              <div className={styles.bodyHead}>
+                <div className={styles.sectionEyebrow}>본문</div>
+                {detail.summary?.markdown && (
+                  <div className={styles.bodyTools}>
+                    <Button variant="ghost" onClick={copyText} aria-label="줄글 복사" title="줄글 복사">
+                      <Icon name="copy" size={14} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={downloadMarkdown}
+                      aria-label=".md 파일 다운로드"
+                      title=".md 파일 다운로드"
+                    >
+                      <Icon name="download" size={14} />
+                    </Button>
+                  </div>
+                )}
+              </div>
               {detail.summary?.markdown ? (
-                <Markdown>{detail.summary.markdown}</Markdown>
+                <div ref={bodyRef}>
+                  <Markdown>{detail.summary.markdown}</Markdown>
+                </div>
               ) : (
                 <p className={styles.bodyMuted}>
                   {detail.status === "ANALYZING"
@@ -346,6 +560,15 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
           </Card>
         </div>
       </div>
+
+      {leaveTarget && (
+        <LeaveConfirmModal
+          saving={leaving}
+          onDiscard={() => proceedLeave(leaveTarget)}
+          onStay={() => setLeaveTarget(null)}
+          onSaveAndLeave={saveAndLeave}
+        />
+      )}
     </div>
   );
 }
