@@ -149,6 +149,13 @@ export const COMMUNITY_FEED: CommunityPost[] = [
   { id: "c6", user: { name: "rail.kr", avatar: "🚆", handle: "@rail.kr" }, title: "유레일 vs 저가항공 — 실비 비교", snippet: "4개국 이상이면 패스. 2~3개국이면 라이언에어가 더 싸다.", hashtags: ["#유레일", "#항공권", "#예산"], nodes: 41, likes: 178, bookmarks: 88, exploring: 7, when: "4일 전" },
 ];
 
+/** 마인드맵 상세 팝업의 관련 세션 — 해시태그가 겹치는 세션 최대 3개, 없으면 앞의 3개 */
+export function relatedSessionsFor(post: CommunityPost): SessionListItem[] {
+  const tagSet = new Set(post.hashtags.map((h) => h.replace(/^#/, "").toLowerCase()));
+  const matched = MOCK_SESSIONS.filter((ss) => ss.tags.some((t) => tagSet.has(t.toLowerCase())));
+  return (matched.length ? matched : MOCK_SESSIONS).slice(0, 3);
+}
+
 export interface TrendingHashtag {
   tag: string;
   count: number;
