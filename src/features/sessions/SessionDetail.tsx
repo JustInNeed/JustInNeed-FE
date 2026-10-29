@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Card, Button, HashChip, Markdown } from "@/components/ui";
+import { Icon, Card, Button, Markdown, InlineState } from "@/components/ui";
 import { Mindmap } from "@/components/mindmap/Mindmap";
 import {
   ApiError,
@@ -26,6 +26,12 @@ const AUTO_SAVE_MS = 30_000;
 
 type AutoSaveState = { status: "idle" | "saving" | "saved"; at: number | null };
 type LeaveTarget = { kind: "cancel" } | { kind: "list" } | { kind: "href"; href: string };
+type MapLayout = "radial" | "tree";
+
+const MAP_LAYOUTS: [MapLayout, string][] = [
+  ["radial", "방사형"],
+  ["tree", "계층형"],
+];
 
 function savedAgo(at: number, now: number): string {
   const min = Math.floor((now - at) / 60_000);
@@ -47,19 +53,34 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const router = useRouter();
   const toast = useToast();
   const validId = Number.isFinite(sessionId);
-  const fetcher = useCallback(() => getSession(sessionId), [sessionId]);
+  // useApi 는 메시지만 돌려주므로 404 · 403 구분용 상태 코드는 따로 보관
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
+  const fetcher = useCallback(
+    () =>
+      getSession(sessionId).catch((e: unknown) => {
+        setErrorStatus(e instanceof ApiError ? e.status : null);
+        throw e;
+      }),
+    [sessionId],
+  );
   const { data, error, loading } = useApi<SessionDetailType>(fetcher, [sessionId]);
 
   const [detail, setDetail] = useState<SessionDetailType | null>(null);
   const [view, setView] = useState<"text" | "graph">("text");
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showTagPicker, setShowTagPicker] = useState(false);
+  // 마인드맵 정렬 — 배치 변경 · 자동 정렬(옮긴 위치 초기화) 모두 key 로 다시 마운트
+  const [mapLayout, setMapLayout] = useState<MapLayout>("radial");
+  const [mapResetKey, setMapResetKey] = useState(0);
+  // 마인드맵 라벨 편집 — 마인드맵 API 가 없어 이 화면에 있는 동안만 로컬 상태로 유지 (새로고침하면 원래 라벨)
+  const [mapEditing, setMapEditing] = useState(false);
+  const [savedLabels, setSavedLabels] = useState<Record<string, string>>({});
+  const [draftLabels, setDraftLabels] = useState<Record<string, string>>({});
 
-  // edit mode — 제목 + 본문(markdown) + 하이라이트(insights) 편집
+  // edit mode — 제목 + 본문(markdown) 편집
   const [editing, setEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftMarkdown, setDraftMarkdown] = useState("");
-  const [draftInsights, setDraftInsights] = useState<string[]>([]);
 
   // 30초 자동 저장 — 변경이 있을 때만 저장. 저장 / 취소 버튼 옆 회색 상태 문구, 실패는 토스트로만
   const [baseline, setBaseline] = useState("");
@@ -77,7 +98,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const [tagDragIdx, setTagDragIdx] = useState<number | null>(null);
   const [tagOverIdx, setTagOverIdx] = useState<number | null>(null);
 
-  const draftKey = JSON.stringify([draftTitle, draftMarkdown, draftInsights]);
+  const draftKey = JSON.stringify([draftTitle, draftMarkdown]);
   const dirty = editing && draftKey !== baseline;
 
   useEffect(() => {
@@ -125,12 +146,37 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     if (data) setDetail(data);
   }, [data]);
 
-  const { nodes, edges } = useMemo(
+  const { nodes: baseNodes, edges } = useMemo(
     () => (detail ? buildSessionMindmap(detail) : { nodes: [], edges: [] }),
     [detail],
   );
+  const labels = mapEditing ? draftLabels : savedLabels;
+  const nodes = useMemo(
+    () => baseNodes.map((n) => (labels[n.id] ? { ...n, label: labels[n.id] } : n)),
+    [baseNodes, labels],
+  );
 
-  if (!validId) return <div className={styles.state}>잘못된 세션 주소입니다.</div>;
+  const blocked = !validId
+    ? 404
+    : error && !detail && (errorStatus === 404 || errorStatus === 403)
+      ? errorStatus
+      : null;
+  if (blocked) {
+    return (
+      <div className={styles.state}>
+        <div className={styles.stateBox}>
+          {blocked === 404 ? (
+            <InlineState kind="empty" title="세션을 찾을 수 없어요" description="삭제됐거나 주소가 잘못됐어요." />
+          ) : (
+            <InlineState kind="empty" title="볼 수 없는 세션이에요" description="비공개 세션이라 볼 수 없어요." />
+          )}
+        </div>
+        <Button variant="secondary" onClick={() => router.push("/sessions")}>
+          세션 목록으로
+        </Button>
+      </div>
+    );
+  }
   if (loading && !detail) return <div className={styles.state}>불러오는 중…</div>;
   if (error && !detail) {
     return (
@@ -164,6 +210,10 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     setShowTagPicker(false);
     persist({ tags: next }, { tags: next });
   };
+  const removeTag = (tag: string) => {
+    const next = detail.tags.filter((t) => t !== tag);
+    persist({ tags: next }, { tags: next });
+  };
 
   const onDelete = async () => {
     if (!confirm("이 세션을 삭제할까요?")) return;
@@ -189,11 +239,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const enterEdit = () => {
     const title = detail.title;
     const markdown = detail.summary?.markdown ?? "";
-    const ins = detail.summary?.insights ?? [];
     setDraftTitle(title);
     setDraftMarkdown(markdown);
-    setDraftInsights(ins);
-    setBaseline(JSON.stringify([title, markdown, ins]));
+    setBaseline(JSON.stringify([title, markdown]));
     setAutoSave({ status: "idle", at: null });
     setView("text");
     setEditing(true);
@@ -206,11 +254,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     const key = draftKey;
     setAutoSave((s) => ({ ...s, status: "saving" }));
     try {
-      const updated = await updateSession(detail.id, {
-        title: draftTitle,
-        editedMarkdown: draftMarkdown,
-        insights: draftInsights,
-      });
+      const updated = await updateSession(detail.id, { title: draftTitle, editedMarkdown: draftMarkdown });
       setDetail(updated);
       setBaseline(key);
       const t = Date.now();
@@ -266,18 +310,26 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   };
   const saveEdit = async () => {
     await persist(
-      { title: draftTitle, editedMarkdown: draftMarkdown, insights: draftInsights },
+      { title: draftTitle, editedMarkdown: draftMarkdown },
       {
         title: draftTitle,
-        summary: detail.summary
-          ? { ...detail.summary, markdown: draftMarkdown, insights: draftInsights }
-          : { markdown: draftMarkdown, insights: draftInsights },
+        summary: detail.summary ? { ...detail.summary, markdown: draftMarkdown } : { markdown: draftMarkdown },
       },
     );
     setEditing(false);
   };
 
-  const insights = detail.summary?.insights ?? [];
+  const startMapEdit = () => {
+    setDraftLabels(savedLabels);
+    setSelectedNode(null);
+    setMapEditing(true);
+  };
+  // 저장 API 가 없어 실패 경로 없음 — API 가 생기면 실패 시 "저장에 실패했습니다. 다시 시도해 주세요." 토스트
+  const saveMapEdit = () => {
+    setSavedLabels(draftLabels);
+    setMapEditing(false);
+  };
+
   const duration = formatDuration(detail.startedAt, detail.endedAt);
 
   return (
@@ -365,7 +417,20 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   }}
                   title="드래그로 순서 변경"
                 >
-                  <HashChip label={withHash(h)} size="sm" />
+                  {withHash(h)}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeTag(h);
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    draggable={false}
+                    className={styles.tagRemove}
+                    aria-label={`${withHash(h)} 삭제`}
+                    title="삭제"
+                  >
+                    <Icon name="x" size={10} />
+                  </button>
                 </span>
               ))}
               <div className={styles.tagPickerWrap}>
@@ -442,15 +507,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
       <div className={styles.content}>
         {view === "text" ? (
           editing ? (
-            <SessionEditor
-              value={draftMarkdown}
-              onChange={setDraftMarkdown}
-              insights={draftInsights}
-              updateInsight={(idx, v) =>
-                setDraftInsights((arr) => arr.map((x, i) => (i === idx ? v : x)))
-              }
-              removeInsight={(idx) => setDraftInsights((arr) => arr.filter((_, i) => i !== idx))}
-            />
+            <SessionEditor value={draftMarkdown} onChange={setDraftMarkdown} />
           ) : (
             <Card style={{ padding: 28, overflowY: "auto" }}>
               <div className={styles.bodyHead}>
@@ -482,47 +539,55 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                     : "요약 본문이 없습니다."}
                 </p>
               )}
-
-              {insights.length > 0 && <div className={styles.bodyDivider} />}
-
-              {insights.length > 0 && (
-                <>
-                  <div className={styles.sectionEyebrow}>하이라이트</div>
-                  <ul className={styles.highlightList}>
-                    {insights.map((ins, i) => {
-                      const src = detail.sources[i % Math.max(detail.sources.length, 1)];
-                      return (
-                        <li key={i} className={styles.highlightItem}>
-                          <span className={styles.highlightNum}>{String(i + 1).padStart(2, "0")}</span>
-                          <span className={styles.highlightText}>{ins}</span>
-                          {src && (
-                            <a
-                              href={src.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              title={`${hostFromUrl(src.url)} 원문 열기`}
-                              className={styles.highlightLink}
-                            >
-                              <Icon name="link" size={14} />
-                            </a>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </>
-              )}
             </Card>
           )
         ) : (
           <Card style={{ padding: 0, overflow: "hidden", position: "relative" }}>
+            <div className={styles.mapToolbar}>
+              <div className={styles.segment} role="group" aria-label="마인드맵 배치">
+                {MAP_LAYOUTS.map(([value, label]) => (
+                  <button
+                    key={value}
+                    onClick={() => setMapLayout(value)}
+                    aria-pressed={mapLayout === value}
+                    className={`${styles.segBtn} ${mapLayout === value ? styles.segBtnActive : ""}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <Button variant="secondary" onClick={() => setMapResetKey((k) => k + 1)} title="옮긴 노드를 처음 배치로">
+                <Icon name="refresh" size={13} /> 자동 정렬
+              </Button>
+              <span className={styles.mapDivider} />
+              {mapEditing ? (
+                <>
+                  <Button variant="secondary" onClick={() => setMapEditing(false)}>
+                    취소
+                  </Button>
+                  <Button variant="primary" onClick={saveMapEdit}>
+                    <Icon name="check" size={13} /> 저장
+                  </Button>
+                  <span className={styles.mapHint}>노드를 더블클릭해 이름을 고쳐요</span>
+                </>
+              ) : (
+                <Button variant="secondary" onClick={startMapEdit}>
+                  <Icon name="edit" size={13} /> 노드 편집
+                </Button>
+              )}
+            </div>
             <Mindmap
+              key={`${mapLayout}-${mapResetKey}`}
+              layout={mapLayout}
               nodes={nodes}
               edges={edges}
               width={1000}
               height={680}
-              selectedId={selectedNode}
-              onSelect={(id) => setSelectedNode((cur) => (id === cur ? null : id))}
+              selectedId={mapEditing ? null : selectedNode}
+              onSelect={mapEditing ? undefined : (id) => setSelectedNode((cur) => (id === cur ? null : id))}
+              showHint={!mapEditing}
+              editable={mapEditing}
+              onLabelChange={(id, label) => setDraftLabels((d) => ({ ...d, [id]: label }))}
             />
             {selectedNode && (
               <CitationPopup

@@ -48,6 +48,30 @@ export const MINDMAP_EDGES: MindmapEdge[] = [
   ["rome", "travel-blog"], ["paris", "travel-blog"], ["eu", "reddit"],
 ];
 
+/** 리프 노드(연결 1개)의 원문 URL — 전체 마인드맵 보기에서 누르면 새 탭으로 연다 */
+export const MINDMAP_NODE_URLS: Record<string, string> = {
+  budget: "https://wise.com/kr/currency-converter/eur-to-krw-rate",
+  packing: "https://www.ricksteves.com/travel-tips/packing-light",
+  visa: "https://travel-europe.europa.eu/etias_en",
+  colos: "https://www.colosseo.it/en/",
+  vatic: "https://www.museivaticani.va/",
+  tras: "https://www.turismoroma.it/en/places/trastevere",
+  pasta: "https://www.tripadvisor.co.kr/Restaurants-g187791-Rome_Lazio.html",
+  eiffel: "https://www.toureiffel.paris/en",
+  louvre: "https://www.louvre.fr/en",
+  orsay: "https://www.musee-orsay.fr/en",
+  mont: "https://www.parisinfo.com/",
+  sagrada: "https://sagradafamilia.org/en/",
+  park: "https://parkguell.barcelona/en",
+  tapas: "https://www.barcelonaturisme.com/",
+  castle: "https://www.hrad.cz/en/prague-castle-for-visitors",
+  bridge: "https://www.prague.eu/en",
+  skyscan: "https://www.skyscanner.co.kr/",
+  kayak: "https://www.kayak.co.kr/",
+  booking: "https://www.booking.com/",
+  reddit: "https://www.reddit.com/r/travel/",
+};
+
 // ---------- 홈 마인드맵 필터 · 검색 (목: 홈 집계 API 생기면 교체) ----------
 export type GraphPeriod = "today" | "week" | "month" | "all";
 
@@ -149,6 +173,42 @@ export const COMMUNITY_FEED: CommunityPost[] = [
   { id: "c6", user: { name: "rail.kr", avatar: "🚆", handle: "@rail.kr" }, title: "유레일 vs 저가항공 — 실비 비교", snippet: "4개국 이상이면 패스. 2~3개국이면 라이언에어가 더 싸다.", hashtags: ["#유레일", "#항공권", "#예산"], nodes: 41, likes: 178, bookmarks: 88, exploring: 7, when: "4일 전" },
 ];
 
+/** 마인드맵 상세 팝업의 관련 세션 — 해시태그가 겹치는 세션 최대 3개, 없으면 앞의 3개 */
+export function relatedSessionsFor(post: CommunityPost): SessionListItem[] {
+  const tagSet = new Set(post.hashtags.map((h) => h.replace(/^#/, "").toLowerCase()));
+  const matched = MOCK_SESSIONS.filter((ss) => ss.tags.some((t) => tagSet.has(t.toLowerCase())));
+  return (matched.length ? matched : MOCK_SESSIONS).slice(0, 3);
+}
+
+/** 추천 마인드맵과 함께 보여줄 연관 URL (마인드맵 id → 최대 2개) */
+export interface RelatedUrl {
+  title: string;
+  url: string;
+}
+export const COMMUNITY_RELATED_URLS: Record<string, RelatedUrl[]> = {
+  c1: [
+    { title: "ÖBB 나이트젯 야간열차 노선", url: "https://www.nightjet.com/en" },
+    { title: "체코 철도 승차권 예약", url: "https://www.cd.cz/en/" },
+  ],
+  c2: [
+    { title: "미슐랭 가이드 파리 빕그루망", url: "https://guide.michelin.com/en/ile-de-france/paris/restaurants/bib-gourmand" },
+    { title: "마레 지구 산책 코스", url: "https://www.parisinfo.com/" },
+  ],
+  c3: [
+    { title: "유럽 도시별 물가 비교", url: "https://www.numbeo.com/cost-of-living/" },
+    { title: "무료 워킹투어 모음", url: "https://www.freetour.com/" },
+  ],
+  c4: [
+    { title: "우피치 미술관 관람 예약", url: "https://www.uffizi.it/en" },
+    { title: "프라도 미술관 관람 안내", url: "https://www.museodelprado.es/en" },
+  ],
+  c5: [{ title: "알베로벨로 여행 정보", url: "https://www.italia.it/en/puglia/things-to-do/alberobello" }],
+  c6: [
+    { title: "유레일 패스 가격 비교", url: "https://www.eurail.com/en" },
+    { title: "라이언에어 노선 검색", url: "https://www.ryanair.com/" },
+  ],
+};
+
 export interface TrendingHashtag {
   tag: string;
   count: number;
@@ -164,18 +224,40 @@ export const TRENDING_HASHTAGS: TrendingHashtag[] = [
   { tag: "#아이슬란드", count: 388, trend: -4 },
   { tag: "#알프스", count: 322, trend: 6 },
 ];
+export const TRENDING_HASHTAGS_WEEK: TrendingHashtag[] = [
+  { tag: "#유레일패스", count: 6420, trend: 9 },
+  { tag: "#쉥겐비자", count: 5873, trend: 14 },
+  { tag: "#파리", count: 5210, trend: 3 },
+  { tag: "#바르셀로나", count: 3986, trend: 21 },
+  { tag: "#야간열차", count: 2754, trend: 11 },
+  { tag: "#프라하", count: 2402, trend: 7 },
+  { tag: "#오로라", count: 2133, trend: 36 },
+  { tag: "#스위스패스", count: 1690, trend: -3 },
+];
 
 // ---------- 프로필 ----------
+/** 노드 공개 범위 — url: 원문 URL만 공개 (기본값), full: 내용까지 공개 */
+export type NodeVisibility = "url" | "full";
+
+/** 내 노드에서 모은 해시태그. 비공개면 다른 사용자 프로필 보기에서 태그와 그 노드가 빠짐 */
+export interface ProfileHashtag {
+  tag: string; // '#' 포함
+  count: number;
+  isPublic: boolean;
+}
+
 export interface MockProfile {
   name: string;
   handle: string;
   avatar: string;
   bio: string;
   nodes: number;
-  sessions: number;
   likes: number;
   interests: string[];
-  topTags: { tag: string; count: number }[];
+  topTags: ProfileHashtag[];
+  visibility: NodeVisibility;
+  /** 핀고정(공유)한 세션 id — 프로필 세션 탭 표시 순서 */
+  pinnedSessionIds: number[];
 }
 
 export const MY_PROFILE: MockProfile = {
@@ -184,16 +266,17 @@ export const MY_PROFILE: MockProfile = {
   avatar: "🌱",
   bio: "HCI 연구하며 여행 다니는 사람. 요즘은 유럽.",
   nodes: 218,
-  sessions: 47,
   likes: 87,
   interests: ["#유럽여행", "#HCI", "#미술관", "#프론트엔드", "#독서"],
   topTags: [
-    { tag: "#파리", count: 28 },
-    { tag: "#로마", count: 24 },
-    { tag: "#항공권", count: 18 },
-    { tag: "#미술관", count: 15 },
-    { tag: "#예산", count: 11 },
+    { tag: "#파리", count: 28, isPublic: true },
+    { tag: "#로마", count: 24, isPublic: true },
+    { tag: "#항공권", count: 18, isPublic: true },
+    { tag: "#미술관", count: 15, isPublic: true },
+    { tag: "#예산", count: 11, isPublic: false },
   ],
+  visibility: "url",
+  pinnedSessionIds: [9001, 9003, 9002, 9005],
 };
 
 export function otherProfile(handle: string): MockProfile {
@@ -205,16 +288,18 @@ export function otherProfile(handle: string): MockProfile {
     avatar: post?.user.avatar ?? "🌿",
     bio: "동유럽 한 달 살이 중. 천천히 깊게 다니기.",
     nodes: 142,
-    sessions: 31,
     likes: 284,
     interests: ["#프라하", "#비엔나", "#야간열차", "#카페투어"],
     topTags: [
-      { tag: "#프라하", count: 32 },
-      { tag: "#비엔나", count: 28 },
-      { tag: "#야간열차", count: 16 },
-      { tag: "#카페", count: 14 },
-      { tag: "#슬로우트래블", count: 12 },
+      { tag: "#프라하", count: 32, isPublic: true },
+      { tag: "#비엔나", count: 28, isPublic: true },
+      { tag: "#야간열차", count: 16, isPublic: true },
+      // 비공개 예시 — 다른 사용자 프로필 보기에서 태그와 그 노드가 빠짐
+      { tag: "#카페", count: 14, isPublic: false },
+      { tag: "#슬로우트래블", count: 12, isPublic: false },
     ],
+    visibility: "url",
+    pinnedSessionIds: [9007, 9004, 9002, 9006],
   };
 }
 
@@ -293,9 +378,22 @@ export const HOME_WEEK_SESSIONS: WeekSession[] = [
 // 목: MOCK_SESSIONS 를 이번 주 세션으로 사용 — BE API 생기면 교체
 export const WEEKLY_SESSIONS = MOCK_SESSIONS;
 
-export const ROLLING_SLIDES = [
-  { eyebrow: "오늘의 웹 서핑 팁", icon: "sprout" as const, title: '검색어에 큰따옴표("")를 씌워 "키워드" 형태로 검색하면 정확한 결과를 찾을 수 있습니다.', body: "검색 방식만 바꿔도 정보의 질이 크게 달라집니다." },
-  { eyebrow: "오늘의 추천 행동", icon: "compass" as const, title: "커뮤니티 탐색 비중이 18%로 높은 편이에요. 문제 해결엔 좋지만 전체 구조를 잡는 데는 한계가 있어요.", body: "공식 문서를 한 번쯤 정독하며 기초를 다져보는 건 어떨까요?" },
+// "오늘의 웹 서핑 팁" · "오늘의 추천 행동" 슬라이드는 각 목록에서 하나를 랜덤으로 보여준다 (AnalyticsView).
+export interface BannerTip {
+  title: string;
+  body: string;
+}
+
+export const SURFING_TIPS: BannerTip[] = [
+  { title: '검색어에 큰따옴표("")를 씌워 "키워드" 형태로 검색하면 정확한 결과를 찾을 수 있어요.', body: "검색 방식만 바꿔도 정보의 질이 크게 달라져요." },
+  { title: '검색 결과가 너무 많다면 "키워드 -제외어" 형태로 불필요한 단어를 빼보세요.', body: "예) computer science -java · 원하지 않는 정보가 줄어 더 정확한 결과를 찾을 수 있어요." },
+  { title: '신뢰하는 사이트에서만 찾고 싶다면 "site:github.com 키워드"처럼 범위를 좁혀보세요.', body: "출처를 제한하면 원하는 정보를 더 빠르게 찾을 수 있어요." },
+];
+
+export const ACTION_RECOMMENDATIONS: BannerTip[] = [
+  { title: "공식 문서도 한 번 정독해보세요.", body: "지금 공부하는 주제의 공식 문서나 원문을 한 번쯤 읽으며 핵심 개념을 정리해보는 건 어떨까요?" },
+  { title: "커뮤니티 탐색 비중이 18%로 높은 편이에요. 문제 해결엔 좋지만 전체 구조를 잡는 데는 한계가 있어요.", body: "공식 문서를 한 번쯤 정독하며 기초를 다져보는 건 어떨까요?" },
+  { title: "특정 사이트에 정보 탐색이 몰려 있어요.", body: "다양한 출처를 함께 참고하면 같은 주제도 더 넓고 깊게 이해할 수 있어요." },
 ];
 
 export const READING_BEHAVIOR = [
@@ -320,6 +418,9 @@ export const EXPLORATION_STATS = [
 ];
 
 // ---------- 설정 ----------
+/** 닉네임 중복 확인 시뮬레이션용 "이미 사용 중" 목록 (소문자) — 중복 확인 API 생기면 교체 */
+export const TAKEN_NICKNAMES: string[] = ["admin", "test"];
+
 export interface ExcludedUrl {
   url: string;
   on: boolean;
@@ -344,6 +445,21 @@ export const INTEGRATIONS = [
 ];
 
 // ---------- 북마크 ----------
+export interface BookmarkedMindmap {
+  postId: string; // COMMUNITY_FEED id
+  savedAgo: string;
+  /** 저장한 노드 — 원래 마인드맵(목: MINDMAP_NODES)에서 강조 표시 */
+  savedNodeIds: string[];
+}
+export const BOOKMARKED_MINDMAPS: BookmarkedMindmap[] = [
+  { postId: "c1", savedAgo: "4일 전", savedNodeIds: ["prague", "castle", "bridge", "rail"] },
+  { postId: "c2", savedAgo: "1일 전", savedNodeIds: ["paris", "eiffel", "mont", "orsay"] },
+  { postId: "c3", savedAgo: "3일 전", savedNodeIds: ["budget", "booking", "rail"] },
+  { postId: "c4", savedAgo: "5일 전", savedNodeIds: ["louvre", "orsay", "vatic", "paris"] },
+  { postId: "c5", savedAgo: "2일 전", savedNodeIds: ["rome", "tras", "pasta"] },
+  { postId: "c6", savedAgo: "4일 전", savedNodeIds: ["rail", "booking", "flight", "skyscan", "kayak"] },
+];
+
 export const BOOKMARK_TAG_BUNDLES = [
   { name: "동유럽 자료", tags: ["#프라하", "#비엔나", "#부다페스트", "#야간열차"] },
   { name: "미술관 모음", tags: ["#루브르", "#오르세", "#프라도", "#리이크스"] },

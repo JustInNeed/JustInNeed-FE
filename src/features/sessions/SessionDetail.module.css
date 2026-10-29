@@ -19,6 +19,10 @@
   margin: 0;
   color: #c44;
 }
+.stateBox {
+  width: 100%;
+  max-width: 360px;
+}
 
 .bodyMuted {
   font-size: 14px;
@@ -112,11 +116,36 @@
   flex-wrap: wrap;
   gap: 5px;
 }
+/* HashChip sm 과 같은 모양 + 개별 삭제 × */
 .tagDrag {
   display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px 3px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--green-50);
+  color: var(--green-800);
+  border: 1px solid var(--green-100);
   border-radius: 999px;
   outline-offset: 1px;
   cursor: grab;
+  user-select: none;
+}
+.tagRemove {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--green-700);
+  transition: background 0.12s;
+}
+.tagRemove:hover {
+  background: var(--green-100);
+  color: var(--green-900);
 }
 .tagPickerWrap {
   position: relative;
@@ -194,9 +223,6 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.sectionEyebrow:not(:first-child) {
-  margin-top: 8px;
-}
 .bodyHead {
   display: flex;
   align-items: center;
@@ -210,50 +236,53 @@
   display: flex;
   gap: 2px;
 }
-.bodyDivider {
-  margin: 24px 0 20px;
-  border-top: 1px solid var(--line);
-}
-
-.highlightList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.highlightItem {
+/* 마인드맵 탭 — 좌상단 정렬 · 편집 도구 */
+.mapToolbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  background: var(--surface-2);
-  border-radius: 10px;
-  border-left: 3px solid var(--green-500);
-}
-.highlightNum {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--green-700);
-}
-.highlightText {
-  flex: 1;
-  font-size: 13px;
-  color: var(--ink-900);
-  line-height: 1.5;
-}
-.highlightLink {
-  display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  color: var(--ink-400);
-  text-decoration: none;
-  transition: color 0.12s;
+  gap: 6px;
 }
-.highlightLink:hover {
+.segment {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.segBtn {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-500);
+  border-radius: 7px;
+}
+.segBtn:hover {
+  color: var(--ink-900);
+}
+.segBtnActive,
+.segBtnActive:hover {
+  background: var(--green-50);
   color: var(--green-700);
+  font-weight: 600;
+}
+.mapDivider {
+  width: 1px;
+  height: 20px;
+  margin: 0 2px;
+  background: var(--line);
+}
+.mapHint {
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--ink-500);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
 }
 
 .sidebar {

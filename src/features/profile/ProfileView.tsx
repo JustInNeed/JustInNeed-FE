@@ -1,13 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Button } from "@/components/ui";
+import { Icon, Button, InlineState } from "@/components/ui";
 import { MindmapCard } from "@/components/mindmap/MindmapCard";
+import { MindmapDetailModal } from "@/components/mindmap/MindmapDetailModal";
+import { MindmapFullView } from "@/components/mindmap/MindmapFullView";
 import { SessionCard } from "@/features/sessions";
-import { COMMUNITY_FEED, MOCK_SESSIONS, MY_PROFILE, otherProfile } from "@/lib/mock/designData";
-import { ProfileEdit } from "./ProfileEdit";
+import type { SessionListItem } from "@/lib/api";
+import { usePersonal } from "@/lib/app/PersonalContext";
+import { useToast } from "@/lib/app/ToastContext";
+import { withHash } from "@/lib/format";
+import {
+  COMMUNITY_FEED,
+  MOCK_SESSIONS,
+  MY_PROFILE,
+  otherProfile,
+  relatedSessionsFor,
+  type CommunityPost,
+  type MockProfile,
+} from "@/lib/mock/designData";
+import { ProfileEdit, type ProfileDraft } from "./ProfileEdit";
 import styles from "./Profile.module.css";
+
+// 다른 사용자 해시태그 북마크 저장 방식
+const BOOKMARK_OPTIONS = [
+  { l: "해시태그 묶음으로 저장", d: "선택한 태그를 한 묶음으로 모아요" },
+  { l: "미니 마인드맵으로 저장", d: "노드 간 관계까지 함께 담아요" },
+];
 
 export interface ProfileViewProps {
   /** 없으면 내 프로필 */
@@ -16,16 +36,102 @@ export interface ProfileViewProps {
 
 export function ProfileView({ handle }: ProfileViewProps) {
   const router = useRouter();
+  const toast = useToast();
+  const { member } = usePersonal();
   const isMine = !handle;
-  const profile = isMine ? MY_PROFILE : otherProfile(handle);
+  // 내 프로필은 수정 화면에서 저장한 값을 들고 있음 (목: 프로필 API 생기면 교체). 닉네임은 회원 정보 기준
+  const [myProfile, setMyProfile] = useState<MockProfile>(MY_PROFILE);
+  const myName = member.nickname ?? MY_PROFILE.name;
+  const profile = isMine ? { ...myProfile, name: myName, handle: `@${myName}` } : otherProfile(handle);
 
   const [tab, setTab] = useState<"mindmap" | "sessions">("mindmap");
   const [editing, setEditing] = useState(false);
   const [following, setFollowing] = useState(false);
   const [liked, setLiked] = useState(false);
   const [exploring, setExploring] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<string[]>([]);
+  const [bookmarkOpen, setBookmarkOpen] = useState(false);
+  const bookmarkRef = useRef<HTMLDivElement>(null);
+  // 마인드맵 카드 → 상세 팝업 → 크게 보기 (리프 노드는 원문 URL로). 크게 보기를 닫으면 팝업으로 돌아간다
+  const [detail, setDetail] = useState<CommunityPost | null>(null);
+  const [fullView, setFullView] = useState(false);
+  const closeDetail = useCallback(() => setDetail(null), []);
+  const closeFullView = useCallback(() => setFullView(false), []);
 
-  if (editing) return <ProfileEdit profile={profile} onClose={() => setEditing(false)} />;
+  useEffect(() => {
+    if (!bookmarkOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (bookmarkRef.current && !bookmarkRef.current.contains(e.target as Node)) setBookmarkOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setBookmarkOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [bookmarkOpen]);
+
+  const saveProfile = (draft: ProfileDraft) => {
+    setMyProfile((p) => ({ ...p, ...draft }));
+    setEditing(false);
+    toast.success("프로필을 저장했어요.");
+  };
+
+  if (editing) return <ProfileEdit profile={profile} onCancel={() => setEditing(false)} onSave={saveProfile} />;
+
+  // 다른 사용자 프로필에선 비공개 해시태그와 그 노드를 빼고 보여줌
+  const hiddenTags = isMine ? [] : profile.topTags.filter((t) => !t.isPublic);
+  const hidden = new Set(hiddenTags.map((t) => t.tag));
+  const visibleTags = (tags: string[]) => tags.filter((t) => !hidden.has(withHash(t)));
+  const shownTopTags = profile.topTags.filter((t) => !hidden.has(t.tag));
+  const nodeCount = profile.nodes - hiddenTags.reduce((n, t) => n + t.count, 0);
+
+  const pinnedSessions = profile.pinnedSessionIds
+    .map((id) => MOCK_SESSIONS.find((s) => s.id === id))
+    .filter((s): s is SessionListItem => !!s)
+    .map((s) => ({ ...s, tags: visibleTags(s.tags) }));
+
+  const toggleSelect = (tag: string) => {
+    const next = selected.includes(tag) ? selected.filter((x) => x !== tag) : [...selected, tag];
+    setSelected(next);
+    if (next.length === 0) setBookmarkOpen(false);
+  };
+  const clearSelection = () => {
+    setSelected([]);
+    setBookmarkOpen(false);
+  };
+  const saveBookmark = () => {
+    toast.success("북마크에 저장했어요.");
+    clearSelection();
+  };
+
+  // 다른 사용자 프로필의 태그는 골라서 북마크할 수 있음
+  const tagChip = (key: string, tag: string, className: string, body: ReactNode, title?: string) => {
+    if (isMine) {
+      return (
+        <span key={key} className={className} title={title}>
+          {body}
+        </span>
+      );
+    }
+    const on = selected.includes(tag);
+    return (
+      <button
+        key={key}
+        type="button"
+        aria-pressed={on}
+        onClick={() => toggleSelect(tag)}
+        className={`${className} ${styles.tagSelectable} ${on ? styles.tagOn : ""}`}
+        title="선택해서 북마크"
+      >
+        {on && <Icon name="check" size={11} stroke={2.4} />}
+        {body}
+      </button>
+    );
+  };
 
   const toggleExplore = (id: string) =>
     setExploring((s) => {
@@ -70,27 +176,57 @@ export function ProfileView({ handle }: ProfileViewProps) {
         <p className={styles.bio}>{profile.bio}</p>
 
         <div className={styles.stats}>
-          <Stat n={profile.nodes} l="노드" />
-          <Stat n={profile.sessions} l="공유 세션" />
-          <Stat n={profile.likes} l="좋아요" />
+          <Stat n={nodeCount} l="노드" />
+          <Stat n={pinnedSessions.length} l="공유 세션" />
+          <Stat n={profile.likes + (liked ? 1 : 0)} l="좋아요" />
           {!isMine && <Stat n={12} l="나도 탐색중" accent />}
         </div>
 
         <div className={styles.tagRow}>
-          {profile.topTags.map((t) => (
-            <span key={t.tag} className={styles.topTag}>
-              {t.tag}
-              <span className={styles.countBadge}>{t.count}</span>
-            </span>
-          ))}
-          {profile.interests.map((h) => (
-            <span key={h} className={styles.interest}>{h}</span>
-          ))}
+          {shownTopTags.map((t) =>
+            // 비공개 태그는 내 프로필에서만 흐리게 보임
+            tagChip(
+              `top-${t.tag}`,
+              t.tag,
+              t.isPublic ? styles.topTag : `${styles.topTag} ${styles.topTagPrivate}`,
+              <>
+                {!t.isPublic && <Icon name="lock" size={11} stroke={2} />}
+                {t.tag}
+                <span className={styles.countBadge}>{t.count}</span>
+              </>,
+              t.isPublic ? undefined : "비공개 · 나만 보여요",
+            ),
+          )}
+          {profile.interests.map((h) => tagChip(`interest-${h}`, h, styles.interest, h))}
         </div>
+
+        {selected.length > 0 && (
+          <div className={styles.selectBar}>
+            <span className={styles.selectCount}>{selected.length}개 선택</span>
+            <div ref={bookmarkRef} className={styles.bookmarkWrap}>
+              <Button variant="primary" onClick={() => setBookmarkOpen((v) => !v)} aria-haspopup="menu" aria-expanded={bookmarkOpen}>
+                <Icon name="bookmark" size={13} /> 북마크
+              </Button>
+              {bookmarkOpen && (
+                <div role="menu" className={styles.bookmarkPop}>
+                  {BOOKMARK_OPTIONS.map((o) => (
+                    <button key={o.l} type="button" role="menuitem" onClick={saveBookmark} className={styles.bookmarkOpt}>
+                      <span className={styles.bookmarkOptTitle}>{o.l}</span>
+                      <span className={styles.bookmarkOptDesc}>{o.d}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Button variant="ghost" onClick={clearSelection} aria-label="선택 해제">
+              <Icon name="x" size={14} />
+            </Button>
+          </div>
+        )}
 
         <div className={styles.tabs}>
           <button onClick={() => setTab("mindmap")} className={`${styles.tab} ${tab === "mindmap" ? styles.tabOn : ""}`}>마인드맵</button>
-          <button onClick={() => setTab("sessions")} className={`${styles.tab} ${tab === "sessions" ? styles.tabOn : ""}`}>세션 ({profile.sessions})</button>
+          <button onClick={() => setTab("sessions")} className={`${styles.tab} ${tab === "sessions" ? styles.tabOn : ""}`}>세션 ({pinnedSessions.length})</button>
         </div>
 
         {tab === "mindmap" && (
@@ -102,9 +238,17 @@ export function ProfileView({ handle }: ProfileViewProps) {
                 nodes={p.nodes}
                 height={220}
                 title={p.title}
-                tags={p.hashtags.slice(0, 2)}
+                tags={visibleTags(p.hashtags).slice(0, 2)}
                 topLeft={isMine ? <span title="핀고정됨"><Icon name="pin" size={11} stroke={2} /></span> : undefined}
                 topRight={`노드 ${p.nodes}`}
+                onClick={() =>
+                  // 목: 피드 게시물을 빌려 쓰므로 작성자 · 해시태그는 이 프로필 기준으로 바꿔 보여줌
+                  setDetail({
+                    ...p,
+                    user: { name: profile.name, avatar: profile.avatar, handle: profile.handle },
+                    hashtags: visibleTags(p.hashtags),
+                  })
+                }
                 footer={
                   <>
                     <span>♡ {p.likes}</span>
@@ -127,14 +271,42 @@ export function ProfileView({ handle }: ProfileViewProps) {
           </div>
         )}
 
-        {tab === "sessions" && (
-          <div className={styles.sessionGrid}>
-            {MOCK_SESSIONS.slice(0, isMine ? 6 : 4).map((s) => (
-              <SessionCard key={s.id} session={s} />
-            ))}
-          </div>
-        )}
+        {tab === "sessions" &&
+          (pinnedSessions.length === 0 ? (
+            <div className={styles.sessionEmpty}>
+              <InlineState
+                kind="empty"
+                title="공유한 세션이 없어요."
+                description={isMine ? "프로필 수정에서 세션을 핀고정하면 여기에 보여요." : undefined}
+              />
+            </div>
+          ) : (
+            <div className={styles.sessionGrid}>
+              {pinnedSessions.map((s) => (
+                <SessionCard key={s.id} session={s} onClick={() => router.push(`/sessions/${s.id}`)} />
+              ))}
+            </div>
+          ))}
       </div>
+
+      {detail && !fullView && (
+        <MindmapDetailModal
+          post={detail}
+          sessions={relatedSessionsFor(detail)}
+          onClose={closeDetail}
+          // 이미 이 사람 프로필이라 작성자 이름을 누르면 팝업만 닫힌다
+          onOpenProfile={() => {}}
+          actions={
+            <Button variant="primary" onClick={() => setFullView(true)}>
+              <Icon name="network" size={13} />
+              마인드맵 크게 보기
+            </Button>
+          }
+        />
+      )}
+      {detail && fullView && (
+        <MindmapFullView title={`${profile.name}님의 전체 마인드맵`} onClose={closeFullView} />
+      )}
     </div>
   );
 }

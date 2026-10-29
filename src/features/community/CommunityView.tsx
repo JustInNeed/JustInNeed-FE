@@ -1,9 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Card, PageHeader } from "@/components/ui";
-import { COMMUNITY_FEED, SIMILAR_PEOPLE, TRENDING_HASHTAGS, type CommunityPost } from "@/lib/mock/designData";
+import { MindmapDetailModal } from "@/components/mindmap/MindmapDetailModal";
+import {
+  COMMUNITY_FEED,
+  SIMILAR_PEOPLE,
+  TRENDING_HASHTAGS,
+  TRENDING_HASHTAGS_WEEK,
+  COMMUNITY_RELATED_URLS,
+  relatedSessionsFor,
+  type CommunityPost,
+} from "@/lib/mock/designData";
 import { FeedCard } from "./FeedCard";
 import { SearchResultsPanel, type ProfileResult, type SearchResults } from "./SearchResultsPanel";
 import styles from "./Community.module.css";
@@ -16,10 +25,13 @@ export function CommunityView() {
   const router = useRouter();
   const openProfile = (handle: string) => router.push(profilePath(handle));
 
-  const [tab, setTab] = useState<"feed" | "week">("feed");
+  const [trendRange, setTrendRange] = useState<"today" | "week">("today");
+  const trending = trendRange === "today" ? TRENDING_HASHTAGS : TRENDING_HASHTAGS_WEEK;
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set(["c2"]));
   const [following, setFollowing] = useState<Set<string>>(new Set());
+  const [detail, setDetail] = useState<CommunityPost | null>(null);
+  const closeDetail = useCallback(() => setDetail(null), []);
 
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -82,7 +94,8 @@ export function CommunityView() {
             bookmarked={bookmarked.has(post.id)}
             onToggleLike={() => toggleSet(liked, setLiked, post.id)}
             onToggleBookmark={() => toggleSet(bookmarked, setBookmarked, post.id)}
-            onOpenProfile={openProfile}
+            onOpen={() => setDetail(post)}
+            relatedUrls={COMMUNITY_RELATED_URLS[post.id]}
           />
         ))}
       </div>
@@ -128,14 +141,14 @@ export function CommunityView() {
         <div>
           <Card style={{ padding: 20, marginBottom: 16 }}>
             <div className={styles.trendHead}>
-              <h3 className={styles.secTitleInk}>오늘의 떠오르는 해시태그</h3>
+              <h3 className={styles.secTitleInk}>{trendRange === "today" ? "오늘의" : "이번 주"} 떠오르는 해시태그</h3>
               <div className={styles.miniTabs}>
-                <button className={`${styles.miniTab} ${tab === "feed" ? styles.miniTabOn : ""}`} onClick={() => setTab("feed")}>오늘</button>
-                <button className={`${styles.miniTab} ${tab === "week" ? styles.miniTabOn : ""}`} onClick={() => setTab("week")}>이번 주</button>
+                <button className={`${styles.miniTab} ${trendRange === "today" ? styles.miniTabOn : ""}`} onClick={() => setTrendRange("today")}>오늘</button>
+                <button className={`${styles.miniTab} ${trendRange === "week" ? styles.miniTabOn : ""}`} onClick={() => setTrendRange("week")}>이번 주</button>
               </div>
             </div>
             <div className={styles.trendTags}>
-              {TRENDING_HASHTAGS.map((t) => (
+              {trending.map((t) => (
                 <button
                   key={t.tag}
                   onClick={() => {
@@ -181,6 +194,15 @@ export function CommunityView() {
           </Card>
         </div>
       </div>
+
+      {detail && (
+        <MindmapDetailModal
+          post={detail}
+          sessions={relatedSessionsFor(detail)}
+          onClose={closeDetail}
+          onOpenProfile={openProfile}
+        />
+      )}
     </div>
   );
 }

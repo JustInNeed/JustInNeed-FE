@@ -232,7 +232,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-bottom: 18px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
 }
 .step {
   width: 22px;
@@ -390,8 +392,9 @@
 }
 .onboardBox {
   text-align: left;
+  list-style: none;
   padding: 16px;
-  margin-bottom: 20px;
+  margin: 0 0 20px;
   background: var(--surface-2);
   border-radius: 12px;
   display: flex;

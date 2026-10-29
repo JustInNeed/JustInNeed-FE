@@ -4,6 +4,7 @@ import type { ProviderId } from "@/lib/types";
 const ACCESS_KEY = "jin_access_token";
 const REFRESH_KEY = "jin_refresh_token";
 const LAST_PROVIDER_KEY = "jin_last_provider";
+const PENDING_PROVIDER_KEY = "jin_pending_provider";
 
 const isBrowser = () => typeof window !== "undefined";
 
@@ -42,4 +43,36 @@ export function getLastProvider(): ProviderId | null {
 export function setLastProvider(provider: ProviderId): void {
   if (!isBrowser()) return;
   localStorage.setItem(LAST_PROVIDER_KEY, provider);
+}
+
+// 버튼을 누른 프로바이더는 OAuth 리다이렉트 동안 sessionStorage 에 대기시키고, 로그인 성공 시에만 "최근 사용"으로 확정
+export function setPendingProvider(provider: ProviderId): void {
+  if (!isBrowser()) return;
+  try {
+    sessionStorage.setItem(PENDING_PROVIDER_KEY, provider);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 로그인 성공 시 호출 — 대기 중인 프로바이더를 확정 */
+export function commitPendingProvider(): void {
+  if (!isBrowser()) return;
+  try {
+    const provider = sessionStorage.getItem(PENDING_PROVIDER_KEY) as ProviderId | null;
+    sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+    if (provider) setLastProvider(provider);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 로그인 실패 시 호출 — 대기 중인 프로바이더를 버림 */
+export function clearPendingProvider(): void {
+  if (!isBrowser()) return;
+  try {
+    sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+  } catch {
+    /* ignore */
+  }
 }

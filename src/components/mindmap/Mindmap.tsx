@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
+import { treeLayout } from "./treeLayout";
 
 interface SimNode extends MindmapNode {
   vx: number;
@@ -24,6 +25,11 @@ export interface MindmapProps {
   matchIds?: ReadonlySet<string>;
   /** 좌하단 조작 안내 표시 여부 */
   showHint?: boolean;
+  /** radial: 기존 force 배치(기본) · tree: 루트에서 왼쪽→오른쪽 계층 배치(고정). 마운트 시점 기준이라 바꿀 땐 key 로 다시 마운트 */
+  layout?: "radial" | "tree";
+  /** 편집 모드 — 노드 더블클릭으로 라벨을 바로 고친다. 확정된 값은 onLabelChange 로 전달 */
+  editable?: boolean;
+  onLabelChange?: (id: string, label: string) => void;
 }
 
 export function Mindmap({
@@ -39,11 +45,15 @@ export function Mindmap({
   dimmedIds,
   matchIds,
   showHint = true,
+  layout = "radial",
+  editable = false,
+  onLabelChange,
 }: MindmapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [nodes, setNodes] = useState<SimNode[]>(() =>
-    initialNodes.map((n) => ({ ...n, vx: 0, vy: 0 })),
-  );
+  const [nodes, setNodes] = useState<SimNode[]>(() => {
+    const ns = initialNodes.map((n) => ({ ...n, vx: 0, vy: 0 }));
+    return layout === "tree" ? treeLayout(ns, edges, width, height) : ns;
+  });
   const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
   const [drag, setDrag] = useState<{ id: string } | null>(null);
   const [pan, setPan] = useState<{ sx: number; sy: number; ox: number; oy: number } | null>(null);
@@ -52,9 +62,24 @@ export function Mindmap({
   nodesRef.current = nodes;
   const dragRef = useRef(drag);
   dragRef.current = drag;
+  // 위치는 내부 상태, 라벨은 항상 props 기준 (편집 결과 반영)
+  const labelById = new Map(initialNodes.map((n) => [n.id, n.label]));
+  // 라벨 인라인 편집 — Enter · 포커스 해제로 확정, Esc 로 취소 (ref 로 중복 확정 방지)
+  const [labelEdit, setLabelEdit] = useState<{ id: string; value: string } | null>(null);
+  const labelEditRef = useRef(labelEdit);
+  labelEditRef.current = labelEdit;
+  const finishLabelEdit = (save: boolean) => {
+    const cur = labelEditRef.current;
+    if (!cur) return;
+    labelEditRef.current = null;
+    setLabelEdit(null);
+    const value = cur.value.trim();
+    if (save && value && value !== labelById.get(cur.id)) onLabelChange?.(cur.id, value);
+  };
 
-  // Force simulation (lightweight)
+  // Force simulation (lightweight) — 계층형은 시뮬레이션 없이 고정
   useEffect(() => {
+    if (layout === "tree") return;
     let alpha = 0.6;
     const cx = width / 2;
     const cy = height / 2;
@@ -140,16 +165,26 @@ export function Mindmap({
   }, []);
 
   // pan + zoom
-  const onWheel = (e: React.WheelEvent) => {
-    const delta = -e.deltaY * 0.001;
-    const k = Math.max(0.4, Math.min(2.5, transform.k * (1 + delta)));
-    const rect = svgRef.current!.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const nx = mx - (mx - transform.x) * (k / transform.k);
-    const ny = my - (my - transform.y) * (k / transform.k);
-    setTransform({ x: nx, y: ny, k });
-  };
+  // 휠 확대 중 페이지가 스크롤되지 않게 — React onWheel 은 passive 라 preventDefault 가 안 먹어서 네이티브로 붙인다
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = -e.deltaY * 0.001;
+      const rect = svg.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      setTransform((t) => {
+        const k = Math.max(0.4, Math.min(2.5, t.k * (1 + delta)));
+        const nx = mx - (mx - t.x) * (k / t.k);
+        const ny = my - (my - t.y) * (k / t.k);
+        return { x: nx, y: ny, k };
+      });
+    };
+    svg.addEventListener("wheel", onWheel, { passive: false });
+    return () => svg.removeEventListener("wheel", onWheel);
+  }, []);
 
   const onMouseDown = (e: React.MouseEvent) => {
     const target = e.target as Element;
@@ -197,7 +232,6 @@ export function Mindmap({
       height="100%"
       viewBox={`0 0 ${width} ${height}`}
       style={{ background: "transparent", cursor: pan ? "grabbing" : "grab", userSelect: "none" }}
-      onWheel={onWheel}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
@@ -242,6 +276,10 @@ export function Mindmap({
           const isLogi = n.group === "logi";
           const fill = isCore ? "#3D8B25" : isCity ? "#5FCF3E" : isLogi ? "#87D448" : "#A6E26B";
           const isActive = selectedId === n.id || hoveredId === n.id || isMatch(n.id);
+          // 계층형은 행 간격이 좁아 루트 외 라벨을 노드 오른쪽에
+          const labelRight = layout === "tree" && !isCore;
+          const label = labelById.get(n.id) ?? n.label;
+          const editingLabel = editable && labelEdit?.id === n.id;
 
           return (
             <g
@@ -258,22 +296,59 @@ export function Mindmap({
                 e.stopPropagation();
                 onSelect && onSelect(n.id);
               }}
+              onDoubleClick={() => editable && setLabelEdit({ id: n.id, value: label })}
             >
               {isActive && <circle r={n.size + 14} fill="url(#nodeGlow)" />}
               {/* 노드는 채움만, 선택 · 호버는 노드에서 떨어진 링으로 표시 */}
               <circle r={n.size} fill={fill} />
               {isActive && <circle r={n.size + 4} fill="none" stroke="#2D6A1B" strokeWidth={2} />}
-              {showLabels && (
-                <text
-                  textAnchor="middle"
-                  y={n.size + 14}
-                  fontSize={isCore ? 14 : isCity ? 12 : 10}
-                  fontWeight={isCore ? 700 : isCity ? 600 : 500}
-                  fill="#1A1F17"
-                  style={{ pointerEvents: "none" }}
-                >
-                  {n.label}
-                </text>
+              {editingLabel ? (
+                <foreignObject x={-80} y={n.size + 2} width={160} height={26}>
+                  <input
+                    autoFocus
+                    value={labelEdit.value}
+                    maxLength={30}
+                    aria-label="노드 이름"
+                    onChange={(e) => setLabelEdit({ id: n.id, value: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") finishLabelEdit(true);
+                      if (e.key === "Escape") finishLabelEdit(false);
+                    }}
+                    onBlur={() => finishLabelEdit(true)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      boxSizing: "border-box",
+                      padding: "0 6px",
+                      fontSize: 12,
+                      fontFamily: "inherit",
+                      textAlign: "center",
+                      color: "#1A1F17",
+                      background: "#FFFFFF",
+                      border: "1px solid #87D448",
+                      borderRadius: 6,
+                      outline: "none",
+                    }}
+                  />
+                </foreignObject>
+              ) : (
+                showLabels && (
+                  <text
+                    textAnchor={labelRight ? "start" : "middle"}
+                    x={labelRight ? n.size + 6 : 0}
+                    y={labelRight ? 4 : n.size + 14}
+                    fontSize={isCore ? 14 : isCity ? 12 : 10}
+                    fontWeight={isCore ? 700 : isCity ? 600 : 500}
+                    fill="#1A1F17"
+                    style={{ pointerEvents: "none" }}
+                  >
+                    {label}
+                  </text>
+                )
               )}
             </g>
           );

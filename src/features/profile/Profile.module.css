@@ -72,6 +72,7 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 600;
   padding: 6px 12px;
@@ -99,9 +100,18 @@
   border: 2px solid var(--bg);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
+.topTagPrivate {
+  background: var(--surface-2);
+  color: var(--ink-500);
+  border: 1px dashed var(--line-2);
+}
+.topTagPrivate .countBadge {
+  background: var(--ink-400);
+}
 .interest {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 500;
   padding: 6px 12px;
@@ -109,6 +119,74 @@
   background: var(--surface-2);
   color: var(--ink-700);
   border: 1px solid var(--line);
+}
+/* 다른 사용자 프로필 — 태그 선택 후 북마크 */
+.topTag.tagSelectable:hover {
+  background: var(--green-800);
+}
+.interest.tagSelectable:hover {
+  border-color: var(--green-300);
+}
+.topTag.tagOn {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--green-400);
+}
+.interest.tagOn {
+  background: var(--green-50);
+  border-color: var(--green-400);
+  color: var(--green-800);
+}
+.selectBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  margin: -8px 0 18px;
+  padding: 6px 6px 6px 14px;
+  background: var(--green-50);
+  border: 1px solid var(--green-200);
+  border-radius: 12px;
+}
+.selectCount {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green-800);
+}
+.bookmarkWrap {
+  position: relative;
+}
+.bookmarkPop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  width: 220px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+}
+.bookmarkOpt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: left;
+}
+.bookmarkOpt:hover {
+  background: var(--surface-2);
+}
+.bookmarkOptTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+.bookmarkOptDesc {
+  font-size: 11px;
+  color: var(--ink-500);
 }
 .tabs {
   display: flex;
@@ -139,6 +217,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 14px;
+  padding-bottom: 28px;
+}
+.sessionEmpty {
   padding-bottom: 28px;
 }
 .exploreBtn {
@@ -201,6 +282,14 @@
   display: flex;
   gap: 8px;
 }
+/* 10/10 이면 추가 버튼 비활성 */
+.addBtn:disabled {
+  opacity: 0.45;
+}
+.tagPublicRow {
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
 .radioRow {
   display: flex;
   align-items: flex-start;
@@ -234,6 +323,32 @@
   border-top: 1px solid var(--line);
   cursor: pointer;
 }
+.pinRowDragging {
+  opacity: 0.4;
+}
+.pinRowOver {
+  outline: 2px solid var(--green-700);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+/* 핀고정된 행만 잡고 끌 수 있음 — 점 6개 손잡이 */
+.pinGrip,
+.pinGripSpace {
+  width: 10px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.pinGrip {
+  background-image: radial-gradient(circle, var(--ink-400) 1.2px, transparent 1.5px);
+  background-size: 5px 5px;
+  cursor: grab;
+}
+.dragHint {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ink-400);
+}
 .pinMain {
   flex: 1;
 }
@@ -244,4 +359,45 @@
 .pinMeta {
   font-size: 11px;
   color: var(--ink-500);
+}
+
+/* 핀고정 해제 확인 모달 (LeaveConfirmModal 과 같은 모양) */
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 30, 18, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+.confirmModal {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.confirmTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+.confirmBody {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-700);
+}
+.confirmActions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
