@@ -77,6 +77,9 @@ export const SESSION_LIST: SessionListItem[] = [
   extra(9025, "환전 · 트래블카드 정리", 2, [16, 50], 35, 7, false, ["환전", "트래블카드", "예산"]),
 ];
 
+/** GET /sessions/hashtags — SESSION_LIST 에 쓰인 해시태그 (중복 없이, 목록 순서대로 처음 나온 순) */
+export const SESSION_HASHTAGS: string[] = [...new Set(SESSION_LIST.flatMap((s) => s.tags))];
+
 export function sessionById(id: number): SessionListItem {
   const found = SESSION_LIST.find((s) => s.id === id);
   if (!found) throw new Error(`픽스처에 없는 세션: ${id}`);

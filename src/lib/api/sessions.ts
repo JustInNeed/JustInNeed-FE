@@ -17,6 +17,9 @@ export const getSessions = async ({ page = 0, size = 10, favorite = false }: Ses
   return data;
 };
 
+/** 내 세션 전체의 해시태그 — 대소문자 무시 중복 제거, 목록 순서대로 처음 나온 순 */
+export const getSessionHashtags = () => api.get<string[]>("/sessions/hashtags");
+
 export const getSession = (id: number) => api.get<SessionDetail>(`/sessions/${id}`);
 
 export const updateSession = (id: number, body: SessionUpdateRequest) =>
