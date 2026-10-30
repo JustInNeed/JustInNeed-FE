@@ -8,8 +8,6 @@ beforeEach(() => {
   vi.spyOn(window, "requestAnimationFrame").mockReturnValue(0);
 });
 
-type User = Awaited<ReturnType<typeof renderDetail>>["user"];
-
 async function openMindmap() {
   const view = await renderDetail();
   await view.user.click(screen.getByRole("button", { name: "마인드맵 보기" }));
@@ -25,13 +23,6 @@ const where = (label: string) => nodeOf(label).getAttribute("transform");
 const popup = () => document.querySelector<HTMLElement>(".popup");
 const toolbarButton = (name: string) =>
   within(document.querySelector<HTMLElement>(".mapToolbar")!).getByRole("button", { name });
-
-async function renameNode(user: User, from: string, to: string) {
-  await user.dblClick(nodeOf(from));
-  const input = screen.getByRole("textbox", { name: "노드 이름" });
-  await user.clear(input);
-  await user.type(input, `${to}{Enter}`);
-}
 
 describe("세션 상세 — 줄글 / 마인드맵 탭", () => {
   it("처음엔 줄글 보기가 선택돼 있고, 마인드맵 보기를 누르면 본문 대신 마인드맵이 보인다", async () => {
@@ -96,106 +87,15 @@ describe("세션 상세 — 마인드맵 배치", () => {
     await user.click(toolbarButton("자동 정렬"));
     expect(where("coopculture.it")).toBe("translate(840,360)");
   });
-});
 
-describe("세션 상세 — 마인드맵 노드 편집", () => {
-  it("노드 편집을 누르면 취소 · 저장과 더블클릭 안내가 보이고 조작 안내는 숨는다", async () => {
+  it("툴바에는 배치 · 자동 정렬만 있고, 노드를 더블클릭해도 이름을 고치는 입력칸이 열리지 않는다", async () => {
     const { user } = await openMindmap();
-    await user.click(toolbarButton("노드 편집"));
-    expect(toolbarButton("취소")).toBeInTheDocument();
-    expect(toolbarButton("저장")).toBeInTheDocument();
-    expect(screen.getByText("노드를 더블클릭해 이름을 고쳐요")).toBeInTheDocument();
-    expect(screen.queryByText("드래그로 이동 · 휠로 줌 · 노드 클릭으로 선택")).not.toBeInTheDocument();
-  });
+    const buttons = within(document.querySelector<HTMLElement>(".mapToolbar")!).getAllByRole("button");
+    expect(buttons.map((b) => b.textContent?.trim())).toEqual(["방사형", "계층형", "자동 정렬"]);
 
-  it("편집 중이 아니면 더블클릭해도 이름 입력칸이 열리지 않는다", async () => {
-    const { user } = await openMindmap();
     await user.dblClick(nodeOf("로마 3박"));
-    expect(screen.queryByRole("textbox", { name: "노드 이름" })).not.toBeInTheDocument();
-  });
-
-  it("노드를 더블클릭하면 지금 이름이 든 입력칸이 열리고, Enter 로 바꾼 뒤 저장하면 그 이름이 남는다", async () => {
-    const { user } = await openMindmap();
-    await user.click(toolbarButton("노드 편집"));
-    await user.dblClick(nodeOf("로마 3박"));
-    const input = screen.getByRole("textbox", { name: "노드 이름" });
-    expect(input).toHaveValue("로마 3박");
-    expect(input).toHaveFocus();
-    expect(input).toHaveAttribute("maxLength", "30");
-
-    await user.clear(input);
-    await user.type(input, "로마 여행{Enter}");
-    expect(screen.queryByRole("textbox", { name: "노드 이름" })).not.toBeInTheDocument();
-    expect(nodeLabels()[0]).toBe("로마 여행");
-
-    await user.click(toolbarButton("저장"));
-    expect(toolbarButton("노드 편집")).toBeInTheDocument();
-    expect(nodeLabels()[0]).toBe("로마 여행");
-    // 배치를 바꿔 다시 그려도 저장한 이름은 그대로 (이 화면에 있는 동안만 — 마인드맵 저장 API 는 아직 없음)
-    await user.click(toolbarButton("계층형"));
-    expect(nodeLabels()[0]).toBe("로마 여행");
-  });
-
-  it("Esc 를 누르면 입력을 버리고 원래 이름을 둔다", async () => {
-    const { user } = await openMindmap();
-    await user.click(toolbarButton("노드 편집"));
-    await user.dblClick(nodeOf("blog.naver.com"));
-    const input = screen.getByRole("textbox", { name: "노드 이름" });
-    await user.clear(input);
-    await user.type(input, "맛집 블로그{Escape}");
-    expect(screen.queryByRole("textbox", { name: "노드 이름" })).not.toBeInTheDocument();
-    expect(nodeLabels()[3]).toBe("blog.naver.com");
-  });
-
-  it("입력칸 밖을 누르면(포커스가 빠지면) 바꾼 이름으로 확정한다", async () => {
-    const { user } = await openMindmap();
-    await user.click(toolbarButton("노드 편집"));
-    await user.dblClick(nodeOf("blog.naver.com"));
-    const input = screen.getByRole("textbox", { name: "노드 이름" });
-    await user.clear(input);
-    await user.type(input, "맛집 블로그");
-    await user.click(screen.getByText("노드를 더블클릭해 이름을 고쳐요"));
-    expect(nodeLabels()[3]).toBe("맛집 블로그");
-  });
-
-  it("비우거나 공백만 넣으면 이름을 바꾸지 않는다", async () => {
-    const { user } = await openMindmap();
-    await user.click(toolbarButton("노드 편집"));
-    await user.dblClick(nodeOf("로마 3박"));
-    const input = screen.getByRole("textbox", { name: "노드 이름" });
-    await user.clear(input);
-    await user.type(input, "   {Enter}");
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(nodeLabels()[0]).toBe("로마 3박");
-  });
-
-  it("취소를 누르면 편집 중 바꾼 이름을 모두 되돌린다 (이전에 저장한 이름은 남는다)", async () => {
-    const { user } = await openMindmap();
-    await user.click(toolbarButton("노드 편집"));
-    await renameNode(user, "로마 3박", "로마 여행");
-    await user.click(toolbarButton("저장"));
-
-    await user.click(toolbarButton("노드 편집"));
-    await renameNode(user, "로마 여행", "로마 4박");
-    await renameNode(user, "coopculture.it", "콜로세움 예매");
-    expect(nodeLabels().slice(0, 2)).toEqual(["로마 4박", "콜로세움 예매"]);
-
-    await user.click(toolbarButton("취소"));
-    expect(nodeLabels().slice(0, 2)).toEqual(["로마 여행", "coopculture.it"]);
-  });
-
-  it("편집 중에는 노드를 눌러도 인용 팝업이 열리지 않는다", async () => {
-    const { user } = await openMindmap();
-    await user.click(toolbarButton("노드 편집"));
-    await user.click(nodeOf("coopculture.it"));
-    expect(popup()).toBeNull();
-  });
-
-  it("노드 편집을 시작하면 열려 있던 인용 팝업을 닫는다", async () => {
-    const { user } = await openMindmap();
-    await user.click(nodeOf("coopculture.it"));
-    expect(popup()).toBeInTheDocument();
-    await user.click(toolbarButton("노드 편집"));
-    expect(popup()).toBeNull();
   });
 });
 
@@ -258,15 +158,5 @@ describe("세션 상세 — 인용(Citation) 팝업", () => {
     await user.click(nodeOf("coopculture.it"));
     await user.click(nodeOf("tickets.museivaticani.va"));
     expect(within(popup()!).getByText("바티칸 박물관 예약")).toBeInTheDocument();
-  });
-
-  it("이름을 바꾼 노드를 누르면 팝업 미리보기에도 바뀐 이름을 쓴다", async () => {
-    const { user } = await openMindmap();
-    await user.click(toolbarButton("노드 편집"));
-    await renameNode(user, "로마 3박", "로마 여행");
-    await user.click(toolbarButton("저장"));
-
-    await user.click(nodeOf("로마 여행"));
-    expect(within(popup()!).getByText("로마 여행")).toBeInTheDocument();
   });
 });

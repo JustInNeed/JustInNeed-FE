@@ -72,10 +72,6 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   // 마인드맵 정렬 — 배치 변경 · 자동 정렬(옮긴 위치 초기화) 모두 key 로 다시 마운트
   const [mapLayout, setMapLayout] = useState<MapLayout>("radial");
   const [mapResetKey, setMapResetKey] = useState(0);
-  // 마인드맵 라벨 편집 — 마인드맵 API 가 없어 이 화면에 있는 동안만 로컬 상태로 유지 (새로고침하면 원래 라벨)
-  const [mapEditing, setMapEditing] = useState(false);
-  const [savedLabels, setSavedLabels] = useState<Record<string, string>>({});
-  const [draftLabels, setDraftLabels] = useState<Record<string, string>>({});
 
   // edit mode — 제목 + 본문(markdown) 편집
   const [editing, setEditing] = useState(false);
@@ -146,14 +142,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     if (data) setDetail(data);
   }, [data]);
 
-  const { nodes: baseNodes, edges } = useMemo(
+  const { nodes, edges } = useMemo(
     () => (detail ? buildSessionMindmap(detail) : { nodes: [], edges: [] }),
     [detail],
-  );
-  const labels = mapEditing ? draftLabels : savedLabels;
-  const nodes = useMemo(
-    () => baseNodes.map((n) => (labels[n.id] ? { ...n, label: labels[n.id] } : n)),
-    [baseNodes, labels],
   );
 
   const blocked = !validId
@@ -317,17 +308,6 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
       },
     );
     setEditing(false);
-  };
-
-  const startMapEdit = () => {
-    setDraftLabels(savedLabels);
-    setSelectedNode(null);
-    setMapEditing(true);
-  };
-  // 저장 API 가 없어 실패 경로 없음 — API 가 생기면 실패 시 "저장에 실패했습니다. 다시 시도해 주세요." 토스트
-  const saveMapEdit = () => {
-    setSavedLabels(draftLabels);
-    setMapEditing(false);
   };
 
   const duration = formatDuration(detail.startedAt, detail.endedAt);
@@ -559,22 +539,6 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
               <Button variant="secondary" onClick={() => setMapResetKey((k) => k + 1)} title="옮긴 노드를 처음 배치로">
                 <Icon name="refresh" size={13} /> 자동 정렬
               </Button>
-              <span className={styles.mapDivider} />
-              {mapEditing ? (
-                <>
-                  <Button variant="secondary" onClick={() => setMapEditing(false)}>
-                    취소
-                  </Button>
-                  <Button variant="primary" onClick={saveMapEdit}>
-                    <Icon name="check" size={13} /> 저장
-                  </Button>
-                  <span className={styles.mapHint}>노드를 더블클릭해 이름을 고쳐요</span>
-                </>
-              ) : (
-                <Button variant="secondary" onClick={startMapEdit}>
-                  <Icon name="edit" size={13} /> 노드 편집
-                </Button>
-              )}
             </div>
             <Mindmap
               key={`${mapLayout}-${mapResetKey}`}
@@ -583,11 +547,8 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
               edges={edges}
               width={1000}
               height={680}
-              selectedId={mapEditing ? null : selectedNode}
-              onSelect={mapEditing ? undefined : (id) => setSelectedNode((cur) => (id === cur ? null : id))}
-              showHint={!mapEditing}
-              editable={mapEditing}
-              onLabelChange={(id, label) => setDraftLabels((d) => ({ ...d, [id]: label }))}
+              selectedId={selectedNode}
+              onSelect={(id) => setSelectedNode((cur) => (id === cur ? null : id))}
             />
             {selectedNode && (
               <CitationPopup

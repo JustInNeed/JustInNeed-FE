@@ -27,9 +27,6 @@ export interface MindmapProps {
   showHint?: boolean;
   /** radial: 기존 force 배치(기본) · tree: 루트에서 왼쪽→오른쪽 계층 배치(고정). 마운트 시점 기준이라 바꿀 땐 key 로 다시 마운트 */
   layout?: "radial" | "tree";
-  /** 편집 모드 — 노드 더블클릭으로 라벨을 바로 고친다. 확정된 값은 onLabelChange 로 전달 */
-  editable?: boolean;
-  onLabelChange?: (id: string, label: string) => void;
 }
 
 export function Mindmap({
@@ -46,8 +43,6 @@ export function Mindmap({
   matchIds,
   showHint = true,
   layout = "radial",
-  editable = false,
-  onLabelChange,
 }: MindmapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [nodes, setNodes] = useState<SimNode[]>(() => {
@@ -62,20 +57,8 @@ export function Mindmap({
   nodesRef.current = nodes;
   const dragRef = useRef(drag);
   dragRef.current = drag;
-  // 위치는 내부 상태, 라벨은 항상 props 기준 (편집 결과 반영)
+  // 위치는 내부 상태, 라벨은 항상 props 기준 (제목을 고치면 다시 마운트하지 않아도 반영)
   const labelById = new Map(initialNodes.map((n) => [n.id, n.label]));
-  // 라벨 인라인 편집 — Enter · 포커스 해제로 확정, Esc 로 취소 (ref 로 중복 확정 방지)
-  const [labelEdit, setLabelEdit] = useState<{ id: string; value: string } | null>(null);
-  const labelEditRef = useRef(labelEdit);
-  labelEditRef.current = labelEdit;
-  const finishLabelEdit = (save: boolean) => {
-    const cur = labelEditRef.current;
-    if (!cur) return;
-    labelEditRef.current = null;
-    setLabelEdit(null);
-    const value = cur.value.trim();
-    if (save && value && value !== labelById.get(cur.id)) onLabelChange?.(cur.id, value);
-  };
 
   // Force simulation (lightweight) — 계층형은 시뮬레이션 없이 고정
   useEffect(() => {
@@ -279,7 +262,6 @@ export function Mindmap({
           // 계층형은 행 간격이 좁아 루트 외 라벨을 노드 오른쪽에
           const labelRight = layout === "tree" && !isCore;
           const label = labelById.get(n.id) ?? n.label;
-          const editingLabel = editable && labelEdit?.id === n.id;
 
           return (
             <g
@@ -296,59 +278,23 @@ export function Mindmap({
                 e.stopPropagation();
                 onSelect && onSelect(n.id);
               }}
-              onDoubleClick={() => editable && setLabelEdit({ id: n.id, value: label })}
             >
               {isActive && <circle r={n.size + 14} fill="url(#nodeGlow)" />}
               {/* 노드는 채움만, 선택 · 호버는 노드에서 떨어진 링으로 표시 */}
               <circle r={n.size} fill={fill} />
               {isActive && <circle r={n.size + 4} fill="none" stroke="#2D6A1B" strokeWidth={2} />}
-              {editingLabel ? (
-                <foreignObject x={-80} y={n.size + 2} width={160} height={26}>
-                  <input
-                    autoFocus
-                    value={labelEdit.value}
-                    maxLength={30}
-                    aria-label="노드 이름"
-                    onChange={(e) => setLabelEdit({ id: n.id, value: e.target.value })}
-                    onKeyDown={(e) => {
-                      if (e.nativeEvent.isComposing) return;
-                      if (e.key === "Enter") finishLabelEdit(true);
-                      if (e.key === "Escape") finishLabelEdit(false);
-                    }}
-                    onBlur={() => finishLabelEdit(true)}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                    onDoubleClick={(e) => e.stopPropagation()}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      boxSizing: "border-box",
-                      padding: "0 6px",
-                      fontSize: 12,
-                      fontFamily: "inherit",
-                      textAlign: "center",
-                      color: "#1A1F17",
-                      background: "#FFFFFF",
-                      border: "1px solid #87D448",
-                      borderRadius: 6,
-                      outline: "none",
-                    }}
-                  />
-                </foreignObject>
-              ) : (
-                showLabels && (
-                  <text
-                    textAnchor={labelRight ? "start" : "middle"}
-                    x={labelRight ? n.size + 6 : 0}
-                    y={labelRight ? 4 : n.size + 14}
-                    fontSize={isCore ? 14 : isCity ? 12 : 10}
-                    fontWeight={isCore ? 700 : isCity ? 600 : 500}
-                    fill="#1A1F17"
-                    style={{ pointerEvents: "none" }}
-                  >
-                    {label}
-                  </text>
-                )
+              {showLabels && (
+                <text
+                  textAnchor={labelRight ? "start" : "middle"}
+                  x={labelRight ? n.size + 6 : 0}
+                  y={labelRight ? 4 : n.size + 14}
+                  fontSize={isCore ? 14 : isCity ? 12 : 10}
+                  fontWeight={isCore ? 700 : isCity ? 600 : 500}
+                  fill="#1A1F17"
+                  style={{ pointerEvents: "none" }}
+                >
+                  {label}
+                </text>
               )}
             </g>
           );
