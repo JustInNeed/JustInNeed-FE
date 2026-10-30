@@ -31,7 +31,7 @@ export default function LoginPage() {
     const kind = consumeAuthToast()?.kind;
     const msg =
       kind === "logout"
-        ? "로그아웃되었습니다. 확장 프로그램도 함께 종료되었어요."
+        ? "로그아웃되었습니다."
         : kind === "withdraw"
           ? "탈퇴가 완료되었어요."
           : null;

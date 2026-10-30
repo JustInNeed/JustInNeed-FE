@@ -3,9 +3,9 @@ import styles from "../auth.module.css";
 import { SignupSteps } from "./SignupSteps";
 
 // 확장 프로그램 설치 링크는 스토어 등록 전이라 보류 — 안내 문구만 둔다
+// 웹 ↔ 확장 프로그램 로그인 연동(MEM-2-3, MEM-3)은 구현 전이라 "자동 로그인 동기화" 안내는 뺐다 — 연동 후 다시 넣는다
 const ONBOARD_ITEMS = [
   { title: "크롬 확장 프로그램 설치", desc: "툴바에서 JustInNeed를 핀고정해두세요." },
-  { title: "자동 로그인 동기화", desc: "웹에 로그인되어 있으면 확장 프로그램도 같은 계정으로 자동 연결돼요." },
   { title: "첫 세션 만들기", desc: "시작 버튼을 누르면 그때부터 활동이 수집돼요." },
 ];
 
