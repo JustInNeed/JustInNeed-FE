@@ -29,51 +29,142 @@ const PAGE_SIZE = 10;
 export function SessionsView() {
   const router = useRouter();
   const toast = useToast();
-  const sessionsQuery = useApi<SessionListItem[]>(getSessions, []);
   const groupsQuery = useApi<TagGroup[]>(getTagGroups, []);
 
+  // 목록 — GET /sessions?page&size&favorite 로 10개씩 받아 이어 붙임
   const [sessions, setSessions] = useState<SessionListItem[]>([]);
+  const [hasNext, setHasNext] = useState(false);
+  const [counts, setCounts] = useState({ total: 0, favorite: 0 });
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [listReload, setListReload] = useState(0);
   const [groups, setGroups] = useState<TagGroup[]>([]);
   const [favOnly, setFavOnly] = useState(false);
   const [view, setView] = useState<ViewMode>("list");
   const [creating, setCreating] = useState(false);
   const [editingGroup, setEditingGroup] = useState<TagGroup | null>(null);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const bodyRef = useRef<HTMLDivElement>(null);
+  // 스크롤 이벤트가 연달아 와도 다음 페이지는 한 번만 — state 보다 먼저 ref 로 막는다
+  const fetchingRef = useRef(false);
+  const nextPageRef = useRef(0);
+  // 즐겨찾기 보기에서 불러온 세션의 별을 끈 수 — 그만큼 서버 목록이 앞으로 당겨진다
+  const shiftRef = useRef(0);
+  // 보기 전환 · 다시 시도 때 올려서 이전 요청의 응답은 버린다
+  const genRef = useRef(0);
 
-  // 쿼리 결과를 로컬 상태로 미러링 (낙관적 업데이트용)
-  useEffect(() => {
-    if (sessionsQuery.data) setSessions(sessionsQuery.data);
-  }, [sessionsQuery.data]);
+  // 그룹 쿼리 결과를 로컬 상태로 미러링 (낙관적 업데이트용)
   useEffect(() => {
     if (groupsQuery.data) setGroups([...groupsQuery.data].sort((a, b) => a.position - b.position));
   }, [groupsQuery.data]);
 
+  // 첫 페이지 — 처음 열 때 · 전체/즐겨찾기 전환 · 다시 시도 때 0페이지부터 다시
+  useEffect(() => {
+    const gen = ++genRef.current;
+    fetchingRef.current = true;
+    nextPageRef.current = 0;
+    shiftRef.current = 0;
+    setSessions([]);
+    setHasNext(false);
+    setListLoading(true);
+    setListError(null);
+    setLoadingMore(false);
+    getSessions({ page: 0, size: PAGE_SIZE, favorite: favOnly })
+      .then((p) => {
+        if (gen !== genRef.current) return;
+        nextPageRef.current = 1;
+        setSessions(p.sessions);
+        setHasNext(p.hasNext);
+        // 개수는 필터 · 페이지와 상관없는 내 전체 기준 — 이후엔 별 토글로만 맞춘다
+        setCounts({ total: p.totalCount, favorite: p.favoriteCount });
+      })
+      .catch((e) => {
+        if (gen === genRef.current) setListError(e instanceof ApiError ? e.message : "알 수 없는 오류가 발생했습니다.");
+      })
+      .finally(() => {
+        if (gen !== genRef.current) return;
+        fetchingRef.current = false;
+        setListLoading(false);
+      });
+    return () => {
+      genRef.current += 1;
+    };
+  }, [favOnly, listReload]);
+
+  // 다음 페이지 — 불러오는 중이면 무시. 실패하면 토스트, 다시 스크롤하면 다시 요청
+  const loadMore = () => {
+    if (fetchingRef.current || !hasNext) return;
+    const gen = genRef.current;
+    // 별을 꺼서 당겨진 만큼 앞 페이지부터 다시 받는다 (겹치는 세션은 id 로 거름)
+    const shift = shiftRef.current;
+    const page = Math.max(0, nextPageRef.current - Math.ceil(shift / PAGE_SIZE));
+    fetchingRef.current = true;
+    setLoadingMore(true);
+    getSessions({ page, size: PAGE_SIZE, favorite: favOnly })
+      .then((p) => {
+        if (gen !== genRef.current) return;
+        nextPageRef.current = page + 1;
+        shiftRef.current -= shift;
+        setSessions((ss) => {
+          const seen = new Set(ss.map((s) => s.id));
+          return [...ss, ...p.sessions.filter((s) => !seen.has(s.id))];
+        });
+        setHasNext(p.hasNext);
+      })
+      .catch((e) => {
+        if (gen === genRef.current)
+          toast.error(e instanceof ApiError ? e.message : "세션을 더 불러오지 못했습니다. 다시 시도해 주세요.");
+      })
+      .finally(() => {
+        if (gen !== genRef.current) return;
+        fetchingRef.current = false;
+        setLoadingMore(false);
+      });
+  };
+
   const openSession = (id: number) => router.push(`/sessions/${id}`);
 
+  // 목록 · 그룹 카드의 별을 같이 바꾼다
+  const setFavorite = (id: number, isFavorite: boolean) => {
+    const apply = (s: SessionListItem) => (s.id === id ? { ...s, isFavorite } : s);
+    setSessions((ss) => ss.map(apply));
+    setGroups((gs) => gs.map((g) => ({ ...g, sessions: g.sessions.map(apply) })));
+  };
+
   const toggleFav = async (id: number) => {
-    const cur = sessions.find((s) => s.id === id);
+    // 그룹 보기의 세션은 아직 목록 페이지로 안 불러왔을 수 있다
+    const cur = sessions.find((s) => s.id === id) ?? groups.flatMap((g) => g.sessions).find((s) => s.id === id);
     if (!cur) return;
     const next = !cur.isFavorite;
-    setSessions((ss) => ss.map((s) => (s.id === id ? { ...s, isFavorite: next } : s)));
+    const delta = next ? 1 : -1;
+    const shift = favOnly && sessions.some((s) => s.id === id) ? -delta : 0;
+    const gen = genRef.current;
+    setFavorite(id, next);
+    setCounts((c) => ({ ...c, favorite: c.favorite + delta }));
+    shiftRef.current += shift;
     try {
       await updateSession(id, { isFavorite: next });
       groupsQuery.refetch(); // 그룹 뷰의 즐겨찾기 표시 동기화
     } catch (e) {
-      setSessions((ss) => ss.map((s) => (s.id === id ? { ...s, isFavorite: !next } : s)));
+      setFavorite(id, !next);
+      // 그사이 목록을 다시 받았으면 개수 · 당김은 이미 새로 맞춰져 있다
+      if (gen === genRef.current) {
+        setCounts((c) => ({ ...c, favorite: c.favorite - delta }));
+        shiftRef.current -= shift;
+      }
       toast.error(e instanceof ApiError ? e.message : "즐겨찾기 변경에 실패했습니다. 다시 시도해 주세요.");
     }
   };
 
+  // 그룹 편집기의 전체 해시태그 — 지금까지 불러온 목록 세션 + 그룹 세션에 쓰인 태그
   const allTags = useMemo(() => {
     const set = new Set<string>();
-    sessions.forEach((s) => s.tags.forEach((t) => set.add(t)));
+    [...sessions, ...groups.flatMap((g) => g.sessions)].forEach((s) => s.tags.forEach((t) => set.add(t)));
     return Array.from(set).sort();
-  }, [sessions]);
+  }, [sessions, groups]);
 
-  const filtered = favOnly ? sessions.filter((s) => s.isFavorite) : sessions;
-  const hasMore = visibleCount < filtered.length;
-  const favCount = sessions.filter((s) => s.isFavorite).length;
+  // 즐겨찾기 보기에서 별을 끈 카드는 바로 뺀다 (실패하면 되살아남)
+  const visible = favOnly ? sessions.filter((s) => s.isFavorite) : sessions;
   const displayGroups = favOnly
     ? groups.map((g) => ({ ...g, sessions: g.sessions.filter((s) => s.isFavorite) }))
     : groups;
@@ -121,27 +212,27 @@ export function SessionsView() {
     }
   };
 
-  const loading = view === "list" ? sessionsQuery.loading : groupsQuery.loading;
-  const error = view === "list" ? sessionsQuery.error : groupsQuery.error;
-  const refetch = view === "list" ? sessionsQuery.refetch : groupsQuery.refetch;
+  const loading = view === "list" ? listLoading : groupsQuery.loading;
+  const error = view === "list" ? listError : groupsQuery.error;
+  const refetch = view === "list" ? () => setListReload((n) => n + 1) : groupsQuery.refetch;
 
-  // 무한 스크롤 — GET /sessions 는 페이징이 없어 받아 둔 목록을 10개씩 나눠 그림. 스크롤 80% 지점에서 다음 10개
+  // 무한 스크롤 (REC-10-1) — 스크롤 80% 지점에서 다음 10개를 서버에 요청
   const loadMoreIfNeeded = () => {
     const el = bodyRef.current;
-    if (!el || view !== "list" || loading || !hasMore) return;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight * 0.8) setVisibleCount((c) => c + PAGE_SIZE);
+    if (!el || view !== "list" || listLoading || !hasNext) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight * 0.8) loadMore();
   };
-  // 첫 10개가 화면을 다 못 채우면 스크롤이 생길 때까지 이어서 그림
+  // 불러온 카드가 화면을 다 못 채우면 스크롤이 생길 때까지 다음 페이지를 이어서 받음
   useEffect(() => {
     loadMoreIfNeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleCount, filtered.length, view, loading]);
+  }, [visible.length, hasNext, view, listLoading]);
 
   return (
     <div className={styles.page}>
       <PageHeader
         title="세션 목록"
-        subtitle={`전체 ${sessions.length}개 세션 · ${favCount}개 즐겨찾기 · ${groups.length}개 그룹`}
+        subtitle={`전체 ${counts.total}개 세션 · ${counts.favorite}개 즐겨찾기 · ${groups.length}개 그룹`}
         right={
           <div className={styles.toolbar}>
             <Button
@@ -150,7 +241,6 @@ export function SessionsView() {
               onClick={() => {
                 setView("list");
                 setFavOnly((v) => !v);
-                setVisibleCount(PAGE_SIZE);
               }}
             >
               <Icon name="star" size={12} /> 즐겨찾기
@@ -173,7 +263,7 @@ export function SessionsView() {
         ) : error ? (
           <InlineState kind="error" title={error} onRetry={refetch} />
         ) : view === "list" ? (
-          filtered.length === 0 ? (
+          visible.length === 0 && !hasNext ? (
             <InlineState
               kind="empty"
               title={favOnly ? "즐겨찾기한 세션이 없습니다" : "아직 세션이 없습니다"}
@@ -186,7 +276,7 @@ export function SessionsView() {
           ) : (
             <>
               <div className={styles.grid}>
-                {filtered.slice(0, visibleCount).map((s) => (
+                {visible.map((s) => (
                   <SessionCard
                     key={s.id}
                     session={s}
@@ -195,7 +285,11 @@ export function SessionsView() {
                   />
                 ))}
               </div>
-              {!hasMore && <p className={styles.end}>모든 기록을 확인했습니다.</p>}
+              {loadingMore ? (
+                <p className={styles.end}>불러오는 중…</p>
+              ) : (
+                !hasNext && <p className={styles.end}>모든 기록을 확인했습니다.</p>
+              )}
             </>
           )
         ) : (

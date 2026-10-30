@@ -4,23 +4,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TagGroup, TagGroupCreateRequest, TagGroupOrderRequest, TagGroupUpdateRequest } from "@/lib/api";
 import { SESSION_LIST, TAG_GROUPS, sessionById, tagGroup } from "@/test/fixtures/sessions";
 import { API, fail, ok, server } from "@/test/msw/server";
-import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
-import { SessionsView } from "./SessionsView";
+import { renderSessions, serveSessions } from "./sessionsViewTestUtils";
 
 let groups: TagGroup[];
 
 beforeEach(() => {
   groups = TAG_GROUPS;
-  server.use(
-    http.get(`${API}/sessions`, () => ok(SESSION_LIST)),
-    http.get(`${API}/tag-groups`, () => ok(groups)),
-  );
+  serveSessions(SESSION_LIST);
+  server.use(http.get(`${API}/tag-groups`, () => ok(groups)));
 });
 
 /** 해시태그(그룹) 보기로 바꾼 뒤 그룹이 그려질 때까지 기다린다 */
 async function renderGroups() {
-  const view = renderPersonal(<SessionsView />);
+  const view = renderSessions();
   await screen.findByRole("heading", { level: 3, name: sessionById(9001).title });
   await view.user.click(screen.getByRole("button", { name: "해시태그" }));
   return view;
@@ -126,10 +123,12 @@ describe("해시태그 그룹 만들기", () => {
     return bodies;
   }
 
-  it("전체 해시태그는 세션들에 쓰인 태그를 모아 보여 준다", async () => {
+  it("전체 해시태그는 지금까지 불러온 목록 세션과 그룹 세션에 쓰인 태그를 모아 보여 준다", async () => {
     const { user } = await renderGroups();
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
-    const distinct = new Set(SESSION_LIST.flatMap((s) => s.tags));
+    // 목록은 0페이지(10개)만 받은 상태
+    const loaded = [...SESSION_LIST.slice(0, 10), ...TAG_GROUPS.flatMap((g) => g.sessions)];
+    const distinct = new Set(loaded.flatMap((s) => s.tags));
     expect(within(editor()).getByText(`전체 해시태그 (${distinct.size})`)).toBeInTheDocument();
   });
 
@@ -140,7 +139,7 @@ describe("해시태그 그룹 만들기", () => {
 
     await user.type(screen.getByPlaceholderText("해시태그 검색"), "파");
     await user.click(editorTag("파리"));
-    await user.click(editorTag("파르테논"));
+    await user.click(editorTag("파두"));
     await user.clear(screen.getByPlaceholderText("해시태그 검색"));
     await user.click(editorTag("미술관"));
     await user.click(editorTag("루브르"));
@@ -155,10 +154,10 @@ describe("해시태그 그룹 만들기", () => {
 
     await user.click(within(editor()).getByRole("button", { name: "그룹 만들기" }));
     await waitFor(() =>
-      expect(bodies).toEqual([{ name: "루브르, 파리, 파르테논", hashtags: ["루브르", "파리", "파르테논", "미술관"] }]),
+      expect(bodies).toEqual([{ name: "루브르, 파리, 파두", hashtags: ["루브르", "파리", "파두", "미술관"] }]),
     );
     await waitFor(() => expect(document.querySelector(".modal")).not.toBeInTheDocument());
-    expect(sectionHeads().at(-1)).toEqual(["#루브르", "#파리", "#파르테논", "#미술관"]);
+    expect(sectionHeads().at(-1)).toEqual(["#루브르", "#파리", "#파두", "#미술관"]);
     expect(screen.getByText("전체 25개 세션 · 11개 즐겨찾기 · 4개 그룹")).toBeInTheDocument();
   });
 

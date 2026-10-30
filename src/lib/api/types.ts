@@ -65,6 +65,24 @@ export interface SessionListItem {
   tags: string[]; // '#' 없이 raw 문자열
 }
 
+/** GET /sessions 쿼리 — 기본 page 0 · size 10 · favorite false (true 면 즐겨찾기만) */
+export interface SessionListParams {
+  page?: number;
+  size?: number;
+  favorite?: boolean;
+}
+
+/**
+ * GET /sessions — 한 페이지 + 개수. 정렬은 서버 기준 (진행 중 세션 먼저, 나머지는 끝난 시각 최근 순).
+ * totalCount · favoriteCount 는 favorite · 페이지와 상관없이 내 세션 전체 기준.
+ */
+export interface SessionPage {
+  sessions: SessionListItem[];
+  hasNext: boolean;
+  totalCount: number;
+  favoriteCount: number;
+}
+
 export interface Source {
   title: string;
   url: string;

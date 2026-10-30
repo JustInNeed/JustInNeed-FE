@@ -1,7 +1,7 @@
 // 세션 목록 · 상세 · 해시태그 그룹 화면용 API 응답 픽스처.
 // 디자인 시안 세션(design.ts 의 MOCK_SESSIONS)을 앞에 두고, 무한 스크롤 테스트용으로 세션을 더 붙인다.
 // 모양은 백엔드 DTO 기준 — SessionListResponse · SessionDetailResponse · TagGroupResponse.
-import type { SessionDetail, SessionListItem, SessionUpdateRequest, TagGroup } from "@/lib/api";
+import type { SessionDetail, SessionListItem, SessionPage, SessionUpdateRequest, TagGroup } from "@/lib/api";
 import { MOCK_SESSIONS } from "./design";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -54,7 +54,7 @@ export const MANY_TAGS_SESSION = extra(9008, "리스본 · 포르투 7일 루트
   "대서양",
 ]);
 
-/** GET /sessions — 25개, 최근 순. 즐겨찾기 11개 */
+/** GET /sessions 의 세션 25개 (서버 정렬 순서). 즐겨찾기 11개 */
 export const SESSION_LIST: SessionListItem[] = [
   ...MOCK_SESSIONS,
   MANY_TAGS_SESSION,
@@ -81,6 +81,20 @@ export function sessionById(id: number): SessionListItem {
   const found = SESSION_LIST.find((s) => s.id === id);
   if (!found) throw new Error(`픽스처에 없는 세션: ${id}`);
   return found;
+}
+
+/** GET /sessions?page&size&favorite 응답 — 백엔드처럼 즐겨찾기만 거르고 페이지를 자른다. 개수는 거르기 전 전체 기준 */
+export function sessionPage(
+  list: SessionListItem[],
+  { page, size, favorite }: { page: number; size: number; favorite: boolean },
+): SessionPage {
+  const filtered = favorite ? list.filter((s) => s.isFavorite) : list;
+  return {
+    sessions: filtered.slice(page * size, (page + 1) * size),
+    hasNext: (page + 1) * size < filtered.length,
+    totalCount: list.length,
+    favoriteCount: list.filter((s) => s.isFavorite).length,
+  };
 }
 
 // ---------- 해시태그 그룹 (GET /tag-groups) ----------
