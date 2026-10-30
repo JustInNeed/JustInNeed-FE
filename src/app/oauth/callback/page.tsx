@@ -17,7 +17,7 @@ export default function OauthCallbackPage() {
     handled.current = true;
     // useSearchParams 대신 window 직접 파싱 (Suspense 불필요 + 즉시 처리)
     const params = new URLSearchParams(window.location.search);
-    // 주소창·히스토리에서 코드/토큰 쿼리 즉시 제거
+    // 주소창·히스토리에서 코드 쿼리 즉시 제거
     window.history.replaceState({}, "", "/oauth/callback");
 
     const fail = () => {
@@ -32,21 +32,12 @@ export default function OauthCallbackPage() {
     };
 
     const code = params.get("code");
-    if (code) {
-      // cleanup 에서 취소하지 않는다 — StrictMode 의 두 번째 effect 는 위에서 바로 끝나므로 이 요청이 유일한 교환
-      exchangeLoginCode(code).then((t) => (t?.accessToken && t.refreshToken ? succeed(t) : fail()), fail);
+    if (!code) {
+      fail();
       return;
     }
-
-    // BE 배포 전환용: 주소에 토큰을 바로 붙여 보내는 기존 BE 대응. BE 일회용 코드 PR 머지 후 삭제
-    const accessToken = params.get("accessToken");
-    const refreshToken = params.get("refreshToken");
-    if (accessToken && refreshToken) {
-      succeed({ accessToken, refreshToken, needsNickname: params.get("needsNickname") === "true" });
-      return;
-    }
-
-    fail();
+    // cleanup 에서 취소하지 않는다 — StrictMode 의 두 번째 effect 는 위에서 바로 끝나므로 이 요청이 유일한 교환
+    exchangeLoginCode(code).then((t) => (t?.accessToken && t.refreshToken ? succeed(t) : fail()), fail);
   }, [router]);
 
   return (

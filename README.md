@@ -62,7 +62,6 @@ src/
 
 플로우: `/login`에서 카카오/네이버 클릭 → 브라우저 전체가 백엔드 `/oauth2/authorization/{provider}`로 이동 → 로그인 후 백엔드가 `/oauth/callback?code=…`(60초 · 1회용 코드)로 302 → 콜백에서 URL의 코드 쿼리 즉시 제거(`history.replaceState`) → `POST /auth/token {code}` 로 토큰 교환(인증 헤더 · 401 refresh 없음) → 토큰 저장 + 분기(`needsNickname=true`→닉네임 입력, `false`→`/home`). 코드가 없거나 교환 실패(401)면 `/login?error=oauth`.
 
-- BE 배포 전환 기간에는 기존 방식(`/oauth/callback?accessToken=…&refreshToken=…&needsNickname=…`)도 그대로 처리 — BE 일회용 코드 PR 머지 후 삭제.
 - **토큰 저장·주입은 `lib/auth/tokens.ts` + `client.ts` 한 곳**에 모음 → 추후 httpOnly 쿠키 전환 시 여기만 교체.
 - 모든 요청에 `Authorization: Bearer {accessToken}` 자동 첨부. (로그인 전 공개 요청 `api.publicPost` 는 제외)
 - **401 → `POST /auth/refresh`로 1회 자동 재발급 후 원요청 재시도**, 실패 시 토큰 폐기 + `/login`.
