@@ -184,30 +184,13 @@ describe("해시태그 그룹 만들기", () => {
     await serverTagsLoaded();
   });
 
-  // BE 배포 전환용 — BE PR 머지 후 lib 의 대응과 함께 삭제
-  it("GET /sessions/hashtags 가 실패하면 (아직 없는 BE) 불러온 목록 세션과 그룹 세션의 태그로 보여 준다", async () => {
-    let failed = 0;
-    server.use(
-      http.get(`${API}/sessions/hashtags`, () => {
-        failed += 1;
-        return fail(400, "잘못된 요청입니다.");
-      }),
-    );
-    const bodies = onCreate((body) => ok(tagGroup(4, body.name, body.hashtags ?? [], 3)));
+  it("GET /sessions/hashtags 가 실패하면 후보 없이 열리고 다시 열어 달라는 안내 토스트가 뜬다", async () => {
+    server.use(http.get(`${API}/sessions/hashtags`, () => fail(500, "서버 오류가 발생했습니다.")));
     const { user } = await renderGroups();
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
-    await waitFor(() => expect(failed).toBe(1));
 
-    // #환전 은 목록 0페이지에는 없고 #예산 그룹 세션에만 있다
-    await user.click(editorTag("환전"));
-    const loaded = [...SESSION_LIST.slice(0, 10), ...TAG_GROUPS.flatMap((g) => g.sessions)];
-    const distinct = new Set(loaded.flatMap((s) => s.tags));
-    expect(within(editor()).getByText(`전체 해시태그 (${distinct.size})`)).toBeInTheDocument();
-    expect(within(editorTags()).queryByRole("button", { name: "#파르테논" })).not.toBeInTheDocument();
-    expect(screen.queryByText("잘못된 요청입니다.")).not.toBeInTheDocument(); // 따로 알리지 않는다
-
-    await user.click(within(editor()).getByRole("button", { name: "그룹 만들기" }));
-    await waitFor(() => expect(bodies).toEqual([{ name: "환전", hashtags: ["환전"] }]));
+    expect(await screen.findByText("해시태그 목록을 불러오지 못했어요. 편집 창을 다시 열어 주세요.")).toBeInTheDocument();
+    expect(within(editor()).getByText("전체 해시태그 (0)")).toBeInTheDocument();
   });
 
   it("태그를 고르고 순서를 바꿔 만들면 POST /tag-groups 에 앞 3개로 지은 이름과 태그를 보내고 새 그룹이 맨 뒤에 붙는다", async () => {
