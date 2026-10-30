@@ -50,7 +50,8 @@ export interface LoginTokenResponse extends TokenResponse {
   needsNickname: boolean;
 }
 
-export type SessionStatus = "ANALYZING" | "COMPLETED" | "FAILED";
+/** 수집 중 → 분석 대기 → 분석 중 → 분석 완료 / 분석 실패 */
+export type SessionStatus = "COLLECTING" | "READY" | "ANALYZING" | "COMPLETED" | "FAILED";
 
 /** 목록용 — 본문 없음, 가벼움. */
 export interface SessionListItem {
@@ -63,6 +64,24 @@ export interface SessionListItem {
   isFavorite: boolean;
   isPublic: boolean;
   tags: string[]; // '#' 없이 raw 문자열
+}
+
+/** GET /sessions 쿼리 — 기본 page 0 · size 10 · favorite false (true 면 즐겨찾기만) */
+export interface SessionListParams {
+  page?: number;
+  size?: number;
+  favorite?: boolean;
+}
+
+/**
+ * GET /sessions — 한 페이지 + 개수. 정렬은 서버 기준 (진행 중 세션 먼저, 나머지는 끝난 시각 최근 순).
+ * totalCount · favoriteCount 는 favorite · 페이지와 상관없이 내 세션 전체 기준.
+ */
+export interface SessionPage {
+  sessions: SessionListItem[];
+  hasNext: boolean;
+  totalCount: number;
+  favoriteCount: number;
 }
 
 export interface Source {

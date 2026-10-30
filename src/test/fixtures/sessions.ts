@@ -1,7 +1,7 @@
 // 세션 목록 · 상세 · 해시태그 그룹 화면용 API 응답 픽스처.
 // 디자인 시안 세션(design.ts 의 MOCK_SESSIONS)을 앞에 두고, 무한 스크롤 테스트용으로 세션을 더 붙인다.
 // 모양은 백엔드 DTO 기준 — SessionListResponse · SessionDetailResponse · TagGroupResponse.
-import type { SessionDetail, SessionListItem, SessionUpdateRequest, TagGroup } from "@/lib/api";
+import type { SessionDetail, SessionListItem, SessionPage, SessionUpdateRequest, TagGroup } from "@/lib/api";
 import { MOCK_SESSIONS } from "./design";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -54,7 +54,7 @@ export const MANY_TAGS_SESSION = extra(9008, "리스본 · 포르투 7일 루트
   "대서양",
 ]);
 
-/** GET /sessions — 25개, 최근 순. 즐겨찾기 11개 */
+/** GET /sessions 의 세션 25개 (서버 정렬 순서). 즐겨찾기 11개 */
 export const SESSION_LIST: SessionListItem[] = [
   ...MOCK_SESSIONS,
   MANY_TAGS_SESSION,
@@ -77,10 +77,76 @@ export const SESSION_LIST: SessionListItem[] = [
   extra(9025, "환전 · 트래블카드 정리", 2, [16, 50], 35, 7, false, ["환전", "트래블카드", "예산"]),
 ];
 
+/** GET /sessions/hashtags — SESSION_LIST 에 쓰인 해시태그 (중복 없이, 목록 순서대로 처음 나온 순) */
+export const SESSION_HASHTAGS: string[] = [...new Set(SESSION_LIST.flatMap((s) => s.tags))];
+
 export function sessionById(id: number): SessionListItem {
   const found = SESSION_LIST.find((s) => s.id === id);
   if (!found) throw new Error(`픽스처에 없는 세션: ${id}`);
   return found;
+}
+
+/** 상태별 세션 (#일본) + 분석 완료 로마 — 서버 정렬처럼 진행 중(수집 중 · 분석 대기 · 분석 중)이 먼저, 나머지는 끝난 시각 최근 순 */
+export const STATUS_SESSIONS: SessionListItem[] = [
+  {
+    id: 9101,
+    title: "도쿄 라멘 맛집 찾기",
+    startedAt: "2026-04-28T19:00:00",
+    endedAt: null,
+    pageCount: 3,
+    status: "COLLECTING",
+    isFavorite: false,
+    isPublic: false,
+    tags: ["일본", "도쿄", "라멘"],
+  },
+  {
+    id: 9102,
+    title: "오사카 유니버설 입장권",
+    startedAt: "2026-04-28T13:10:00",
+    endedAt: "2026-04-28T13:52:00",
+    pageCount: 6,
+    status: "READY",
+    isFavorite: false,
+    isPublic: false,
+    tags: ["일본", "오사카"],
+  },
+  {
+    id: 9103,
+    title: "교토 료칸 비교",
+    startedAt: "2026-04-27T22:00:00",
+    endedAt: "2026-04-27T22:41:00",
+    pageCount: 9,
+    status: "ANALYZING",
+    isFavorite: false,
+    isPublic: false,
+    tags: ["일본", "교토", "료칸"],
+  },
+  {
+    id: 9104,
+    title: "후쿠오카 야타이 정리",
+    startedAt: "2026-04-27T10:00:00",
+    endedAt: "2026-04-27T10:35:00",
+    pageCount: 5,
+    status: "FAILED",
+    isFavorite: true,
+    isPublic: false,
+    tags: ["일본", "후쿠오카"],
+  },
+  sessionById(9001),
+];
+
+/** GET /sessions?page&size&favorite 응답 — 백엔드처럼 즐겨찾기만 거르고 페이지를 자른다. 개수는 거르기 전 전체 기준 */
+export function sessionPage(
+  list: SessionListItem[],
+  { page, size, favorite }: { page: number; size: number; favorite: boolean },
+): SessionPage {
+  const filtered = favorite ? list.filter((s) => s.isFavorite) : list;
+  return {
+    sessions: filtered.slice(page * size, (page + 1) * size),
+    hasNext: (page + 1) * size < filtered.length,
+    totalCount: list.length,
+    favoriteCount: list.filter((s) => s.isFavorite).length,
+  };
 }
 
 // ---------- 해시태그 그룹 (GET /tag-groups) ----------
