@@ -142,23 +142,19 @@ describe("세션 상세 — 못 여는 경우", () => {
     expect(await screen.findByRole("heading", { level: 1, name: PARIS_DETAIL.title })).toBeInTheDocument();
   });
 
-  it("주소의 id 가 숫자가 아니면 바로 404 화면을 보여 준다", async () => {
-    // 지금은 숫자가 아니어도 GET /sessions/NaN 이 나가서 응답만 받아 둔다 (아래 todo 참고)
-    let answered = false;
-    server.use(
-      http.get(`${API}/sessions/:id`, () => {
-        answered = true;
-        return fail(400, "잘못된 요청입니다.");
-      }),
-    );
-    render(await SessionDetailPage({ params: Promise.resolve({ id: "abc" }) }), { wrapper: ToastProvider });
+  it.each(["abc", "0", "-1", "1.5"])("주소의 id 가 %s 처럼 양의 정수가 아니면 요청 없이 바로 404 화면을 보여 준다", async (id) => {
+    const requested: string[] = [];
+    const onStart = ({ request }: { request: Request }) => requested.push(request.url);
+    server.events.on("request:start", onStart);
+    render(await SessionDetailPage({ params: Promise.resolve({ id }) }), { wrapper: ToastProvider });
     expect(screen.getByText("세션을 찾을 수 없어요")).toBeInTheDocument();
     expect(screen.queryByText("불러오는 중…")).not.toBeInTheDocument();
-    await waitFor(() => expect(answered).toBe(true));
+
+    await new Promise((r) => setTimeout(r, 50));
+    server.events.removeListener("request:start", onStart);
+    expect(requested).toEqual([]);
     expect(screen.getByText("세션을 찾을 수 없어요")).toBeInTheDocument();
   });
-
-  it.todo("주소의 id 가 숫자가 아니면 서버에 요청하지 않는다 — 지금은 404 화면을 보여 주면서도 GET /sessions/NaN 을 보낸다");
 });
 
 describe("세션 상세 — 즐겨찾기 · 공개", () => {

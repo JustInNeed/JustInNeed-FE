@@ -52,7 +52,8 @@ export interface SessionDetailProps {
 export function SessionDetail({ sessionId }: SessionDetailProps) {
   const router = useRouter();
   const toast = useToast();
-  const validId = Number.isFinite(sessionId);
+  // 주소의 id 가 양의 정수가 아니면 요청 없이 404
+  const validId = Number.isInteger(sessionId) && sessionId > 0;
   // useApi 는 메시지만 돌려주므로 404 · 403 구분용 상태 코드는 따로 보관
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const fetcher = useCallback(
@@ -63,7 +64,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
       }),
     [sessionId],
   );
-  const { data, error, loading } = useApi<SessionDetailType>(fetcher, [sessionId]);
+  const { data, error, loading } = useApi<SessionDetailType>(fetcher, [sessionId], { enabled: validId });
 
   const [detail, setDetail] = useState<SessionDetailType | null>(null);
   const [view, setView] = useState<"text" | "graph">("text");

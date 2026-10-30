@@ -12,17 +12,25 @@ export interface UseApiResult<T> {
 
 /**
  * 간단한 데이터 페칭 훅 (별도 라이브러리 없이 fetch 직접 사용).
- * deps가 바뀌거나 refetch() 호출 시 재요청.
+ * deps가 바뀌거나 refetch() 호출 시 재요청. enabled 가 false 면 요청하지 않는다.
  */
-export function useApi<T>(fn: () => Promise<T>, deps: unknown[] = []): UseApiResult<T> {
+export function useApi<T>(
+  fn: () => Promise<T>,
+  deps: unknown[] = [],
+  { enabled = true }: { enabled?: boolean } = {},
+): UseApiResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [tick, setTick] = useState(0);
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     let active = true;
     setLoading(true);
     setError(null);
@@ -40,7 +48,7 @@ export function useApi<T>(fn: () => Promise<T>, deps: unknown[] = []): UseApiRes
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, tick]);
+  }, [...deps, tick, enabled]);
 
   return { data, error, loading, refetch };
 }
