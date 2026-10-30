@@ -20,7 +20,7 @@ export interface NicknameStepProps {
   error?: string | null;
   /** "{provider} 계정 인증 완료" 표시용 (선택). */
   providerLabel?: string;
-  /** 중복 확인 — 기본은 형식만 보고 통과 (lib/nickname) */
+  /** 중복 확인 — 기본은 GET /members/nickname/available (lib/nickname) */
   checkNickname?: CheckNickname;
 }
 

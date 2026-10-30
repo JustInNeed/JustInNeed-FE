@@ -1,5 +1,7 @@
 import { act, screen } from "@testing-library/react";
+import { http } from "msw";
 import { describe, expect, it, vi } from "vitest";
+import { API, fail, ok, server } from "@/test/msw/server";
 import { renderApp } from "@/test/render";
 import { NicknameStep, type NicknameStepProps } from "./NicknameStep";
 
@@ -151,11 +153,41 @@ describe("가입 > 닉네임 단계", () => {
     expect(screen.getByText("카카오 계정 인증 완료")).toBeInTheDocument();
   });
 
-  it("중복 확인 함수를 넘기지 않으면 형식만 맞으면 통과한다", async () => {
-    const { user } = renderStep();
-    await user.type(input(), "yesong");
-    await user.click(checkBtn());
-    expect(await screen.findByText("사용 가능한 닉네임입니다.")).toBeInTheDocument();
-    expect(nextBtn()).toBeEnabled();
+  describe("중복 확인 함수를 넘기지 않으면 GET /members/nickname/available 로 확인한다", () => {
+    const answer = (available: boolean) =>
+      server.use(
+        http.get(`${API}/members/nickname/available`, ({ request }) =>
+          ok({ nickname: new URL(request.url).searchParams.get("nickname"), available }),
+        ),
+      );
+    // 가입 중에는 콜백에서 받은 로그인 토큰이 있다
+    const renderSignedIn = () => renderApp(<NicknameStep onSubmit={vi.fn()} />);
+
+    it("사용 가능하면 안내와 함께 다음 버튼이 켜진다", async () => {
+      answer(true);
+      const { user } = renderSignedIn();
+      await user.type(input(), "yesong");
+      await user.click(checkBtn());
+      expect(await screen.findByText("사용 가능한 닉네임입니다.")).toBeInTheDocument();
+      expect(nextBtn()).toBeEnabled();
+    });
+
+    it("이미 사용 중이면 안내하고 다음 버튼은 꺼진 채다", async () => {
+      answer(false);
+      const { user } = renderSignedIn();
+      await user.type(input(), "wanderer");
+      await user.click(checkBtn());
+      expect(await screen.findByText("이미 사용 중인 닉네임입니다.")).toBeInTheDocument();
+      expect(nextBtn()).toBeDisabled();
+    });
+
+    it("요청이 실패하면 다시 시도하라고 안내한다", async () => {
+      server.use(http.get(`${API}/members/nickname/available`, () => fail(500, "서버 오류가 발생했습니다.")));
+      const { user } = renderSignedIn();
+      await user.type(input(), "yesong");
+      await user.click(checkBtn());
+      expect(await screen.findByText("중복 확인에 실패했어요. 다시 시도해 주세요.")).toBeInTheDocument();
+      expect(nextBtn()).toBeDisabled();
+    });
   });
 });

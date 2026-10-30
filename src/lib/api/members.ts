@@ -1,10 +1,14 @@
 import { api } from "./client";
-import type { MemberResponse, SocialProvider } from "./types";
+import type { MemberResponse, NicknameAvailabilityResponse, SocialProvider } from "./types";
 
 export const getMe = () => api.get<MemberResponse>("/members/me");
 
 export const updateNickname = (nickname: string) =>
   api.patch<MemberResponse>("/members/me/nickname", { nickname });
+
+/** 형식이 틀리면 400 (저장과 같은 규칙) */
+export const checkNicknameAvailability = (nickname: string) =>
+  api.get<NicknameAvailabilityResponse>(`/members/nickname/available?nickname=${encodeURIComponent(nickname)}`);
 
 /** 회원 탈퇴 — confirmText 는 "WITHDRAW" 와 정확히 같아야 한다. 성공 시 서버에서 토큰이 모두 무효화된다. */
 export const withdrawAccount = (confirmText: string) =>

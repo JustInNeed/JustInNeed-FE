@@ -19,8 +19,9 @@ async function openAsNewMember() {
   return result;
 }
 
-/** 닉네임을 입력하고 중복 확인까지 통과시킨다 (기본 확인은 형식만 본다) */
+/** 닉네임을 입력하고 중복 확인(GET /members/nickname/available)까지 통과시킨다 */
 async function fillNickname(user: ReturnType<typeof renderApp>["user"], value: string) {
+  server.use(http.get(`${API}/members/nickname/available`, () => ok({ nickname: value, available: true })));
   await user.type(input(), value);
   await user.click(screen.getByRole("button", { name: "중복 확인" }));
   await screen.findByText("사용 가능한 닉네임입니다.");
