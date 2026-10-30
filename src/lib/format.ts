@@ -37,6 +37,8 @@ export function formatDuration(startedAt: string, endedAt: string | null): strin
 }
 
 export const STATUS_LABEL: Record<SessionStatus, string> = {
+  COLLECTING: "수집 중",
+  READY: "분석 대기",
   ANALYZING: "분석 중",
   COMPLETED: "분석 완료",
   FAILED: "분석 실패",

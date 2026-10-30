@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TagGroup, TagGroupCreateRequest, TagGroupOrderRequest, TagGroupUpdateRequest } from "@/lib/api";
-import { SESSION_LIST, TAG_GROUPS, sessionById, tagGroup } from "@/test/fixtures/sessions";
+import { SESSION_LIST, STATUS_SESSIONS, TAG_GROUPS, sessionById, tagGroup } from "@/test/fixtures/sessions";
 import { API, fail, ok, server } from "@/test/msw/server";
 import { mockRouter } from "@/test/router";
 import { renderSessions, serveSessions } from "./sessionsViewTestUtils";
@@ -67,6 +67,23 @@ describe("해시태그 그룹 보기", () => {
     const rome = within(sectionOf("로마")).getByRole("heading", { level: 3, name: sessionById(9001).title });
     await user.click(rome);
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9001");
+  });
+
+  it("그룹 안의 수집 중 · 분석 대기 · 분석 중 · 분석 실패 카드는 상태만 보이고 눌러도 상세로 이동하지 않는다", async () => {
+    groups = [tagGroup(4, "일본", ["일본"], 0, STATUS_SESSIONS)];
+    const { user } = await renderGroups();
+    const japan = within(sectionOf("일본"));
+    expect(japan.getByText("4개 세션")).toBeInTheDocument();
+
+    const labels = ["수집 중", "분석 대기", "분석 중", "분석 실패"];
+    for (const [i, s] of STATUS_SESSIONS.slice(0, 4).entries()) {
+      const c = japan.getByRole("heading", { level: 3, name: s.title }).closest<HTMLElement>(".card")!;
+      expect(within(c).getByText(labels[i])).toBeInTheDocument();
+      expect(within(c).queryByText(`${s.pageCount}개 URL`)).not.toBeInTheDocument();
+      expect(c).toHaveAttribute("aria-disabled", "true");
+      await user.click(c);
+    }
+    expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
   it("그룹 안 카드의 별을 누르면 PATCH { isFavorite } 를 보낸다", async () => {

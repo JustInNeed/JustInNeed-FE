@@ -3,7 +3,7 @@ import { http } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
 import SessionsPage from "@/app/(personal)/sessions/page";
 import type { SessionListItem, SessionUpdateRequest } from "@/lib/api";
-import { MANY_TAGS_SESSION, SESSION_LIST, TAG_GROUPS, sessionById } from "@/test/fixtures/sessions";
+import { MANY_TAGS_SESSION, SESSION_LIST, STATUS_SESSIONS, TAG_GROUPS, sessionById } from "@/test/fixtures/sessions";
 import { API, fail, ok, server } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
@@ -162,6 +162,86 @@ describe("세션 목록 — 카드", () => {
     await user.tab();
     await user.tab();
     expect(card(ROME.title)).toHaveFocus();
+  });
+});
+
+describe("세션 목록 — 상태별 카드", () => {
+  // 수집 중(종료 전) · 분석 대기 · 분석 중 · 분석 실패 — 뒤의 셋은 종료 시각이 있어도 걸린 시간 대신 상태를 보인다
+  const LOCKED = [
+    { label: "수집 중", session: STATUS_SESSIONS[0], duration: null },
+    { label: "분석 대기", session: STATUS_SESSIONS[1], duration: "42분" },
+    { label: "분석 중", session: STATUS_SESSIONS[2], duration: "41분" },
+    { label: "분석 실패", session: STATUS_SESSIONS[3], duration: "35분" },
+  ];
+
+  beforeEach(() => {
+    requests = serveSessions(STATUS_SESSIONS);
+  });
+
+  it.each(LOCKED)("$label 세션 카드는 걸린 시간 자리에 상태가 보이고 URL 개수는 숨긴다", async ({ label, session, duration }) => {
+    renderSessions();
+    await screen.findByRole("heading", { level: 3, name: session.title });
+    const c = within(card(session.title));
+    expect(c.getByText(label)).toBeInTheDocument();
+    if (duration) expect(c.queryByText(duration)).not.toBeInTheDocument();
+    expect(c.queryByText(`${session.pageCount}개 URL`)).not.toBeInTheDocument();
+    expect(c.getByText(session.startedAt.slice(0, 10))).toBeInTheDocument();
+  });
+
+  it.each(LOCKED)("$label 세션 카드는 눌러도 · Enter · Space 를 눌러도 상세로 이동하지 않는다", async ({ session }) => {
+    const { user } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: session.title });
+    const c = card(session.title);
+    expect(c).toHaveAttribute("aria-disabled", "true");
+    expect(c).not.toHaveAttribute("role");
+    expect(c).not.toHaveAttribute("tabindex");
+
+    await user.click(c);
+    fireEvent.keyDown(c, { key: "Enter" });
+    fireEvent.keyDown(c, { key: " " });
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+
+  it("Tab 으로 갈 때 진행 중 카드는 건너뛰고 그 카드의 별 버튼으로 간다", async () => {
+    const { user } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: STATUS_SESSIONS[0].title });
+    // 머리말 버튼 2개 다음 — 첫 카드(수집 중) 자체가 아니라 별 버튼
+    await user.tab();
+    await user.tab();
+    await user.tab();
+    expect(starOf(STATUS_SESSIONS[0].title)).toHaveFocus();
+  });
+
+  it("분석 실패 세션 카드도 별은 그대로 동작한다", async () => {
+    const patches: unknown[] = [];
+    server.use(
+      http.patch(`${API}/sessions/:id`, async ({ request, params }) => {
+        patches.push([params.id, await request.json()]);
+        return ok(null);
+      }),
+    );
+    const failed = STATUS_SESSIONS[3];
+    const { user } = renderSessions();
+    await screen.findByText("전체 5개 세션 · 2개 즐겨찾기 · 3개 그룹");
+
+    await user.click(starOf(failed.title));
+    expect(isFilled(starOf(failed.title))).toBe(false);
+    expect(screen.getByText("전체 5개 세션 · 1개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
+    await waitFor(() => expect(patches).toEqual([["9104", { isFavorite: false }]]));
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+
+  it("같은 목록의 분석 완료 세션 카드는 걸린 시간 · URL 수가 보이고 누르면 상세로 이동한다", async () => {
+    const { user } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: ROME.title });
+    const rome = card(ROME.title);
+    expect(within(rome).getByText("1시간 34분")).toBeInTheDocument();
+    expect(within(rome).getByText("18개 URL")).toBeInTheDocument();
+    expect(rome).toHaveAttribute("role", "button");
+    expect(rome).not.toHaveAttribute("aria-disabled");
+
+    await user.click(rome);
+    expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9001");
   });
 });
 

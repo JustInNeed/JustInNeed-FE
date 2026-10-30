@@ -10,21 +10,24 @@ export interface SessionCardProps {
 }
 
 export function SessionCard({ session, onClick, onToggleFavorite }: SessionCardProps) {
-  const duration = formatDuration(session.startedAt, session.endedAt);
+  // 분석 완료 전(수집 중 · 분석 대기 · 분석 중) · 분석 실패 세션은 볼 요약이 없어 상태만 보이고 상세로 열지 않는다
+  const completed = session.status === "COMPLETED";
+  const duration = completed ? formatDuration(session.startedAt, session.endedAt) : null;
   return (
     <div
-      className={styles.card}
-      onClick={onClick}
+      className={completed ? styles.card : `${styles.card} ${styles.locked}`}
+      onClick={completed ? onClick : undefined}
       onKeyDown={(e) => {
         // 카드 자체에 포커스가 있을 때만 (별 버튼의 Enter 는 버튼이 처리)
-        if (e.target !== e.currentTarget) return;
+        if (!completed || e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onClick?.();
         }
       }}
-      role="button"
-      tabIndex={0}
+      role={completed ? "button" : undefined}
+      tabIndex={completed ? 0 : undefined}
+      aria-disabled={completed ? undefined : true}
     >
       <div className={styles.top}>
         <h3 className={styles.title}>{session.title}</h3>
@@ -46,9 +49,11 @@ export function SessionCard({ session, onClick, onToggleFavorite }: SessionCardP
         <span className={styles.metaItem}>
           <Icon name="clock" size={12} /> {duration ?? STATUS_LABEL[session.status]}
         </span>
-        <span className={styles.metaItem}>
-          <Icon name="link" size={12} /> {session.pageCount}개 URL
-        </span>
+        {completed && (
+          <span className={styles.metaItem}>
+            <Icon name="link" size={12} /> {session.pageCount}개 URL
+          </span>
+        )}
         <span>{formatDate(session.startedAt)}</span>
       </div>
       <div className={styles.tags}>

@@ -50,7 +50,8 @@ export interface LoginTokenResponse extends TokenResponse {
   needsNickname: boolean;
 }
 
-export type SessionStatus = "ANALYZING" | "COMPLETED" | "FAILED";
+/** 수집 중 → 분석 대기 → 분석 중 → 분석 완료 / 분석 실패 */
+export type SessionStatus = "COLLECTING" | "READY" | "ANALYZING" | "COMPLETED" | "FAILED";
 
 /** 목록용 — 본문 없음, 가벼움. */
 export interface SessionListItem {

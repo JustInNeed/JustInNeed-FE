@@ -83,6 +83,55 @@ export function sessionById(id: number): SessionListItem {
   return found;
 }
 
+/** 상태별 세션 (#일본) + 분석 완료 로마 — 서버 정렬처럼 진행 중(수집 중 · 분석 대기 · 분석 중)이 먼저, 나머지는 끝난 시각 최근 순 */
+export const STATUS_SESSIONS: SessionListItem[] = [
+  {
+    id: 9101,
+    title: "도쿄 라멘 맛집 찾기",
+    startedAt: "2026-04-28T19:00:00",
+    endedAt: null,
+    pageCount: 3,
+    status: "COLLECTING",
+    isFavorite: false,
+    isPublic: false,
+    tags: ["일본", "도쿄", "라멘"],
+  },
+  {
+    id: 9102,
+    title: "오사카 유니버설 입장권",
+    startedAt: "2026-04-28T13:10:00",
+    endedAt: "2026-04-28T13:52:00",
+    pageCount: 6,
+    status: "READY",
+    isFavorite: false,
+    isPublic: false,
+    tags: ["일본", "오사카"],
+  },
+  {
+    id: 9103,
+    title: "교토 료칸 비교",
+    startedAt: "2026-04-27T22:00:00",
+    endedAt: "2026-04-27T22:41:00",
+    pageCount: 9,
+    status: "ANALYZING",
+    isFavorite: false,
+    isPublic: false,
+    tags: ["일본", "교토", "료칸"],
+  },
+  {
+    id: 9104,
+    title: "후쿠오카 야타이 정리",
+    startedAt: "2026-04-27T10:00:00",
+    endedAt: "2026-04-27T10:35:00",
+    pageCount: 5,
+    status: "FAILED",
+    isFavorite: true,
+    isPublic: false,
+    tags: ["일본", "후쿠오카"],
+  },
+  sessionById(9001),
+];
+
 /** GET /sessions?page&size&favorite 응답 — 백엔드처럼 즐겨찾기만 거르고 페이지를 자른다. 개수는 거르기 전 전체 기준 */
 export function sessionPage(
   list: SessionListItem[],
