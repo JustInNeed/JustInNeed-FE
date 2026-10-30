@@ -1,20 +1,10 @@
 import { api } from "./client";
-import type { SessionDetail, SessionListItem, SessionListParams, SessionPage, SessionUpdateRequest } from "./types";
+import type { SessionDetail, SessionListParams, SessionPage, SessionUpdateRequest } from "./types";
 
-export const getSessions = async ({ page = 0, size = 10, favorite = false }: SessionListParams = {}): Promise<SessionPage> => {
+/** 세션 목록 한 페이지 — 진행 중 세션이 맨 위, 나머지는 종료 시각 최신순. 개수는 필터 · 페이지와 상관없는 전체 기준 */
+export const getSessions = ({ page = 0, size = 10, favorite = false }: SessionListParams = {}) => {
   const query = new URLSearchParams({ page: String(page), size: String(size), favorite: String(favorite) });
-  const data = await api.get<SessionPage | SessionListItem[]>(`/sessions?${query}`);
-  // BE 배포 전환용: 페이징 전 BE 는 전체 배열을 돌려준다 → 여기서 즐겨찾기 · 페이지를 나눔. BE 페이징 PR 머지 후 삭제
-  if (Array.isArray(data)) {
-    const filtered = favorite ? data.filter((s) => s.isFavorite) : data;
-    return {
-      sessions: filtered.slice(page * size, (page + 1) * size),
-      hasNext: (page + 1) * size < filtered.length,
-      totalCount: data.length,
-      favoriteCount: data.filter((s) => s.isFavorite).length,
-    };
-  }
-  return data;
+  return api.get<SessionPage>(`/sessions?${query}`);
 };
 
 /** 내 세션 전체의 해시태그 — 대소문자 무시 중복 제거, 목록 순서대로 처음 나온 순 */

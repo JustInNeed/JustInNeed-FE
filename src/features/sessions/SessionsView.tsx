@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Button, PageHeader, InlineState } from "@/components/ui";
 import {
@@ -160,13 +160,10 @@ export function SessionsView() {
   // 그룹 편집기의 전체 해시태그 — 편집기를 열 때마다 내 세션 전체 해시태그를 받는다 (태그는 상세 화면에서 바뀜)
   const editorOpen = creating || editingGroup != null;
   const hashtagsQuery = useApi<string[]>(getSessionHashtags, [], { enabled: editorOpen });
-  // BE 배포 전환용: GET /sessions/hashtags 를 받기 전이거나 실패하면 (아직 없는 BE) 불러온 목록 · 그룹 세션 태그로. BE PR 머지 후 삭제
-  const fallbackTags = useMemo(() => {
-    const set = new Set<string>();
-    [...sessions, ...groups.flatMap((g) => g.sessions)].forEach((s) => s.tags.forEach((t) => set.add(t)));
-    return Array.from(set).sort();
-  }, [sessions, groups]);
-  const allTags = hashtagsQuery.data ?? fallbackTags;
+  const allTags = hashtagsQuery.data ?? [];
+  useEffect(() => {
+    if (hashtagsQuery.error) toast.error("해시태그 목록을 불러오지 못했어요. 편집 창을 다시 열어 주세요.");
+  }, [hashtagsQuery.error, toast]);
 
   // 즐겨찾기 보기에서 별을 끈 카드는 바로 뺀다 (실패하면 되살아남)
   const visible = favOnly ? sessions.filter((s) => s.isFavorite) : sessions;

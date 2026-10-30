@@ -74,9 +74,7 @@ src/
 - 해시태그는 저장값에 `#`가 없고(raw), 화면 표시 시 `withHash()`로 `#`를 붙임.
 - **세션·태그그룹 API도 이제 Bearer 토큰 기준**으로 로그인 회원 데이터만 조회·수정됨. (구 `X-User-Id` 헤더는 제거)
 - **세션 목록은 서버 페이징** `GET /sessions?page&size=10&favorite` → `{ sessions, hasNext, totalCount, favoriteCount }`. 스크롤 80% 지점에서 다음 페이지를 받아 이어 붙이고, 즐겨찾기 보기는 `favorite=true` 로 0페이지부터 다시 받음.
-  - BE 배포 전환 기간에는 예전처럼 배열이 와도 `getSessions` 에서 즐겨찾기 · 페이지를 나눠 처리 — BE 페이징 PR 머지 후 삭제.
 - **그룹 편집기의 해시태그 후보는 `GET /sessions/hashtags`** (내 세션 전체 해시태그) — 편집기를 열 때마다 받음.
-  - BE 배포 전환 기간에는 이 요청이 실패하면 불러온 목록 · 그룹 세션의 태그로 대신 보여 줌 — BE PR 머지 후 삭제.
 
 ### 추가로 필요한 API (백엔드 협의)
 - **세션 생성(POST /sessions)**: 현재 없음 → 목록은 빈 상태부터 시작. (확장 프로그램 수집 연동 시 필요)
