@@ -3,6 +3,7 @@
 // - 모든 보호 API에 Authorization: Bearer {accessToken} 자동 첨부 (토큰 없으면 백엔드가 401)
 // - ApiResponse 언래핑 + 실패 시 message로 ApiError throw
 // - 401 → refresh 1회 시도 후 원요청 재시도, refresh 실패 시 토큰 폐기 + 로그인 화면
+// - 로그인 전 공개 요청(publicPost)은 Authorization 을 붙이지 않고 401 이어도 refresh 하지 않음
 import type { ApiResponse, TokenResponse } from "./types";
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "@/lib/auth/tokens";
 
@@ -56,27 +57,34 @@ function redirectToLogin() {
   }
 }
 
-function buildHeaders(extra?: HeadersInit): HeadersInit {
+function buildHeaders(extra: HeadersInit | undefined, auth: boolean): HeadersInit {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  const accessToken = getAccessToken();
+  const accessToken = auth ? getAccessToken() : null;
   if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
   return { ...headers, ...(extra as Record<string, string>) };
 }
 
-async function request<T>(path: string, options: RequestInit = {}, retry = true): Promise<T> {
+interface RequestConfig {
+  /** false 면 Authorization 을 붙이지 않고 401 refresh 재시도도 하지 않는다 (로그인 전 공개 API) */
+  auth?: boolean;
+  /** 401 시 refresh 후 재시도할지 (재시도 요청 자신은 false) */
+  retry?: boolean;
+}
+
+async function request<T>(path: string, options: RequestInit = {}, { auth = true, retry = true }: RequestConfig = {}): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${BASE_URL}${path}`, { ...options, headers: buildHeaders(options.headers) });
+    res = await fetch(`${BASE_URL}${path}`, { ...options, headers: buildHeaders(options.headers, auth) });
   } catch {
     throw new ApiError("서버에 연결할 수 없습니다. 백엔드가 실행 중인지 확인해주세요.", 0);
   }
 
   // 401 → 자동 재발급 후 1회 재시도
-  if (res.status === 401 && retry && getRefreshToken()) {
+  if (res.status === 401 && auth && retry && getRefreshToken()) {
     const ok = await refreshAccessToken();
-    if (ok) return request<T>(path, options, false);
+    if (ok) return request<T>(path, options, { retry: false });
     clearTokens();
     redirectToLogin();
     throw new ApiError("인증이 만료되었습니다. 다시 로그인해주세요.", 401);
@@ -101,6 +109,9 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }),
+  /** 로그인 전 공개 POST — 저장된 토큰이 있어도 Authorization 을 붙이지 않고, 401 이어도 refresh 하지 않는다 */
+  publicPost: <T>(path: string, body: unknown) =>
+    request<T>(path, { method: "POST", body: JSON.stringify(body) }, { auth: false }),
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   del: <T>(path: string, body?: unknown) =>

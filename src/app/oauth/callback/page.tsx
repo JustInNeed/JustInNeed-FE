@@ -2,13 +2,14 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { exchangeLoginCode, type LoginTokenResponse } from "@/lib/api";
 import { clearPendingProvider, commitPendingProvider, setTokens } from "@/lib/auth/tokens";
 import { setAuthToast } from "@/lib/auth/toast";
 import styles from "./callback.module.css";
 
 export default function OauthCallbackPage() {
   const router = useRouter();
-  // StrictMode 에서 effect 가 두 번 돌면 두 번째엔 쿼리가 이미 지워져 있어 실패로 처리되므로 한 번만 처리한다
+  // StrictMode 에서 effect 가 두 번 돌아도 한 번만 처리한다 (일회용 코드라 두 번 교환하면 두 번째는 실패)
   const handled = useRef(false);
 
   useEffect(() => {
@@ -16,23 +17,36 @@ export default function OauthCallbackPage() {
     handled.current = true;
     // useSearchParams 대신 window 직접 파싱 (Suspense 불필요 + 즉시 처리)
     const params = new URLSearchParams(window.location.search);
-    const accessToken = params.get("accessToken");
-    const refreshToken = params.get("refreshToken");
-    const needsNickname = params.get("needsNickname"); // 문자열 "true"/"false"
+    // 주소창·히스토리에서 코드/토큰 쿼리 즉시 제거
+    window.history.replaceState({}, "", "/oauth/callback");
 
-    if (!accessToken || !refreshToken) {
+    const fail = () => {
       clearPendingProvider();
       router.replace("/login?error=oauth");
+    };
+    const succeed = ({ accessToken, refreshToken, needsNickname }: LoginTokenResponse) => {
+      setTokens({ accessToken, refreshToken });
+      commitPendingProvider();
+      setAuthToast({ kind: "login", justSignedUp: needsNickname });
+      router.replace(needsNickname ? "/onboarding/nickname" : "/home");
+    };
+
+    const code = params.get("code");
+    if (code) {
+      // cleanup 에서 취소하지 않는다 — StrictMode 의 두 번째 effect 는 위에서 바로 끝나므로 이 요청이 유일한 교환
+      exchangeLoginCode(code).then((t) => (t?.accessToken && t.refreshToken ? succeed(t) : fail()), fail);
       return;
     }
 
-    setTokens({ accessToken, refreshToken });
-    commitPendingProvider();
-    setAuthToast({ kind: "login", justSignedUp: needsNickname === "true" });
-    // 주소창·히스토리에서 토큰 쿼리 즉시 제거
-    window.history.replaceState({}, "", "/oauth/callback");
+    // BE 배포 전환용: 주소에 토큰을 바로 붙여 보내는 기존 BE 대응. BE 일회용 코드 PR 머지 후 삭제
+    const accessToken = params.get("accessToken");
+    const refreshToken = params.get("refreshToken");
+    if (accessToken && refreshToken) {
+      succeed({ accessToken, refreshToken, needsNickname: params.get("needsNickname") === "true" });
+      return;
+    }
 
-    router.replace(needsNickname === "true" ? "/onboarding/nickname" : "/home");
+    fail();
   }, [router]);
 
   return (

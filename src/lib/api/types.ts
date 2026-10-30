@@ -40,6 +40,16 @@ export interface TokenRefreshRequest {
   refreshToken: string;
 }
 
+/** 소셜 로그인 콜백의 일회용 코드 → 토큰 교환 (POST /auth/token) */
+export interface LoginCodeExchangeRequest {
+  code: string;
+}
+
+export interface LoginTokenResponse extends TokenResponse {
+  /** 닉네임 입력 전(가입 직후)이면 true → 닉네임 온보딩으로 */
+  needsNickname: boolean;
+}
+
 export type SessionStatus = "ANALYZING" | "COMPLETED" | "FAILED";
 
 /** 목록용 — 본문 없음, 가벼움. */

@@ -71,7 +71,7 @@ describe("로그인 화면", () => {
   it("로그아웃 직후면 로그아웃 안내 토스트를 한 번 띄운다", () => {
     setAuthToast({ kind: "logout" });
     renderLogin();
-    expect(screen.getByRole("status")).toHaveTextContent("로그아웃되었습니다. 확장 프로그램도 함께 종료되었어요.");
+    expect(screen.getByRole("status")).toHaveTextContent(/^로그아웃되었습니다\.$/);
     expect(consumeAuthToast()).toBeNull();
   });
 

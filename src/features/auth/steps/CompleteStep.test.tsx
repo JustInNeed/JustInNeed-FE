@@ -11,11 +11,12 @@ describe("가입 > 완료 단계", () => {
     expect(screen.getByLabelText("3단계 완료")).toHaveAttribute("aria-current", "step");
   });
 
-  it("닉네임으로 환영 인사를 하고, 확장 프로그램 안내 3가지를 순서대로 보여준다", () => {
+  it("닉네임으로 환영 인사를 하고, 확장 프로그램 안내 2가지를 순서대로 보여준다 (자동 로그인 동기화 안내는 없다)", () => {
     renderApp(<CompleteStep nickname="yesong" onStart={vi.fn()} />, { authed: false });
     expect(screen.getByRole("heading", { name: /환영해요/ })).toHaveTextContent("환영해요, yesong님!");
     const titles = Array.from(document.querySelectorAll(".onboardTitle")).map((el) => el.textContent);
-    expect(titles).toEqual(["크롬 확장 프로그램 설치", "자동 로그인 동기화", "첫 세션 만들기"]);
+    expect(titles).toEqual(["크롬 확장 프로그램 설치", "첫 세션 만들기"]);
+    expect(screen.queryByText(/동기화|자동 연결/)).not.toBeInTheDocument();
   });
 
   it("시작하기를 누르면 onStart 를 부른다", async () => {

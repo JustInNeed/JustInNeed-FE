@@ -63,14 +63,14 @@ describe("개인 영역 레이아웃", () => {
     it("기존 회원이면 '{프로바이더} 계정으로 로그인되었어요.' 를 한 번 띄운다", async () => {
       setAuthToast({ kind: "login", justSignedUp: false });
       await openAsMember();
-      expect(screen.getByRole("status")).toHaveTextContent("카카오 계정으로 로그인되었어요. 확장 프로그램도 동기화 완료.");
+      expect(screen.getByRole("status")).toHaveTextContent(/^카카오 계정으로 로그인되었어요\.$/);
       expect(consumeAuthToast()).toBeNull();
     });
 
     it("가입 직후면 '{닉네임}님 환영합니다!' 를 띄운다", async () => {
       setAuthToast({ kind: "login", justSignedUp: true });
       await openAsMember();
-      expect(screen.getByRole("status")).toHaveTextContent("yesong님 환영합니다! 확장 프로그램에도 자동 로그인되었어요.");
+      expect(screen.getByRole("status")).toHaveTextContent(/^yesong님 환영합니다!$/);
     });
 
     it("예약된 토스트가 없으면 아무것도 띄우지 않는다", async () => {
@@ -103,7 +103,7 @@ describe("개인 영역 레이아웃", () => {
       const { user } = await openAsMember();
       await user.click(screen.getByRole("button", { name: "로그아웃" }));
 
-      expect(confirm).toHaveBeenCalledWith("로그아웃하시겠어요? 확장 프로그램에서도 로그아웃됩니다.");
+      expect(confirm).toHaveBeenCalledWith("로그아웃하시겠어요?");
       await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/login"));
       expect(body).toEqual({ refreshToken: "test-refresh-token" });
       expect(getAccessToken()).toBeNull();

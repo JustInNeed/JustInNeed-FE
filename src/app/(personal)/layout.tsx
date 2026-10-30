@@ -27,14 +27,14 @@ export default function PersonalLayout({ children }: { children: React.ReactNode
           return;
         }
         setMember(m);
-        // 로그인 직후 1회: 환영/동기화 토스트
+        // 로그인 직후 1회: 환영/로그인 토스트
         const flag = consumeAuthToast();
         if (flag?.kind === "login") {
           setToast({
             kind: "login",
             msg: flag.justSignedUp
-              ? `${m.nickname}님 환영합니다! 확장 프로그램에도 자동 로그인되었어요.`
-              : `${SOCIAL_PROVIDER_LABEL[m.socialProvider]} 계정으로 로그인되었어요. 확장 프로그램도 동기화 완료.`,
+              ? `${m.nickname}님 환영합니다!`
+              : `${SOCIAL_PROVIDER_LABEL[m.socialProvider]} 계정으로 로그인되었어요.`,
           });
         }
       })
@@ -52,7 +52,7 @@ export default function PersonalLayout({ children }: { children: React.ReactNode
   }, [toast]);
 
   const onLogout = async () => {
-    if (!confirm("로그아웃하시겠어요? 확장 프로그램에서도 로그아웃됩니다.")) return;
+    if (!confirm("로그아웃하시겠어요?")) return;
     try {
       await logout(getRefreshToken() ?? undefined);
     } catch {

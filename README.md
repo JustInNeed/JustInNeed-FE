@@ -24,7 +24,7 @@ npm run build                # 프로덕션 빌드
 | 경로 | 화면 |
 | --- | --- |
 | `/login` | 소셜 로그인 (카카오/네이버 → 백엔드 OAuth로 이동) |
-| `/oauth/callback` | 백엔드 리다이렉트 수신 → 토큰 저장·URL 정리·분기 |
+| `/oauth/callback` | 백엔드 리다이렉트 수신 → URL 정리·일회용 코드로 토큰 교환·저장·분기 |
 | `/onboarding/nickname` | 신규 가입 닉네임 입력 (`PATCH /members/me/nickname`) |
 | `/sessions` | 세션 목록 (리스트 / 해시태그 그룹 / 즐겨찾기) |
 | `/sessions/[id]` | 세션 상세 (줄글·마인드맵 보기, 편집, 출처) |
@@ -49,7 +49,7 @@ src/
       types.ts             #   백엔드 스키마 타입 (원본/source of truth)
       sessions.ts          #   GET/PATCH/DELETE /sessions
       tagGroups.ts         #   GET/POST/PATCH/DELETE /tag-groups (+/order)
-      auth.ts              #   POST /auth/logout, /auth/refresh
+      auth.ts              #   POST /auth/token (일회용 코드 교환), /auth/logout, /auth/refresh
       members.ts           #   GET /members/me, PATCH /members/me/nickname
     auth/tokens.ts         # 토큰 저장·주입 단일 지점 (access/refresh, localStorage)
     hooks/useApi.ts        # 데이터 페칭 훅 (로딩/에러/refetch)
@@ -60,10 +60,11 @@ src/
 
 ## 인증 (소셜 로그인 + JWT)
 
-플로우: `/login`에서 카카오/네이버 클릭 → 브라우저 전체가 백엔드 `/oauth2/authorization/{provider}`로 이동 → 로그인 후 백엔드가 `/oauth/callback?accessToken=…&refreshToken=…&needsNickname=…`로 302 → 콜백에서 토큰 저장 + URL의 토큰 쿼리 제거(`history.replaceState`) + 분기(`needsNickname=true`→닉네임 입력, `false`→`/sessions`).
+플로우: `/login`에서 카카오/네이버 클릭 → 브라우저 전체가 백엔드 `/oauth2/authorization/{provider}`로 이동 → 로그인 후 백엔드가 `/oauth/callback?code=…`(60초 · 1회용 코드)로 302 → 콜백에서 URL의 코드 쿼리 즉시 제거(`history.replaceState`) → `POST /auth/token {code}` 로 토큰 교환(인증 헤더 · 401 refresh 없음) → 토큰 저장 + 분기(`needsNickname=true`→닉네임 입력, `false`→`/home`). 코드가 없거나 교환 실패(401)면 `/login?error=oauth`.
 
+- BE 배포 전환 기간에는 기존 방식(`/oauth/callback?accessToken=…&refreshToken=…&needsNickname=…`)도 그대로 처리 — BE 일회용 코드 PR 머지 후 삭제.
 - **토큰 저장·주입은 `lib/auth/tokens.ts` + `client.ts` 한 곳**에 모음 → 추후 httpOnly 쿠키 전환 시 여기만 교체.
-- 모든 요청에 `Authorization: Bearer {accessToken}` 자동 첨부.
+- 모든 요청에 `Authorization: Bearer {accessToken}` 자동 첨부. (로그인 전 공개 요청 `api.publicPost` 는 제외)
 - **401 → `POST /auth/refresh`로 1회 자동 재발급 후 원요청 재시도**, 실패 시 토큰 폐기 + `/login`.
 - 닉네임 형식 검증은 FE 전용(영문 3–8자) — 서버 검증 없음.
 
