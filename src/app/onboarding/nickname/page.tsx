@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AuthScreen } from "@/features/auth/AuthScreen";
 import { NicknameStep } from "@/features/auth/steps/NicknameStep";
 import { CompleteStep } from "@/features/auth/steps/CompleteStep";
-import { ApiError, getMe, updateNickname, SOCIAL_PROVIDER_LABEL } from "@/lib/api";
+import { ApiError, getMe, SessionExpiredError, updateNickname, SOCIAL_PROVIDER_LABEL } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth/tokens";
 import { consumeAuthToast } from "@/lib/auth/toast";
 
@@ -33,7 +33,11 @@ export default function NicknameOnboardingPage() {
         setProviderLabel(SOCIAL_PROVIDER_LABEL[m.socialProvider]);
         setReady(true);
       })
-      .catch(() => router.replace("/login"));
+      .catch((e) => {
+        // 세션 만료는 클라이언트가 전체 이동 중 (또 이동하면 만료 안내가 사라진다)
+        if (e instanceof SessionExpiredError) return;
+        router.replace("/login");
+      });
   }, [router]);
 
   const submit = async (nickname: string) => {

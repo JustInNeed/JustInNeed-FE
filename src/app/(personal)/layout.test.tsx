@@ -1,5 +1,5 @@
 import { act, screen, within } from "@testing-library/react";
-import { http } from "msw";
+import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderApp } from "@/test/render";
 import { mockRouter } from "@/test/router";
@@ -26,7 +26,10 @@ async function openAsMember() {
   return result;
 }
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 describe("개인 영역 레이아웃", () => {
   describe("들어올 수 있는 사람", () => {
@@ -49,6 +52,21 @@ describe("개인 영역 레이아웃", () => {
       await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/login"));
       expect(getAccessToken()).toBeNull();
       expect(screen.queryByText("본문")).not.toBeInTheDocument();
+    });
+
+    it("세션이 만료되면 이동은 클라이언트에 맡긴다 — 여기서 또 이동하면 만료 안내가 사라진다", async () => {
+      const location = { href: "http://localhost:3000/home", pathname: "/home" };
+      vi.stubGlobal("location", location);
+      server.use(
+        http.get(`${API}/members/me`, () => new HttpResponse(null, { status: 401 })),
+        http.post(`${API}/auth/refresh`, () => fail(401, "로그인이 만료되었습니다. 다시 로그인해 주세요.")),
+      );
+      renderLayout();
+      await vi.waitFor(() => expect(location.href).toBe("/login"));
+      await act(async () => {});
+
+      expect(mockRouter.replace).not.toHaveBeenCalled();
+      expect(consumeAuthToast()).toEqual({ kind: "expired" });
     });
 
     it("닉네임이 있는 회원이면 사이드바와 화면 본문을 그린다", async () => {
