@@ -30,7 +30,7 @@ type CheckStatus = null | "checking" | "ok" | "taken" | "failed";
 
 /**
  * 계정 섹션 — 닉네임 변경, 연결된 소셜 계정, 로그아웃.
- * 중복 확인은 주입받은 함수로 하고, 저장은 형식만 맞으면 가능하다. 실제 중복은 서버 409 로 확인.
+ * 중복 확인은 주입받은 함수(기본: 중복 확인 API)로 하고, 저장은 형식만 맞으면 가능하다. 확인 없이 저장한 중복은 서버 409 로 막는다.
  */
 export function AccountSection({ onWithdraw, checkNickname = checkNicknameAvailable }: AccountSectionProps) {
   const { member, updateMember, logout } = usePersonal();

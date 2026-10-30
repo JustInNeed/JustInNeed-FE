@@ -26,6 +26,12 @@ export interface NicknameUpdateRequest {
   nickname: string;
 }
 
+/** 닉네임 중복 확인 — 대소문자 무시, 내 현재 닉네임은 사용 가능 */
+export interface NicknameAvailabilityResponse {
+  nickname: string;
+  available: boolean;
+}
+
 export interface LogoutRequest {
   refreshToken?: string;
 }

@@ -107,10 +107,31 @@ describe("설정 > 계정", () => {
       expect(screen.queryByText("이미 사용 중인 닉네임입니다.")).not.toBeInTheDocument();
     });
 
-    it("중복 확인 함수를 넘기지 않으면 형식만 맞으면 사용 가능으로 본다", async () => {
+    it("중복 확인 함수를 넘기지 않으면 GET /members/nickname/available 로 확인한다", async () => {
+      const asked: (string | null)[] = [];
+      server.use(
+        http.get(`${API}/members/nickname/available`, ({ request }) => {
+          const nickname = new URL(request.url).searchParams.get("nickname");
+          asked.push(nickname);
+          return ok({ nickname, available: nickname === "newnick" });
+        }),
+      );
       const { user } = await renderWithNickname("newnick");
       await user.click(checkBtn());
       expect(await screen.findByRole("status")).toHaveTextContent("사용 가능한 닉네임입니다.");
+
+      await user.clear(nicknameInput());
+      await user.type(nicknameInput(), "wanderer");
+      await user.click(checkBtn());
+      expect(await screen.findByText("이미 사용 중인 닉네임입니다.")).toBeInTheDocument();
+      expect(asked).toEqual(["newnick", "wanderer"]);
+    });
+
+    it("중복 확인 요청이 실패하면 다시 시도하라고 안내한다", async () => {
+      server.use(http.get(`${API}/members/nickname/available`, () => fail(500, "서버 오류가 발생했습니다.")));
+      const { user } = await renderWithNickname("newnick");
+      await user.click(checkBtn());
+      expect(await screen.findByText("중복 확인에 실패했어요. 다시 시도해 주세요.")).toBeInTheDocument();
     });
   });
 
