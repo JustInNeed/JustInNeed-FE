@@ -34,7 +34,9 @@ export default function LoginPage() {
         ? "로그아웃되었습니다."
         : kind === "withdraw"
           ? "탈퇴가 완료되었어요."
-          : null;
+          : kind === "expired"
+            ? "로그인이 만료되었습니다. 다시 로그인해 주세요."
+            : null;
     if (msg) {
       setToastMsg(msg);
       const t = setTimeout(() => setToastMsg(null), 4500);

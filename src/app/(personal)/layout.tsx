@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { AuthToast, type AuthToastProps } from "@/components/layout/AuthToast";
-import { getMe, logout, SOCIAL_PROVIDER_LABEL, type MemberResponse } from "@/lib/api";
+import { getMe, logout, SessionExpiredError, SOCIAL_PROVIDER_LABEL, type MemberResponse } from "@/lib/api";
 import { clearTokens, getAccessToken, getRefreshToken } from "@/lib/auth/tokens";
 import { consumeAuthToast, setAuthToast } from "@/lib/auth/toast";
 import { PersonalProvider } from "@/lib/app/PersonalContext";
@@ -38,7 +38,9 @@ export default function PersonalLayout({ children }: { children: React.ReactNode
           });
         }
       })
-      .catch(() => {
+      .catch((e) => {
+        // 세션 만료는 클라이언트가 /login 전체 이동 중 → 여기서 또 이동하면 먼저 뜬 화면이 안내를 꺼내 버려 새로 로드된 화면엔 안 보인다
+        if (e instanceof SessionExpiredError) return;
         // 401은 클라이언트가 refresh/redirect 처리 → 그 외 오류는 로그인으로
         clearTokens();
         router.replace("/login");

@@ -2,13 +2,15 @@
 // - Base URL은 env에서 주입
 // - 모든 보호 API에 Authorization: Bearer {accessToken} 자동 첨부 (토큰 없으면 백엔드가 401)
 // - ApiResponse 언래핑 + 실패 시 message로 ApiError throw
-// - 401 → refresh 1회 시도 후 원요청 재시도, refresh 실패 시 토큰 폐기 + 로그인 화면
+// - 401 → refresh 1회 시도 후 원요청 재시도, refresh 실패 시 토큰 폐기 + 로그인 화면(만료 안내 1회)
 // - refresh 는 탭 사이에서도 한 번에 하나씩 (다른 탭이 이미 재발급했으면 그 토큰을 쓴다)
 // - 로그인 전 공개 요청(publicPost)은 Authorization 을 붙이지 않고 401 이어도 refresh 하지 않음
 import type { ApiResponse, TokenResponse } from "./types";
+import { setAuthToast } from "@/lib/auth/toast";
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "@/lib/auth/tokens";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const SESSION_EXPIRED_MESSAGE = "로그인이 만료되었습니다. 다시 로그인해 주세요.";
 
 export class ApiError extends Error {
   status: number;
@@ -16,6 +18,14 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
     this.status = status;
+  }
+}
+
+/** refresh 실패로 세션이 끝남. 클라이언트가 이미 로그인 화면으로 보냈으니 호출부는 또 이동하지 않는다 */
+export class SessionExpiredError extends ApiError {
+  constructor() {
+    super(SESSION_EXPIRED_MESSAGE, 401);
+    this.name = "SessionExpiredError";
   }
 }
 
@@ -83,6 +93,7 @@ function redirectToLogin() {
   if (typeof window === "undefined") return;
   const path = window.location.pathname;
   if (path !== "/login" && !path.startsWith("/oauth")) {
+    setAuthToast({ kind: "expired" });
     window.location.href = "/login";
   }
 }
@@ -117,7 +128,7 @@ async function request<T>(path: string, options: RequestInit = {}, { auth = true
     if (ok) return request<T>(path, options, { retry: false });
     clearTokens();
     redirectToLogin();
-    throw new ApiError("인증이 만료되었습니다. 다시 로그인해주세요.", 401);
+    throw new SessionExpiredError();
   }
 
   let body: ApiResponse<T> | null = null;

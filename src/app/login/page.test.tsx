@@ -81,6 +81,23 @@ describe("로그인 화면", () => {
     expect(screen.getByRole("status")).toHaveTextContent("탈퇴가 완료되었어요.");
   });
 
+  it("세션이 만료돼 넘어왔으면 만료 안내를 한 번만 띄운다", () => {
+    setAuthToast({ kind: "expired" });
+    const { unmount } = renderLogin();
+    expect(screen.getByRole("status")).toHaveTextContent(/^로그인이 만료되었습니다\. 다시 로그인해 주세요\.$/);
+    expect(consumeAuthToast()).toBeNull();
+
+    // 다시 들어오면 안내는 없다
+    unmount();
+    renderLogin();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("예약된 안내가 없으면 첫 방문에는 아무것도 띄우지 않는다", () => {
+    renderLogin();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("로그아웃 · 탈퇴 토스트는 4.5초 뒤 사라진다", () => {
     vi.useFakeTimers();
     setAuthToast({ kind: "logout" });

@@ -1,6 +1,6 @@
-import { screen } from "@testing-library/react";
-import { http } from "msw";
-import { describe, expect, it, vi } from "vitest";
+import { act, screen } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderApp } from "@/test/render";
 import { mockRouter } from "@/test/router";
 import { API, fail, ok, server } from "@/test/msw/server";
@@ -27,6 +27,8 @@ async function fillNickname(user: ReturnType<typeof renderApp>["user"], value: s
   await screen.findByText("사용 가능한 닉네임입니다.");
 }
 
+afterEach(() => vi.unstubAllGlobals());
+
 describe("가입 > 닉네임 온보딩 화면", () => {
   describe("들어올 수 있는 사람", () => {
     it("로그인 토큰이 없으면 /login 으로 보낸다", () => {
@@ -46,6 +48,21 @@ describe("가입 > 닉네임 온보딩 화면", () => {
       server.use(http.get(`${API}/members/me`, () => fail(500, "서버 오류가 발생했습니다.")));
       renderApp(<NicknameOnboardingPage />);
       await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/login"));
+    });
+
+    it("세션이 만료되면 이동은 클라이언트에 맡긴다 — 여기서 또 이동하면 만료 안내가 사라진다", async () => {
+      const location = { href: "http://localhost:3000/onboarding/nickname", pathname: "/onboarding/nickname" };
+      vi.stubGlobal("location", location);
+      server.use(
+        http.get(`${API}/members/me`, () => new HttpResponse(null, { status: 401 })),
+        http.post(`${API}/auth/refresh`, () => fail(401, "로그인이 만료되었습니다. 다시 로그인해 주세요.")),
+      );
+      renderApp(<NicknameOnboardingPage />);
+      await vi.waitFor(() => expect(location.href).toBe("/login"));
+      await act(async () => {});
+
+      expect(mockRouter.replace).not.toHaveBeenCalled();
+      expect(consumeAuthToast()).toEqual({ kind: "expired" });
     });
 
     it("가입 중인 회원이면 닉네임 단계와 '카카오 계정 인증 완료' 가 보인다", async () => {

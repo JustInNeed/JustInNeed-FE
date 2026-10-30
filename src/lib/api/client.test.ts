@@ -4,7 +4,9 @@ import { API, fail, ok, server } from "@/test/msw/server";
 import { MEMBER } from "@/test/fixtures/member";
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "@/lib/auth/tokens";
 import { consumeAuthToast } from "@/lib/auth/toast";
-import { ApiError, exchangeLoginCode, getMe, refreshAccessToken } from "./index";
+import { ApiError, exchangeLoginCode, getMe, refreshAccessToken, SessionExpiredError } from "./index";
+
+const EXPIRED = "로그인이 만료되었습니다. 다시 로그인해 주세요.";
 
 /** 콜백을 한 번에 하나씩 실행하는 navigator.locks 대역 (jsdom 에는 없다). onGrant 는 락을 얻기 직전에 불린다 */
 function installLocks(onGrant?: () => void) {
@@ -35,7 +37,7 @@ function rotatingRefreshServer(current: string, next: { accessToken: string; ref
     http.post(`${API}/auth/refresh`, async ({ request }) => {
       calls.count += 1;
       const { refreshToken } = (await request.json()) as { refreshToken: string };
-      if (refreshToken !== valid) return fail(401, "로그인이 만료되었습니다. 다시 로그인해 주세요.");
+      if (refreshToken !== valid) return fail(401, EXPIRED);
       valid = next.refreshToken;
       return ok(next);
     }),
@@ -171,7 +173,7 @@ describe("토큰 재발급이 겹칠 때", () => {
 
   describe("Web Locks 가 없으면", () => {
     it.each([
-      ["401", () => fail(401, "로그인이 만료되었습니다. 다시 로그인해 주세요.")],
+      ["401", () => fail(401, EXPIRED)],
       ["500", () => fail(500, "서버 오류가 발생했습니다.")],
       ["네트워크 오류", () => HttpResponse.error()],
     ])("재발급이 %s 로 실패해도 저장된 토큰이 바뀌었으면 그 토큰으로 원래 요청을 다시 보낸다", async (_name, response) => {
@@ -198,12 +200,116 @@ describe("토큰 재발급이 겹칠 때", () => {
       server.use(
         http.post(`${API}/auth/refresh`, () => {
           clearTokens();
-          return fail(401, "로그인이 만료되었습니다. 다시 로그인해 주세요.");
+          return fail(401, EXPIRED);
         }),
       );
 
       await expect(refreshAccessToken()).resolves.toBe(false);
     });
+  });
+});
+
+describe("세션 만료 (재발급 최종 실패)", () => {
+  /** 만료된 토큰으로 pathname 화면에 있는 상태 — 재발급은 401 */
+  function expiredAt(pathname: string) {
+    const location = { href: `http://localhost:3000${pathname}`, pathname };
+    vi.stubGlobal("location", location);
+    setTokens({ accessToken: "expired", refreshToken: "r1" });
+    server.use(
+      http.get(`${API}/members/me`, () => new HttpResponse(null, { status: 401 })),
+      http.post(`${API}/auth/refresh`, () => fail(401, EXPIRED)),
+    );
+    return location;
+  }
+
+  it("토큰을 지우고 만료 안내를 남긴 뒤 /login 으로 보내고, 요구사항 문구로 ApiError 를 던진다", async () => {
+    const location = expiredAt("/sessions");
+
+    const err = await getMe().catch((e) => e);
+
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err).toBeInstanceOf(SessionExpiredError);
+    expect(err).toMatchObject({ message: EXPIRED, status: 401 });
+    expect(getAccessToken()).toBeNull();
+    expect(getRefreshToken()).toBeNull();
+    expect(consumeAuthToast()).toEqual({ kind: "expired" });
+    expect(location.href).toBe("/login");
+  });
+
+  it("두 탭이 같이 재발급에 실패해도 양쪽 다 세션 만료로 끝난다", async () => {
+    installLocks();
+    const location = expiredAt("/sessions");
+    const [tabA, tabB] = [await openTab(), await openTab()];
+
+    const errs = await Promise.all([tabA.api.get("/members/me").catch((e) => e), tabB.api.get("/members/me").catch((e) => e)]);
+
+    expect(errs.map((e) => (e as ApiError).message)).toEqual([EXPIRED, EXPIRED]);
+    expect(getRefreshToken()).toBeNull();
+    expect(location.href).toBe("/login");
+  });
+
+  it.each(["/login", "/oauth/callback"])("이미 %s 에 있으면 이동이 없으니 만료 안내도 남기지 않는다", async (pathname) => {
+    const location = expiredAt(pathname);
+
+    const err = await getMe().catch((e) => e);
+
+    expect(err).toMatchObject({ message: EXPIRED, status: 401 });
+    expect(getRefreshToken()).toBeNull();
+    expect(consumeAuthToast()).toBeNull();
+    expect(location.href).toBe(`http://localhost:3000${pathname}`);
+  });
+});
+
+describe("401 응답 본문 (비어 있거나 JSON)", () => {
+  const JSON_401 = ["JSON", () => fail(401, EXPIRED)] as const;
+  const EMPTY_401 = ["빈", () => new HttpResponse(null, { status: 401 })] as const;
+
+  it.each([
+    [...JSON_401, EXPIRED],
+    [...EMPTY_401, "요청에 실패했습니다. (HTTP 401)"],
+  ])("refresh 토큰이 없으면 %s 본문이어도 ApiError 로 끝나고 재발급 · 이동 · 안내는 없다", async (_name, response, message) => {
+    const location = { href: "http://localhost:3000/sessions", pathname: "/sessions" };
+    vi.stubGlobal("location", location);
+    localStorage.setItem("jin_access_token", "a1");
+    server.use(http.get(`${API}/members/me`, response));
+
+    const err = await getMe().catch((e) => e);
+
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err).not.toBeInstanceOf(SessionExpiredError);
+    expect(err).toMatchObject({ message, status: 401 });
+    expect(consumeAuthToast()).toBeNull();
+    expect(location.href).toBe("http://localhost:3000/sessions");
+  });
+
+  it.each([JSON_401, EMPTY_401])("refresh 토큰이 있으면 %s 본문이어도 재발급 후 다시 요청한다", async (_name, response) => {
+    setTokens({ accessToken: "expired", refreshToken: "r1" });
+    server.use(
+      http.get(`${API}/members/me`, ({ request }) =>
+        request.headers.get("Authorization") === "Bearer fresh" ? ok(MEMBER) : response(),
+      ),
+      http.post(`${API}/auth/refresh`, () => ok({ accessToken: "fresh", refreshToken: "r2" })),
+    );
+
+    await expect(getMe()).resolves.toEqual(MEMBER);
+  });
+
+  it.each([
+    [...JSON_401, EXPIRED],
+    [...EMPTY_401, "요청에 실패했습니다. (HTTP 401)"],
+  ])("재시도한 요청도 %s 본문 401 이면 다시 재발급하지 않고 ApiError 로 끝난다", async (_name, response, message) => {
+    setTokens({ accessToken: "expired", refreshToken: "r1" });
+    let refreshCalls = 0;
+    server.use(
+      http.get(`${API}/members/me`, response),
+      http.post(`${API}/auth/refresh`, () => {
+        refreshCalls += 1;
+        return ok({ accessToken: "fresh", refreshToken: "r2" });
+      }),
+    );
+
+    await expect(getMe()).rejects.toMatchObject({ message, status: 401 });
+    expect(refreshCalls).toBe(1);
   });
 });
 
