@@ -74,23 +74,41 @@ describe("세션 상세 — 편집 모드", () => {
     expect(screen.queryByPlaceholderText("세션 제목")).not.toBeInTheDocument();
   });
 
-  it("저장에 실패하면 원래 제목으로 되돌리고 서버 메시지를 토스트로 띄운다", async () => {
+  it("저장에 실패하면 서버 메시지를 토스트로 띄우고, 취소하면 원래 제목으로 돌아간다", async () => {
     const { user } = await startEditing(() => fail(400, "제목을 입력해 주세요."));
     await user.clear(titleInput());
     await user.type(titleInput(), " ");
     await user.click(button("저장"));
     expect(await screen.findByText("제목을 입력해 주세요.")).toBeInTheDocument();
+
+    await user.click(button("취소"));
+    await user.click(button("저장 안 하고 나가기"));
     expect(screen.getByRole("heading", { level: 1, name: ROME_DETAIL.title })).toBeInTheDocument();
   });
 
-  // 실제 버그: saveEdit 이 persist 실패 여부와 상관없이 setEditing(false) 를 해서, 저장이 실패하면 편집 모드가 닫히고 초안이 사라진다.
-  // 고치면 skip 을 풀 것 (자동 저장 · 저장하고 나가기는 실패해도 편집 모드를 유지한다).
-  it.skip("저장에 실패하면 편집 모드에 남아 쓰던 초안을 지킨다", async () => {
+  it("저장에 실패하면 편집 모드에 남아 쓰던 초안을 지킨다", async () => {
     const { user } = await startEditing(() => fail(500, "일시적인 오류가 발생했습니다."));
     await changeTitle(user);
     await user.click(button("저장"));
     expect(await screen.findByText("일시적인 오류가 발생했습니다.")).toBeInTheDocument();
     expect(titleInput()).toHaveValue("로마 4박 5일");
+    expect(bodyInput()).toHaveValue(ROME_MD);
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+  });
+
+  it("저장 응답을 기다리는 동안 저장을 또 눌러도 요청은 한 번만 나간다", async () => {
+    const g = gate();
+    const { user, patches } = await startEditing(async () => {
+      await g.opened;
+      return undefined;
+    });
+    await changeTitle(user);
+    await user.click(button("저장"));
+    await user.click(button("저장"));
+    g.open();
+
+    expect(await screen.findByRole("heading", { level: 1, name: "로마 4박 5일" })).toBeInTheDocument();
+    expect(patches).toEqual([{ title: "로마 4박 5일", editedMarkdown: ROME_MD }]);
   });
 
   it("바뀐 게 없으면 취소를 눌러도 경고 없이 보기 모드로 돌아간다", async () => {

@@ -181,16 +181,18 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   }
   if (!detail) return null;
 
-  // 낙관적 업데이트 + 서버 동기화
-  const persist = async (body: SessionUpdateRequest, optimistic: Partial<SessionDetailType>) => {
+  // 낙관적 업데이트 + 서버 동기화. 실패하면 되돌리고 false
+  const persist = async (body: SessionUpdateRequest, optimistic: Partial<SessionDetailType>): Promise<boolean> => {
     const prev = detail;
     setDetail({ ...detail, ...optimistic });
     try {
       const updated = await updateSession(detail.id, body);
       setDetail(updated);
+      return true;
     } catch (e) {
       setDetail(prev);
       toast.error(e instanceof ApiError ? e.message : "저장에 실패했습니다. 다시 시도해 주세요.");
+      return false;
     }
   };
 
@@ -299,15 +301,22 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  // 실패하면 편집 모드 · 초안을 그대로 둔다. 자동 저장과 같은 잠금으로 중복 저장 방지
   const saveEdit = async () => {
-    await persist(
-      { title: draftTitle, editedMarkdown: draftMarkdown },
-      {
-        title: draftTitle,
-        summary: detail.summary ? { ...detail.summary, markdown: draftMarkdown } : { markdown: draftMarkdown },
-      },
-    );
-    setEditing(false);
+    if (savingRef.current) return;
+    savingRef.current = true;
+    try {
+      const ok = await persist(
+        { title: draftTitle, editedMarkdown: draftMarkdown },
+        {
+          title: draftTitle,
+          summary: detail.summary ? { ...detail.summary, markdown: draftMarkdown } : { markdown: draftMarkdown },
+        },
+      );
+      if (ok) setEditing(false);
+    } finally {
+      savingRef.current = false;
+    }
   };
 
   const duration = formatDuration(detail.startedAt, detail.endedAt);
