@@ -13,6 +13,14 @@ export {
 } from "./sessions";
 export { getHome } from "./home";
 export {
+  getExcludedUrls,
+  addExcludedUrl,
+  updateExcludedUrlSelection,
+  deleteExcludedUrls,
+  getExtensionSettings,
+  updateExtensionSetting,
+} from "./settings";
+export {
   getTagGroups,
   createTagGroup,
   updateTagGroup,
