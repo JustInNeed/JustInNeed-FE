@@ -16,9 +16,9 @@ import { useCommunitySearch } from "./useCommunitySearch";
 import { useFollow } from "./useFollow";
 import styles from "./Community.module.css";
 
-/** 프로필 주소는 회원 id. 북마크 화면은 API 연결 전이라 아직 handle 문자열을 넘긴다 */
-export function profilePath(id: number | string): string {
-  return `/profile/${encodeURIComponent(String(id).replace(/^@/, ""))}`;
+/** 프로필 주소는 회원 id */
+export function profilePath(id: number): string {
+  return `/profile/${id}`;
 }
 
 /** 섹션마다 따로 불러온다 — 한 곳이 실패해도 나머지는 그대로 보인다 */

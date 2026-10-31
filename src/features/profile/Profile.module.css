@@ -188,6 +188,29 @@
   font-size: 11px;
   color: var(--ink-500);
 }
+.bookmarkForm {
+  gap: 6px;
+  padding: 10px;
+}
+.bookmarkInput {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--ink-900);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: none;
+}
+.bookmarkInput:focus {
+  border-color: var(--green-500);
+}
+.bookmarkFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 2px;
+}
 .tabs {
   display: flex;
   gap: 6px;
