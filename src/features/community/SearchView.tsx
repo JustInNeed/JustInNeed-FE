@@ -26,7 +26,7 @@ function tabLabel(label: string, tab: SearchTab<unknown>) {
 
 export function SearchView({ input, onInputChange, q, mindmaps, profiles }: SearchViewProps) {
   const [filter, setFilter] = useState<"mindmap" | "profile">("mindmap");
-  const tab = filter === "mindmap" ? mindmaps : profiles;
+  const tab: SearchTab<unknown> = filter === "mindmap" ? mindmaps : profiles;
 
   return (
     <div className={styles.page}>
@@ -100,7 +100,20 @@ export function SearchView({ input, onInputChange, q, mindmaps, profiles }: Sear
             ))}
           </div>
         )}
+        {tab.status === "ready" && <MoreResults tab={tab} />}
       </div>
+    </div>
+  );
+}
+
+function MoreResults({ tab }: { tab: SearchTab<unknown> }) {
+  if (tab.moreError) return <InlineState kind="error" title={tab.moreError} onRetry={tab.loadMore} />;
+  if (!tab.hasNext) return null;
+  return (
+    <div className={styles.searchMore}>
+      <Button variant="secondary" disabled={tab.loadingMore} onClick={tab.loadMore}>
+        {tab.loadingMore ? "불러오는 중…" : "더 보기"}
+      </Button>
     </div>
   );
 }

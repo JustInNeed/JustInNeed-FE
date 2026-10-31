@@ -155,3 +155,159 @@ describe("/search 페이지", () => {
     expect(within(screen.getByRole("link", { name: /parisienne/ })).getByText("마인드맵 6개")).toBeInTheDocument();
   });
 });
+
+describe("/search 페이지 — 더 보기", () => {
+  const moreCard = { ...SEARCH_PAGE_MINDMAPS.mindmaps[0], mindmapId: 30, title: "다음 페이지 카드" };
+  const pageOf = (url: URL) => Number(url.searchParams.get("page"));
+  const more = () => screen.getByRole("button", { name: "더 보기" });
+  const landed = async () => {
+    await screen.findByRole("button", { name: "더 보기" });
+    await screen.findByRole("button", { name: "사용자 (2)" });
+  };
+
+  it("다음 페이지를 뒤에 붙이고, 끝나면 더 보기와 + 가 사라진다", async () => {
+    const urls = mockSearch({
+      mindmaps: (url) => ok(pageOf(url) === 0 ? SEARCH_PAGE_MINDMAPS : { mindmaps: [moreCard], hasNext: false }),
+    });
+    const { user } = renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await landed();
+    await user.click(more());
+    const links = await screen.findAllByRole("link", { name: /^(동유럽|파리 미식|#미술관|다음 페이지)/ });
+    expect(links).toHaveLength(4);
+    expect(links[3]).toHaveAttribute("href", "/sessions/30");
+    expect(screen.getByRole("button", { name: "마인드맵 (4)" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "더 보기" })).toBeNull();
+    expect(callsTo(urls, "/mindmaps").map((u) => u.search)).toEqual([
+      `?q=${encodeURIComponent("파리")}&page=0&size=10`,
+      `?q=${encodeURIComponent("파리")}&page=1&size=10`,
+    ]);
+    expect(callsTo(urls, "/profiles")).toHaveLength(1);
+  });
+
+  it("세 번째 페이지까지 이어서 부른다", async () => {
+    const urls = mockSearch({
+      mindmaps: (url) =>
+        ok(
+          pageOf(url) === 0
+            ? SEARCH_PAGE_MINDMAPS
+            : { mindmaps: [{ ...moreCard, mindmapId: 30 + pageOf(url) }], hasNext: pageOf(url) < 2 },
+        ),
+    });
+    const { user } = renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await landed();
+    await user.click(more());
+    await screen.findByRole("button", { name: "마인드맵 (4+)" });
+    await user.click(more());
+    await screen.findByRole("button", { name: "마인드맵 (5)" });
+    expect(callsTo(urls, "/mindmaps").map(pageOf)).toEqual([0, 1, 2]);
+  });
+
+  it("다음 페이지에 이미 있는 카드가 또 오면 한 번만 보여주고 수도 세지 않는다", async () => {
+    mockSearch({
+      mindmaps: (url) =>
+        ok(pageOf(url) === 0 ? SEARCH_PAGE_MINDMAPS : { mindmaps: [SEARCH_PAGE_MINDMAPS.mindmaps[2], moreCard], hasNext: false }),
+    });
+    const { user } = renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await landed();
+    await user.click(more());
+    await screen.findByRole("button", { name: "마인드맵 (4)" });
+    expect(screen.getAllByRole("link", { name: /^#미술관 #로마/ })).toHaveLength(1);
+  });
+
+  it("사용자도 탭 안에서 따로 더 불러오고 같은 사람은 한 번만 보여준다", async () => {
+    const urls = mockSearch({
+      profiles: (url) =>
+        ok(
+          pageOf(url) === 0
+            ? { ...SEARCH_PAGE_PROFILES, hasNext: true }
+            : { profiles: [SEARCH_PAGE_PROFILES.profiles[0], { userId: 203, nickname: "romantic", hashtags: ["로마"], mindmapCount: 2 }], hasNext: false },
+        ),
+    });
+    const { user } = renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await user.click(await screen.findByRole("button", { name: "사용자 (2+)" }));
+    await user.click(more());
+    expect(await screen.findByRole("link", { name: /romantic/ })).toHaveAttribute("href", "/profile/203");
+    expect(screen.getAllByRole("link", { name: /parisienne/ })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "사용자 (3)" })).toBeInTheDocument();
+    expect(callsTo(urls, "/mindmaps")).toHaveLength(1);
+  });
+
+  it("실패해도 불러온 카드와 탭 수는 남고, 다시 시도하면 같은 페이지를 부른다", async () => {
+    let nextPageCalls = 0;
+    const urls = mockSearch({
+      mindmaps: (url) => {
+        if (pageOf(url) === 0) return ok(SEARCH_PAGE_MINDMAPS);
+        nextPageCalls += 1;
+        return nextPageCalls === 1 ? fail(500, SERVER_ERROR) : ok({ mindmaps: [moreCard], hasNext: false });
+      },
+    });
+    const { user } = renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await landed();
+    await user.click(more());
+    expect(await screen.findByRole("alert")).toHaveTextContent(SERVER_ERROR);
+    expect(screen.getByRole("link", { name: /^파리 미식 지도/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "마인드맵 (3+)" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(await screen.findByRole("link", { name: /^다음 페이지/ })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("link", { name: /^파리 미식 지도/ })).toBeInTheDocument();
+    expect(callsTo(urls, "/mindmaps").map(pageOf)).toEqual([0, 1, 1]);
+  });
+
+  it("빠르게 두 번 눌러도 한 번만 부른다", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const urls = mockSearch({
+      mindmaps: async (url) => {
+        if (pageOf(url) === 0) return ok(SEARCH_PAGE_MINDMAPS);
+        await gate;
+        return ok({ mindmaps: [moreCard], hasNext: false });
+      },
+    });
+    renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await landed();
+    const button = more();
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await settle();
+    expect(callsTo(urls, "/mindmaps").map(pageOf)).toEqual([0, 1]);
+    release();
+    await screen.findByRole("button", { name: "마인드맵 (4)" });
+  });
+
+  it("더 불러오는 사이 검색어가 바뀌면 늦게 온 응답을 버리고, 새 검색어는 첫 페이지부터 이어 간다", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const roma = { ...SEARCH_PAGE_MINDMAPS.mindmaps[1], mindmapId: 40, title: "로마 카드" };
+    const urls = mockSearch({
+      mindmaps: async (url) => {
+        const q = url.searchParams.get("q");
+        if (q === "로마") {
+          return ok(pageOf(url) === 0 ? { mindmaps: [roma], hasNext: true } : { mindmaps: [{ ...roma, mindmapId: 41, title: "로마 다음" }], hasNext: false });
+        }
+        if (pageOf(url) === 0) return ok(SEARCH_PAGE_MINDMAPS);
+        await gate;
+        return ok({ mindmaps: [moreCard], hasNext: false });
+      },
+    });
+    const { user } = renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await landed();
+    await user.click(more());
+    typeQuery("로마");
+    expect(await screen.findByRole("link", { name: /^로마 카드/ })).toBeInTheDocument();
+    release();
+    await settle();
+    expect(screen.queryByRole("link", { name: /^다음 페이지/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "마인드맵 (1+)" })).toBeInTheDocument();
+    await user.click(more());
+    expect(await screen.findByRole("link", { name: /^로마 다음/ })).toBeInTheDocument();
+    expect(callsTo(urls, "/mindmaps").filter((u) => u.searchParams.get("q") === "로마").map(pageOf)).toEqual([0, 1]);
+  });
+});

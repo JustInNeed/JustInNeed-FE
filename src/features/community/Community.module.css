@@ -507,6 +507,11 @@
   overflow-y: auto;
   padding: 0 28px 28px;
 }
+.searchMore {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
 .mapGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));

@@ -7,7 +7,17 @@ import { toFeedPost, toSearchedProfile, UNNAMED_USER, URL_ONLY_CARD_TITLE } from
 import type { SearchTab } from "./useSearchTab";
 
 function tab<T>(items: T[], overrides: Partial<SearchTab<T>> = {}): SearchTab<T> {
-  return { status: "ready", items, hasNext: false, error: null, retry: vi.fn(), ...overrides };
+  return {
+    status: "ready",
+    items,
+    hasNext: false,
+    error: null,
+    retry: vi.fn(),
+    loadMore: vi.fn(),
+    loadingMore: false,
+    moreError: null,
+    ...overrides,
+  };
 }
 
 const MINDMAPS = tab(SEARCH_PAGE_MINDMAPS.mindmaps.map(toFeedPost), { hasNext: true });
@@ -148,5 +158,30 @@ describe("SearchView — 상태", () => {
     await user.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(retry).toHaveBeenCalledOnce();
     expect(MINDMAPS.retry).not.toHaveBeenCalled();
+  });
+});
+
+describe("SearchView — 더 보기", () => {
+  it("뒤에 더 있는 탭에만 더 보기가 있고, 누르면 그 탭만 더 불러온다", async () => {
+    const { user } = renderSearch();
+    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    expect(MINDMAPS.loadMore).toHaveBeenCalledOnce();
+    await user.click(tabButton("사용자 (2)"));
+    expect(screen.queryByRole("button", { name: "더 보기" })).toBeNull();
+    expect(PROFILES.loadMore).not.toHaveBeenCalled();
+  });
+
+  it("더 불러오는 동안에는 버튼을 막는다", () => {
+    renderSearch({ mindmaps: { ...MINDMAPS, loadingMore: true } });
+    expect(screen.getByRole("button", { name: "불러오는 중…" })).toBeDisabled();
+  });
+
+  it("더 보기가 실패해도 카드는 그대로 두고, 다시 시도하면 다시 불러온다", async () => {
+    const loadMore = vi.fn();
+    const { user } = renderSearch({ mindmaps: { ...MINDMAPS, moreError: "서버 오류", loadMore } });
+    expect(screen.getByRole("alert")).toHaveTextContent("서버 오류");
+    expect(screen.getByRole("link", { name: /^파리 미식 지도/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(loadMore).toHaveBeenCalledOnce();
   });
 });
