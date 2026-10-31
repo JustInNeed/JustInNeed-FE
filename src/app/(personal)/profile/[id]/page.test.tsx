@@ -37,7 +37,10 @@ function serveProfile(profile = API_PROFILE) {
 }
 
 describe("/profile/[id] 페이지", () => {
-  beforeEach(() => mockRouter.replace.mockClear());
+  beforeEach(() => {
+    mockRouter.replace.mockClear();
+    server.use(http.get(`${API}/community/profiles/:userId/shared-sessions`, () => ok({ sessions: [], hasNext: false })));
+  });
 
   it("주소의 id 로 프로필과 카드를 받아 보여준다", async () => {
     const calls = serveProfile();
@@ -112,7 +115,6 @@ describe("/profile/[id] 페이지", () => {
   });
 
   it("카드를 못 받아도 프로필은 보이고 마인드맵 탭만 다시 시도한다", async () => {
-    const { pinnedSessions } = API_PROFILE;
     server.use(
       http.get(`${API}/community/profiles/7`, () => ok(API_PROFILE)),
       http.get(`${API}/community/profiles/7/mindmaps`, () => fail(500, SERVER_ERROR)),
@@ -122,7 +124,7 @@ describe("/profile/[id] 페이지", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("마인드맵을 불러오지 못했어요.");
     expect(screen.getByRole("heading", { level: 1, name: "냥집사" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: `세션 (${pinnedSessions.length})` })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `세션 (${API_PROFILE.sharedSessionCount})` })).toBeInTheDocument();
 
     serveProfile();
     await user.click(within(alert).getByRole("button", { name: "다시 시도" }));

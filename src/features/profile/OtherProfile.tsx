@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import { toProfilePage } from "./toProfilePage";
-import { useCommunityProfile, useProfileCards } from "./useProfileRemote";
+import { useCommunityProfile, useProfileCards, useSharedSessions } from "./useProfileRemote";
 import { ProfileView } from "./ProfileView";
 
 /** 주소의 id 가 양의 정수가 아니면 null */
@@ -27,7 +27,8 @@ export function OtherProfile({ id }: { id: string }) {
   }, [mine, router]);
 
   const profile = useCommunityProfile(userId, enabled);
-  const { cards, section } = useProfileCards(userId, enabled);
+  const { cards, section: mindmapsSection } = useProfileCards(userId, enabled);
+  const { items: sessions, section } = useSharedSessions(userId, enabled);
   const data = useMemo(
     () => (profile.data ? { ...toProfilePage(profile.data), mindmaps: cards } : null),
     [profile.data, cards],
@@ -41,7 +42,8 @@ export function OtherProfile({ id }: { id: string }) {
       loading={mine || profile.loading}
       error={profile.error}
       onRetry={profile.refetch}
-      mindmapsSection={section}
+      mindmapsSection={mindmapsSection}
+      sessionsSection={{ ...section, sessions }}
     />
   );
 }

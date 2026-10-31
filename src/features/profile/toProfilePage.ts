@@ -9,7 +9,7 @@ import type {
   MyProfileCard,
   MyProfileHashtag,
   MyProfileResponse,
-  SessionListItem,
+  MySession,
   UpdateMyProfileRequest,
 } from "@/lib/api";
 import { formatDate, hostFromUrl, LINK_ONLY_SESSION_TITLE, withHash } from "@/lib/format";
@@ -50,7 +50,8 @@ export function toHashtagIds(selected: string[], hashtags: CommunityProfileMindm
   };
 }
 
-function toSession(session: CommunitySharedSession): SessionListItem {
+/** 공개 세션 응답 → 세션 카드 값 */
+export function toSession(session: CommunitySharedSession): MySession {
   return {
     id: session.id,
     title: session.title ?? "",
@@ -61,10 +62,11 @@ function toSession(session: CommunitySharedSession): SessionListItem {
     isFavorite: false,
     isPublic: true,
     tags: session.tags,
+    isPinned: session.isPinned,
   };
 }
 
-/** GET /community/profiles/{userId} → 카드를 뺀 프로필 화면 데이터 */
+/** GET /community/profiles/{userId} → 카드 · 세션을 뺀 프로필 화면 데이터. 카드 · 세션 탭 목록은 따로 받는다 */
 export function toProfilePage(res: CommunityProfileResponse): ProfilePageData {
   return {
     profile: {
@@ -77,10 +79,11 @@ export function toProfilePage(res: CommunityProfileResponse): ProfilePageData {
       interests: res.interests.map(withHash),
       topTags: res.topHashtags.map((t) => ({ tag: withHash(t.name), count: t.nodeCount, isPublic: true })),
       visibility: res.visibility === "CONTENT" ? "full" : "url",
-      pinnedSessionIds: res.pinnedSessions.map((s) => s.id),
+      pinnedSessionIds: [],
     },
     mindmaps: [],
-    sessions: res.pinnedSessions.map(toSession),
+    sessions: [],
+    sharedSessionCount: res.sharedSessionCount,
     exploringCount: res.exploringCount,
     likedByMe: res.likedByMe,
     following: res.following,
@@ -138,11 +141,12 @@ export function toProfileMindmap(card: CommunityProfileCard): ProfileMindmap {
     exploring: card.exploringCount,
     exploringByMe: card.exploringByMe,
     when: formatDate(card.lastActivityAt),
+    isPinned: card.isPinned,
   };
 }
 
 export function toMyProfileMindmap(card: MyProfileCard): ProfileMindmap {
-  return { ...toProfileMindmap(card), isPublic: card.isPublic, isPinned: card.isPinned };
+  return { ...toProfileMindmap(card), isPublic: card.isPublic };
 }
 
 const onCircle = (radius: number, index: number, total: number) => {

@@ -41,7 +41,7 @@ export interface CommunityProfileHashtag {
   nodeCount: number;
 }
 
-/** 프로필에 공유한 세션. URL_ONLY 에선 title 키가 없고, CONTENT 에선 title · markdown · sources 가 더 온다 */
+/** 프로필의 공개 세션. URL_ONLY 에선 title 키가 없고, CONTENT 에선 title · markdown · sources 가 더 온다 */
 export interface CommunitySharedSession {
   id: number;
   title?: string;
@@ -51,6 +51,13 @@ export interface CommunitySharedSession {
   endedAt: string | null;
   pageCount: number;
   status: SessionStatus;
+  isPinned: boolean;
+}
+
+/** 핀고정이 먼저, 그다음 최신순 */
+export interface CommunitySharedSessionPage {
+  sessions: CommunitySharedSession[];
+  hasNext: boolean;
 }
 
 /** GET /community/profiles/{userId} — 없거나 탈퇴한 회원이면 404 */
@@ -60,13 +67,13 @@ export interface CommunityProfileResponse {
   bio: string | null;
   visibility: CommunityProfileVisibility;
   totalNodeCount: number;
+  sharedSessionCount: number; // 공개 세션 수
   topHashtags: CommunityProfileHashtag[];
   interests: string[];
   likeCount: number;
   likedByMe: boolean;
   following: boolean;
   exploringCount: number;
-  pinnedSessions: CommunitySharedSession[];
 }
 
 /** 프로필 마인드맵 카드 (카드 = 공개 세션 1개). URL_ONLY 에선 title · snippet · relatedUrls[].title 이 null */
@@ -85,6 +92,7 @@ export interface CommunityProfileCard {
   exploringByMe: boolean;
   lastActivityAt: string;
   relatedUrls: { title: string | null; url: string }[];
+  isPinned: boolean;
 }
 
 export interface CommunityProfileCardPage {
@@ -153,7 +161,6 @@ export interface MySessionPage {
 /** 내 프로필 마인드맵 카드 — title · snippet 이 항상 온다 */
 export interface MyProfileCard extends CommunityProfileCard {
   isPublic: boolean;
-  isPinned: boolean;
 }
 
 /** 핀고정이 먼저, 그다음 최신순 */

@@ -106,7 +106,7 @@ export interface ProfileMindmap extends Omit<CommunityPost, "user"> {
   likedByMe?: boolean;
   bookmarkId?: number | null;
   exploringByMe?: boolean;
-  /** 내 프로필 카드의 공개 · 핀 상태 */
+  /** 내 프로필 카드의 공개 상태 */
   isPublic?: boolean;
   isPinned?: boolean;
 }
@@ -116,11 +116,12 @@ export interface ProfilePageData {
   profile: ProfileData;
   /** 마인드맵 탭 카드 (표시 순서) */
   mindmaps: ProfileMindmap[];
-  /** profile.pinnedSessionIds 의 세션. 다른 사용자는 세션 탭에, 내 프로필은 프로필 수정의 고정 목록에 쓴다 */
+  /** profile.pinnedSessionIds 의 세션 — 프로필 수정의 고정 목록. 세션 탭 목록은 따로 받아 다른 사용자는 비어 있다 */
   sessions: SessionListItem[];
-  /** 내 프로필 — 내 해시태그 전체 (프로필 수정의 공개 설정) · 공개 세션 수 */
+  /** 공개 세션 수 */
+  sharedSessionCount: number;
+  /** 내 프로필 — 내 해시태그 전체 (프로필 수정의 공개 설정) */
   hashtags?: ProfileHashtagSetting[];
-  sharedSessionCount?: number;
   /** 다른 사용자 프로필의 "나도 탐색중" 수 */
   exploringCount?: number;
   /** 다른 사용자 프로필에 내가 누른 좋아요 · 팔로우 */

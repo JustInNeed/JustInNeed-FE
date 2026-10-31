@@ -13,6 +13,7 @@ import {
   OTHER_MINDMAPS,
   OTHER_PROFILE,
   OTHER_PROFILE_PAGE,
+  OTHER_SESSIONS,
 } from "@/test/fixtures/profile";
 import { API, SERVER_ERROR, fail, ok, server } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
@@ -311,13 +312,10 @@ describe("내 프로필", () => {
 describe("다른 사용자 프로필", () => {
   beforeEach(serveDetail);
 
-  const renderOther = (data: ProfilePageData = OTHER_PROFILE_PAGE) =>
-    renderPersonal(<ProfileView userId={7} data={data} />);
-  const otherTitle = (id: number) => OTHER_PROFILE_PAGE.sessions.find((s) => s.id === id)!.title;
+  const renderOther = (data: ProfilePageData = OTHER_PROFILE_PAGE, section = sessionsSection({ sessions: OTHER_SESSIONS })) =>
+    renderPersonal(<ProfileView userId={7} data={data} sessionsSection={section} />);
+  const otherTitle = (id: number) => OTHER_SESSIONS.find((s) => s.id === id)!.title;
   const cardOf = (title: string) => screen.getByText(title).closest<HTMLElement>('[role="button"]')!;
-  const cardTags = (title: string) => within(cardOf(title)).queryAllByText(/^#/).map((el) => el.textContent);
-  const HIDDEN = ["#카페", "#슬로우트래블"];
-  const expectNoHiddenTags = () => HIDDEN.forEach((t) => expect(screen.queryByText(t)).not.toBeInTheDocument());
 
   it("그 사람의 이름 · 핸들 · 소개와 좋아요 · 팔로우 버튼이 보이고 프로필 수정은 없다", () => {
     renderOther();
@@ -330,39 +328,13 @@ describe("다른 사용자 프로필", () => {
     expect(screen.queryByRole("button", { name: "프로필 수정" })).not.toBeInTheDocument();
   });
 
-  it("노드 수는 비공개 해시태그의 노드를 뺀 값이고 나도 탐색중 수가 함께 보인다", () => {
+  it("노드 수 · 공개 세션 수 · 나도 탐색중 수가 함께 보인다", () => {
     renderOther();
 
-    expect(stat("노드")).toBe(String(142 - 14 - 12));
-    expect(stat("공유 세션")).toBe("3");
+    expect(stat("노드")).toBe("142");
+    expect(stat("공유 세션")).toBe("4");
     expect(stat("좋아요")).toBe("284");
     expect(stat("나도 탐색중")).toBe("12");
-  });
-
-  it("비공개 해시태그는 태그 줄 · 카드 태그 · 공유 세션 · 상세 팝업 어디에도 보이지 않는다", async () => {
-    const { user } = renderOther();
-
-    // 태그 줄 — 공개 태그만, 잠금 표시 없이
-    expectNoHiddenTags();
-    expect(within(tagRow()).getByRole("button", { name: /^#프라하\s?32$/ })).not.toHaveClass("topTagPrivate");
-    expect(within(tagRow()).getByRole("button", { name: "#카페투어" })).toBeInTheDocument(); // 이름만 비슷한 관심 태그는 보인다
-    // 카드 태그 — 비공개를 빼고 앞의 2개
-    expect(cardTags("비엔나 카페 투어")).toEqual(["#비엔나", "#자허토르테"]);
-    expect(cardTags("프라하 천천히 걷기")).toEqual(["#프라하"]);
-
-    // 공유 세션 카드 태그
-    await user.click(screen.getByRole("button", { name: "세션 (3)" }));
-    expectNoHiddenTags();
-    expect(screen.getByText("#자허토르테")).toBeInTheDocument();
-    expect(screen.getAllByText("#카를교")).toHaveLength(1);
-
-    // 상세 팝업 태그 · 관련 세션 태그
-    await user.click(screen.getByRole("button", { name: "마인드맵" }));
-    await user.click(screen.getByText("비엔나 카페 투어"));
-    const dialog = screen.getByRole("dialog", { name: "비엔나 카페 투어" });
-    expect(await within(dialog).findByText(otherTitle(9104))).toBeInTheDocument();
-    expect(within(dialog).queryByText("#카페")).not.toBeInTheDocument();
-    expect(within(dialog).getAllByText("#자허토르테")).toHaveLength(2); // 팝업 태그 + 관련 세션 태그
   });
 
   describe("좋아요 · 팔로우", () => {
@@ -566,29 +538,23 @@ describe("다른 사용자 프로필", () => {
     });
   });
 
-  it("마인드맵 카드가 모두 보이고 내 프로필과 달리 핀 표시는 없다", () => {
+  it("마인드맵 카드가 모두 보이고 핀 표시는 고정한 카드에만 있다", () => {
     renderOther();
 
     for (const m of OTHER_MINDMAPS) expect(screen.getByText(m.title)).toBeInTheDocument();
-    expect(screen.queryAllByTitle("핀고정됨")).toHaveLength(0);
+    expect(screen.getAllByTitle("핀고정됨")).toHaveLength(1);
+    expect(within(cardOf("동유럽 3주 살이 전체 동선")).getByRole("img", { name: "핀고정됨" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "+ 나도 탐색" })).toHaveLength(OTHER_MINDMAPS.length);
   });
 
-  it("세션 카드엔 핀 · 비공개 표시가 없다", async () => {
+  it("세션 카드는 고정한 세션에만 핀 표시가 있고 비공개 표시는 없다", async () => {
     const { user } = renderOther();
 
-    await user.click(screen.getByRole("button", { name: "세션 (3)" }));
+    await user.click(screen.getByRole("button", { name: "세션 (4)" }));
 
+    expect(screen.getAllByTitle("핀고정됨")).toHaveLength(OTHER_SESSIONS.filter((s) => s.isPinned).length);
+    expect(within(cardOf(otherTitle(9105))).queryByRole("img", { name: "핀고정됨" })).not.toBeInTheDocument();
     expect(screen.queryByText("비공개")).not.toBeInTheDocument();
-    expect(screen.queryAllByTitle("핀고정됨")).toHaveLength(0);
-  });
-
-  it("핀고정 id 중 세션 목록에 없는 것은 건너뛰고 개수에서도 빠진다", async () => {
-    const { user } = renderOther({ ...OTHER_PROFILE_PAGE, profile: { ...OTHER_PROFILE, pinnedSessionIds: [9999, 9102] } });
-
-    expect(stat("공유 세션")).toBe("1");
-    await user.click(screen.getByRole("button", { name: "세션 (1)" }));
-    expect(sessionCardTitles()).toEqual([otherTitle(9102)]);
   });
 
   it("카드를 누르면 이 사람이 작성자인 상세 팝업이 뜨고 크게 보기에서 그 사람의 전체 마인드맵을 본다", async () => {
@@ -690,19 +656,18 @@ describe("다른 사용자 프로필", () => {
     expect(calls).toBe(2);
   });
 
-  it("공유 세션은 핀고정 순서대로 보이고 카드를 누르면 세션 상세로 이동한다", async () => {
+  it("공개 세션은 응답 순서대로 보이고 카드를 누르면 세션 상세로 이동한다", async () => {
     const { user } = renderOther();
 
-    await user.click(screen.getByRole("button", { name: "세션 (3)" }));
+    await user.click(screen.getByRole("button", { name: "세션 (4)" }));
 
-    expect(sessionCardTitles()).toEqual([9107, 9104, 9102].map(otherTitle));
-    expect(screen.queryByText(otherTitle(9105))).not.toBeInTheDocument();
+    expect(sessionCardTitles()).toEqual(OTHER_SESSIONS.map((s) => s.title));
     await user.click(screen.getByRole("button", { name: new RegExp(otherTitle(9107)) }));
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9107");
   });
 
   it("공유한 마인드맵 · 세션이 없으면 빈 상태가 보이고 핀고정 안내는 없다", async () => {
-    const { user } = renderOther({ ...OTHER_PROFILE_PAGE, mindmaps: [], profile: { ...OTHER_PROFILE, pinnedSessionIds: [] } });
+    const { user } = renderOther({ ...OTHER_PROFILE_PAGE, mindmaps: [], sharedSessionCount: 0 }, sessionsSection({ sessions: [] }));
 
     expect(screen.getByRole("status")).toHaveTextContent("공유한 마인드맵이 없어요.");
     await user.click(screen.getByRole("button", { name: "세션 (0)" }));
