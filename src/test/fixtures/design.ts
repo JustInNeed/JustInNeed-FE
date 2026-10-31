@@ -84,7 +84,7 @@ export const MINDMAP_NODE_URLS: Record<string, string> = {
   reddit: "https://www.reddit.com/r/travel/",
 };
 
-// ---------- 홈 마인드맵 필터 · 검색 (목: 홈 집계 API 생기면 교체) ----------
+// ---------- 홈 마인드맵 필터 · 검색 ----------
 
 /** 노드를 마지막으로 본 시점과 연결된 해시태그 (# 없는 raw) */
 export const MINDMAP_NODE_META: Record<string, { seen: Exclude<GraphPeriod, "all">; tags: string[] }> = {

@@ -71,7 +71,8 @@ export function searchGraph(
 }
 
 /**
- * 노드와 가장 잘 맞는 세션 — 노드 라벨이 담긴 태그 +2, 노드 해시태그와 같은 태그 +1. 맞는 게 없으면 undefined.
+ * 노드와 가장 잘 맞는 세션 — 노드의 sessionId 가 목록에 있으면 그 세션.
+ * 없으면 노드 라벨이 담긴 태그 +2, 노드 해시태그와 같은 태그 +1 로 고른다. 맞는 게 없으면 undefined.
  * 동점이면 목록 앞쪽(최근) 세션.
  */
 export function relatedSession(
@@ -79,8 +80,12 @@ export function relatedSession(
   nodeMeta: Record<string, GraphNodeMeta>,
   sessions: SessionListItem[],
 ): SessionListItem | undefined {
+  const meta = nodeMeta[node.id];
+  const linked = sessions.find((s) => s.id === meta?.sessionId);
+  if (linked) return linked;
+
   const label = node.label.replace(/\s/g, "").toLowerCase();
-  const nodeTags = new Set((nodeMeta[node.id]?.tags ?? []).map((t) => t.toLowerCase()));
+  const nodeTags = new Set((meta?.tags ?? []).map((t) => t.toLowerCase()));
   let best: SessionListItem | undefined;
   let bestScore = 0;
   for (const session of sessions) {
