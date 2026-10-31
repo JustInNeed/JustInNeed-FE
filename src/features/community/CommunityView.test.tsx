@@ -365,6 +365,15 @@ describe("CommunityView — 검색바", () => {
     expect(urls.map((u) => u.searchParams.get("q"))).toEqual(["파리올", "파리올", "파리올"]);
   });
 
+  it("입력 직후에는 요청을 보내지 않는다", async () => {
+    const urls = mockSearch();
+    renderCommunity();
+    fireEvent.change(searchInput(), { target: { value: "파리" } });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(urls).toHaveLength(0);
+    await (await panel()).findByText("프로필 추천");
+  });
+
   it("검색어 앞의 # 과 공백은 빼고 찾는다", async () => {
     const urls = mockSearch();
     const { user } = renderCommunity();
