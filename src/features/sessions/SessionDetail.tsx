@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Card, Button, Markdown, InlineState } from "@/components/ui";
+import { Icon, Card, Button, HashChip, Markdown, InlineState } from "@/components/ui";
 import { Mindmap } from "@/components/mindmap/Mindmap";
 import {
   ApiError,
@@ -356,7 +356,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
               ) : (
                 <h1 className={styles.title}>{detail.title}</h1>
               )}
-              {!editing && (
+              {!editing && detail.isOwner && (
                 <button
                   onClick={toggleFavorite}
                   className={styles.favBtn}
@@ -391,102 +391,110 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
             </div>
 
             <div className={styles.tags}>
-              {detail.tags.map((h, i) => (
-                <span
-                  key={h}
-                  draggable
-                  onDragStart={(e) => {
-                    setTagDragIdx(i);
-                    e.dataTransfer.effectAllowed = "move";
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    if (tagDragIdx !== null && tagDragIdx !== i) setTagOverIdx(i);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    onTagDrop(i);
-                  }}
-                  onDragEnd={() => {
-                    setTagDragIdx(null);
-                    setTagOverIdx(null);
-                  }}
-                  className={styles.tagDrag}
-                  style={{
-                    opacity: tagDragIdx === i ? 0.4 : 1,
-                    outline: tagOverIdx === i && tagDragIdx !== i ? "2px solid var(--green-700)" : "none",
-                  }}
-                  title="드래그로 순서 변경"
-                >
-                  {withHash(h)}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeTag(h);
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    draggable={false}
-                    className={styles.tagRemove}
-                    aria-label={`${withHash(h)} 삭제`}
-                    title="삭제"
-                  >
-                    <Icon name="x" size={10} />
-                  </button>
-                </span>
-              ))}
-              <div className={styles.tagPickerWrap}>
-                <button onClick={() => setShowTagPicker((v) => !v)} className={styles.addTag}>
-                  <Icon name="plus" size={10} /> 추가
-                </button>
-                {showTagPicker && (
-                  <AddHashtagPopover
-                    existing={detail.tags}
-                    onClose={() => setShowTagPicker(false)}
-                    onAdd={addTag}
-                  />
-                )}
-              </div>
+              {detail.isOwner ? (
+                <>
+                  {detail.tags.map((h, i) => (
+                    <span
+                      key={h}
+                      draggable
+                      onDragStart={(e) => {
+                        setTagDragIdx(i);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (tagDragIdx !== null && tagDragIdx !== i) setTagOverIdx(i);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        onTagDrop(i);
+                      }}
+                      onDragEnd={() => {
+                        setTagDragIdx(null);
+                        setTagOverIdx(null);
+                      }}
+                      className={styles.tagDrag}
+                      style={{
+                        opacity: tagDragIdx === i ? 0.4 : 1,
+                        outline: tagOverIdx === i && tagDragIdx !== i ? "2px solid var(--green-700)" : "none",
+                      }}
+                      title="드래그로 순서 변경"
+                    >
+                      {withHash(h)}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeTag(h);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        draggable={false}
+                        className={styles.tagRemove}
+                        aria-label={`${withHash(h)} 삭제`}
+                        title="삭제"
+                      >
+                        <Icon name="x" size={10} />
+                      </button>
+                    </span>
+                  ))}
+                  <div className={styles.tagPickerWrap}>
+                    <button onClick={() => setShowTagPicker((v) => !v)} className={styles.addTag}>
+                      <Icon name="plus" size={10} /> 추가
+                    </button>
+                    {showTagPicker && (
+                      <AddHashtagPopover
+                        existing={detail.tags}
+                        onClose={() => setShowTagPicker(false)}
+                        onAdd={addTag}
+                      />
+                    )}
+                  </div>
+                </>
+              ) : (
+                detail.tags.map((h) => <HashChip key={h} label={withHash(h)} size="sm" />)
+              )}
             </div>
           </div>
 
-          <div className={styles.actions}>
-            {editing ? (
-              <>
-                {autoSave.status !== "idle" && (
-                  <span className={styles.autoSave} role="status">
-                    <Icon name={autoSave.status === "saving" ? "refresh" : "check"} size={13} stroke={2.2} />
-                    {autoSave.status === "saving" || autoSave.at === null
-                      ? "저장 중…"
-                      : `저장됨 · ${savedAgo(autoSave.at, now)}`}
-                  </span>
-                )}
-                <Button variant="secondary" onClick={() => requestLeave({ kind: "cancel" })}>
-                  취소
-                </Button>
-                <Button variant="primary" onClick={saveEdit}>
-                  <Icon name="check" size={14} /> 저장
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="secondary"
-                  active={detail.isPublic}
-                  onClick={togglePublic}
-                  title={detail.isPublic ? "공개 — 클릭하여 비공개로" : "비공개 — 클릭하여 공개로"}
-                >
-                  <Icon name={detail.isPublic ? "unlock" : "lock"} size={14} />
-                  {detail.isPublic ? "공개" : "비공개"}
-                </Button>
-                <Button variant="secondary" onClick={enterEdit}>
-                  <Icon name="edit" size={14} /> 편집
-                </Button>
-                <Button variant="secondary" onClick={onDelete} aria-label="삭제">
-                  <Icon name="trash" size={14} />
-                </Button>
-              </>
-            )}
-          </div>
+          {detail.isOwner && (
+            <div className={styles.actions}>
+              {editing ? (
+                <>
+                  {autoSave.status !== "idle" && (
+                    <span className={styles.autoSave} role="status">
+                      <Icon name={autoSave.status === "saving" ? "refresh" : "check"} size={13} stroke={2.2} />
+                      {autoSave.status === "saving" || autoSave.at === null
+                        ? "저장 중…"
+                        : `저장됨 · ${savedAgo(autoSave.at, now)}`}
+                    </span>
+                  )}
+                  <Button variant="secondary" onClick={() => requestLeave({ kind: "cancel" })}>
+                    취소
+                  </Button>
+                  <Button variant="primary" onClick={saveEdit}>
+                    <Icon name="check" size={14} /> 저장
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    active={detail.isPublic}
+                    onClick={togglePublic}
+                    title={detail.isPublic ? "공개 — 클릭하여 비공개로" : "비공개 — 클릭하여 공개로"}
+                  >
+                    <Icon name={detail.isPublic ? "unlock" : "lock"} size={14} />
+                    {detail.isPublic ? "공개" : "비공개"}
+                  </Button>
+                  <Button variant="secondary" onClick={enterEdit}>
+                    <Icon name="edit" size={14} /> 편집
+                  </Button>
+                  <Button variant="secondary" onClick={onDelete} aria-label="삭제">
+                    <Icon name="trash" size={14} />
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
