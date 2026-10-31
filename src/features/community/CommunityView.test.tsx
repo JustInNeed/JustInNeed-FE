@@ -200,6 +200,16 @@ describe("CommunityView — 카드 반응", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("나도 탐색중을 끄면 exploring: false 를 보낸다", async () => {
+    const bodies = onPatch("/community/mindmaps/13/exploring", () => ok({ exploringCount: 4, exploringByMe: false }));
+    const { user } = renderCommunity();
+    const exploring = button(feedCard(REACTED_CARD.title!), "나도 탐색중");
+    await user.click(exploring);
+    await waitFor(() => expect(exploring).toHaveTextContent("나도 탐색중 4"));
+    expect(exploring).toHaveAttribute("aria-pressed", "false");
+    expect(bodies).toEqual([{ exploring: false }]);
+  });
+
   it.each([
     ["좋아요", "like", "28"],
     ["북마크", "bookmark", "9"],
