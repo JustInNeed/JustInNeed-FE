@@ -124,6 +124,23 @@ describe("세션 마인드맵 만들기 — 연결선", () => {
     expect(has(treeEdges, "root:2", PARIS_UNIT.mona)).toBe(false);
   });
 
+  it("primary 가 true 여도 related 연결선은 배치 깊이에 쓰지 않는다", () => {
+    const map: SessionMindmap = {
+      nodes: [node("r", "root"), node("t", "topic"), node("u", "unit")],
+      edges: [
+        { from: "r", to: "t", type: "hierarchy", primary: true },
+        { from: "t", to: "u", type: "hierarchy", primary: true },
+        { from: "r", to: "u", type: "related", primary: true },
+      ],
+    };
+    const { edges, treeEdges } = buildSessionMindmap(map, TITLE);
+    expect(treeEdges).toEqual([
+      ["r", "t"],
+      ["t", "u"],
+    ]);
+    expect(edges).toHaveLength(3);
+  });
+
   it("같은 두 노드를 잇는 연결선은 종류 · 방향이 달라도 하나만 그린다", () => {
     const { edges } = buildSessionMindmap(PARIS_MINDMAP, TITLE);
     const between = edges.filter(([a, b]) => [a, b].sort().join() === [PARIS_UNIT.mona, PARIS_UNIT.night].sort().join());
