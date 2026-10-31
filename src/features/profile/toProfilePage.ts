@@ -33,6 +33,19 @@ export function titleFromTags(tags: string[]): string {
   return tags.map(withHash).join(" ") || LINK_ONLY_SESSION_TITLE;
 }
 
+/**
+ * 고른 태그('#' 포함) → hashtagId. 서버 태그 행처럼 대소문자를 가리지 않는다.
+ * 대소문자만 다른 두 칩은 같은 id 라 하나로 모은다 (서버는 중복 id 를 400 으로 거절). 행이 없는 태그는 missing 으로 돌려준다
+ */
+export function toHashtagIds(selected: string[], hashtags: CommunityProfileMindmap["hashtags"]) {
+  const key = (tag: string) => withHash(tag).toLowerCase();
+  const idOf = new Map(hashtags.map((t) => [key(t.name), t.hashtagId]));
+  return {
+    ids: [...new Set(selected.flatMap((t) => idOf.get(key(t)) ?? []))],
+    missing: selected.filter((t) => !idOf.has(key(t))),
+  };
+}
+
 function toSession(session: CommunitySharedSession): SessionListItem {
   return {
     id: session.id,
