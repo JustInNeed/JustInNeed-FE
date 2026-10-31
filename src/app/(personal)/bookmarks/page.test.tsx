@@ -5,6 +5,7 @@ import {
   bookmarkMindmap,
   BOOKMARK_BUNDLES_PAGE,
   BOOKMARK_MINDMAPS_PAGE,
+  BOOKMARK_NOW,
   BOOKMARK_ORIGINAL,
   CARD_BOOKMARK,
   MIXED_BOOKMARK,
@@ -68,6 +69,14 @@ describe("/bookmarks 페이지 — 목록", () => {
       "/community/me/bookmarks/hashtag-bundles?page=0&size=10",
       "/community/me/bookmarks/mindmaps?page=0&size=10",
     ]);
+  });
+
+  it("저장 시점은 지금 시각과 savedAt 으로 계산해 보여준다", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(BOOKMARK_NOW);
+    mockLists();
+    renderPersonal(<BookmarksPage />);
+    expect(await screen.findByText("by wanderlust · 저장 4일 전")).toBeInTheDocument();
+    expect(screen.getByText("by foodtrip · 저장 1일 전")).toBeInTheDocument();
   });
 
   it("저장한 것이 없으면 탭마다 빈 안내를 보여준다", async () => {
@@ -413,7 +422,7 @@ describe("/bookmarks 페이지 — 되돌리기", () => {
 
   it("되돌린 뒤 더 보기를 눌러도 중복 없이 이어 받는다", async () => {
     const rows = titled(13);
-    mockLists({ mindmaps: (url) => pagedMindmaps(rows)(url) });
+    const urls = mockLists({ mindmaps: (url) => pagedMindmaps(rows)(url) });
     server.use(
       http.delete(`${COMMUNITY}/bookmarks/:id`, ({ params }) => {
         rows.splice(rows.findIndex((r) => String(r.bookmarkId) === params.id), 1);
@@ -433,6 +442,35 @@ describe("/bookmarks 페이지 — 되돌리기", () => {
     await user.click(screen.getByRole("button", { name: "더 보기" }));
     await screen.findByRole("button", { name: "마인드맵 (13)" });
     expect(mapTitles()).toEqual(["카드 5", "카드 0", "카드 1", "카드 2", "카드 3", "카드 4", "카드 6", "카드 7", "카드 8", "카드 9", "카드 10", "카드 11", "카드 12"]);
+    // 해제 · 되돌리기로 칸이 그대로라 앞 페이지를 다시 받지 않는다
+    expect(urls.filter((u) => u.pathname.endsWith("/mindmaps")).map(pageOf)).toEqual([0, 1]);
+  });
+
+  it("되돌린 항목이 앞 페이지를 다시 받을 때 또 와도 한 번만 보인다", async () => {
+    const rows = titled(13);
+    mockLists({ mindmaps: (url) => pagedMindmaps(rows)(url) });
+    server.use(
+      http.delete(`${COMMUNITY}/bookmarks/:id`, ({ params }) => {
+        rows.splice(rows.findIndex((r) => String(r.bookmarkId) === params.id), 1);
+        return ok(null);
+      }),
+      http.patch(`${COMMUNITY}/mindmaps/:id/bookmark`, () => {
+        rows.unshift(bookmarkMindmap({ bookmarkId: 900, title: "카드 1" }));
+        return ok({ bookmarkCount: 1, bookmarkId: 900 });
+      }),
+    );
+    const { user } = renderPersonal(<BookmarksPage />);
+    await screen.findByRole("button", { name: "마인드맵 (10+)" });
+    await removeCard(user, "카드 0");
+    await undoButton();
+    await removeCard(user, "카드 1");
+    await user.click(await undoButton());
+    await waitFor(() => expect(mapTitles()[0]).toBe("카드 1"));
+
+    // 한 칸 빠진 채라 앞 페이지부터 다시 받는다 — 되돌린 900 이 그 안에 있다
+    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await screen.findByRole("button", { name: "마인드맵 (12)" });
+    expect(mapTitles()).toEqual(["카드 1", ...Array.from({ length: 11 }, (_, i) => `카드 ${i + 2}`)]);
   });
 });
 
