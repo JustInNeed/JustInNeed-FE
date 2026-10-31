@@ -27,6 +27,8 @@ export interface MindmapProps {
   showHint?: boolean;
   /** radial: 기존 force 배치(기본) · tree: 루트에서 왼쪽→오른쪽 계층 배치(고정). 마운트 시점 기준이라 바꿀 땐 key 로 다시 마운트 */
   layout?: "radial" | "tree";
+  /** 계층형 깊이를 정하는 부모 → 자식 연결선. 없으면 edges 전체 */
+  treeEdges?: MindmapEdge[];
 }
 
 export function Mindmap({
@@ -43,11 +45,12 @@ export function Mindmap({
   matchIds,
   showHint = true,
   layout = "radial",
+  treeEdges,
 }: MindmapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [nodes, setNodes] = useState<SimNode[]>(() => {
     const ns = initialNodes.map((n) => ({ ...n, vx: 0, vy: 0 }));
-    return layout === "tree" ? treeLayout(ns, edges, width, height) : ns;
+    return layout === "tree" ? treeLayout(ns, treeEdges ?? edges, width, height) : ns;
   });
   const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
   const [drag, setDrag] = useState<{ id: string } | null>(null);

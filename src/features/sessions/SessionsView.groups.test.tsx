@@ -10,7 +10,7 @@ import {
   sessionById,
   tagGroup,
 } from "@/test/fixtures/sessions";
-import { API, fail, ok, server } from "@/test/msw/server";
+import { API, SERVER_ERROR, fail, ok, server } from "@/test/msw/server";
 import { mockRouter } from "@/test/router";
 import { renderSessions, serveSessions } from "./sessionsViewTestUtils";
 
@@ -86,21 +86,28 @@ describe("해시태그 그룹 보기", () => {
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9001");
   });
 
-  it("그룹 안의 수집 중 · 분석 대기 · 분석 중 · 분석 실패 카드는 상태만 보이고 눌러도 상세로 이동하지 않는다", async () => {
-    groups = [tagGroup(4, "일본", ["일본"], 0, STATUS_SESSIONS)];
+  it("그룹 안의 수집 중 · 분석 대기 · 분석 중 카드는 상태만 보이고 눌러도 상세로 이동하지 않는다, 실패 카드만 열린다", async () => {
+    // 완료 전 세션은 해시태그가 없어 그룹에 들어오지 않는다. 카드 규칙이 목록과 같은지만 본다
+    groups = [{ ...tagGroup(4, "일본", ["일본"], 0, []), sessions: STATUS_SESSIONS.slice(0, 4) }];
     const { user } = await renderGroups();
     const japan = within(sectionOf("일본"));
     expect(japan.getByText("4개 세션")).toBeInTheDocument();
 
-    const labels = ["수집 중", "분석 대기", "분석 중", "분석 실패"];
-    for (const [i, s] of STATUS_SESSIONS.slice(0, 4).entries()) {
-      const c = japan.getByRole("heading", { level: 3, name: s.title }).closest<HTMLElement>(".card")!;
+    const cardOf = (title: string) => japan.getByRole("heading", { level: 3, name: title }).closest<HTMLElement>(".card")!;
+    const labels = ["수집 중", "분석 대기", "분석 중"];
+    for (const [i, s] of STATUS_SESSIONS.slice(0, 3).entries()) {
+      const c = cardOf(s.title);
       expect(within(c).getByText(labels[i])).toBeInTheDocument();
       expect(within(c).queryByText(`${s.pageCount}개 URL`)).not.toBeInTheDocument();
       expect(c).toHaveAttribute("aria-disabled", "true");
       await user.click(c);
     }
     expect(mockRouter.push).not.toHaveBeenCalled();
+
+    const failed = cardOf(STATUS_SESSIONS[3].title);
+    expect(within(failed).getByText("분석 실패")).toBeInTheDocument();
+    await user.click(failed);
+    expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9104");
   });
 
   it("그룹 안 카드의 별을 누르면 PATCH { isFavorite } 를 보낸다", async () => {
@@ -134,11 +141,11 @@ describe("해시태그 그룹 보기", () => {
     server.use(
       http.get(`${API}/tag-groups`, () => {
         attempt += 1;
-        return attempt === 1 ? fail(500, "그룹을 불러오지 못했어요.") : ok(TAG_GROUPS);
+        return attempt === 1 ? fail(500, SERVER_ERROR) : ok(TAG_GROUPS);
       }),
     );
     const { user } = await renderGroups();
-    expect(screen.getByRole("alert")).toHaveTextContent("그룹을 불러오지 못했어요.");
+    expect(screen.getByRole("alert")).toHaveTextContent(SERVER_ERROR);
 
     await user.click(screen.getByRole("button", { name: "다시 시도" }));
     await waitFor(() => expect(sections()).toHaveLength(3));
@@ -185,7 +192,7 @@ describe("해시태그 그룹 만들기", () => {
   });
 
   it("GET /sessions/hashtags 가 실패하면 후보 없이 열리고 다시 열어 달라는 안내 토스트가 뜬다", async () => {
-    server.use(http.get(`${API}/sessions/hashtags`, () => fail(500, "서버 오류가 발생했습니다.")));
+    server.use(http.get(`${API}/sessions/hashtags`, () => fail(500, SERVER_ERROR)));
     const { user } = await renderGroups();
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
 

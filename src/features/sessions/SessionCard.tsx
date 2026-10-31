@@ -10,24 +10,26 @@ export interface SessionCardProps {
 }
 
 export function SessionCard({ session, onClick, onToggleFavorite }: SessionCardProps) {
-  // 분석 완료 전(수집 중 · 분석 대기 · 분석 중) · 분석 실패 세션은 볼 요약이 없어 상태만 보이고 상세로 열지 않는다
+  // 분석 완료 전(수집 중 · 분석 대기 · 분석 중) 세션은 볼 요약이 없어 상태만 보이고 상세로 열지 않는다.
+  // 분석 실패 세션은 재분석 버튼이 상세에 있어 열 수 있다
   const completed = session.status === "COMPLETED";
+  const openable = completed || session.status === "FAILED";
   const duration = completed ? formatDuration(session.startedAt, session.endedAt) : null;
   return (
     <div
-      className={completed ? styles.card : `${styles.card} ${styles.locked}`}
-      onClick={completed ? onClick : undefined}
+      className={openable ? styles.card : `${styles.card} ${styles.locked}`}
+      onClick={openable ? onClick : undefined}
       onKeyDown={(e) => {
         // 카드 자체에 포커스가 있을 때만 (별 버튼의 Enter 는 버튼이 처리)
-        if (!completed || e.target !== e.currentTarget) return;
+        if (!openable || e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onClick?.();
         }
       }}
-      role={completed ? "button" : undefined}
-      tabIndex={completed ? 0 : undefined}
-      aria-disabled={completed ? undefined : true}
+      role={openable ? "button" : undefined}
+      tabIndex={openable ? 0 : undefined}
+      aria-disabled={openable ? undefined : true}
     >
       <div className={styles.top}>
         <h3 className={styles.title}>{session.title}</h3>

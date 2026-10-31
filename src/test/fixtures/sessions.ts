@@ -1,7 +1,17 @@
 // 세션 목록 · 상세 · 해시태그 그룹 화면용 API 응답 픽스처.
 // 디자인 시안 세션(design.ts 의 MOCK_SESSIONS)을 앞에 두고, 무한 스크롤 테스트용으로 세션을 더 붙인다.
 // 모양은 백엔드 DTO 기준 — SessionListResponse · SessionDetailResponse · TagGroupResponse.
-import type { SessionDetail, SessionListItem, SessionPage, SessionUpdateRequest, TagGroup } from "@/lib/api";
+import type {
+  SessionDetail,
+  SessionListItem,
+  SessionMindmap,
+  SessionMindmapCitation,
+  SessionMindmapEdge,
+  SessionMindmapNode,
+  SessionPage,
+  SessionUpdateRequest,
+  TagGroup,
+} from "@/lib/api";
 import { MOCK_SESSIONS } from "./design";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -31,17 +41,17 @@ function extra(
   };
 }
 
-/** 아직 분석 중인 세션 — 종료 시각 없음 */
+/** 아직 분석 중인 세션 — 수집이 끝나 종료 시각은 있고, 페이지 수 · 해시태그는 분석이 끝나야 채워진다 */
 export const ANALYZING_SESSION: SessionListItem = {
   id: 9009,
   title: "빈 클래식 공연 예매",
   startedAt: "2026-04-18T20:10:00",
-  endedAt: null,
-  pageCount: 4,
+  endedAt: "2026-04-18T20:55:00",
+  pageCount: 0,
   status: "ANALYZING",
   isFavorite: false,
   isPublic: false,
-  tags: ["빈", "오페라", "공연"],
+  tags: [],
 };
 
 /** 해시태그가 6개인 세션 — 카드에는 앞의 4개만 보인다 */
@@ -86,51 +96,54 @@ export function sessionById(id: number): SessionListItem {
   return found;
 }
 
-/** 상태별 세션 (#일본) + 분석 완료 로마 — 서버 정렬처럼 진행 중(수집 중 · 분석 대기 · 분석 중)이 먼저, 나머지는 끝난 시각 최근 순 */
+/**
+ * 상태별 세션 + 분석 완료 로마 — 서버 정렬처럼 진행 중(수집 중 · 분석 대기 · 분석 중)이 먼저, 나머지는 끝난 시각 최근 순.
+ * 분석이 끝나야 페이지 수 · 해시태그가 채워지므로 완료 전 · 실패 세션은 0개 · 없음. 종료 시각은 분석을 시작할 때 정해진다
+ */
 export const STATUS_SESSIONS: SessionListItem[] = [
   {
     id: 9101,
     title: "도쿄 라멘 맛집 찾기",
     startedAt: "2026-04-28T19:00:00",
     endedAt: null,
-    pageCount: 3,
+    pageCount: 0,
     status: "COLLECTING",
     isFavorite: false,
     isPublic: false,
-    tags: ["일본", "도쿄", "라멘"],
+    tags: [],
   },
   {
     id: 9102,
     title: "오사카 유니버설 입장권",
     startedAt: "2026-04-28T13:10:00",
-    endedAt: "2026-04-28T13:52:00",
-    pageCount: 6,
+    endedAt: null,
+    pageCount: 0,
     status: "READY",
     isFavorite: false,
     isPublic: false,
-    tags: ["일본", "오사카"],
+    tags: [],
   },
   {
     id: 9103,
     title: "교토 료칸 비교",
     startedAt: "2026-04-27T22:00:00",
     endedAt: "2026-04-27T22:41:00",
-    pageCount: 9,
+    pageCount: 0,
     status: "ANALYZING",
     isFavorite: false,
     isPublic: false,
-    tags: ["일본", "교토", "료칸"],
+    tags: [],
   },
   {
     id: 9104,
     title: "후쿠오카 야타이 정리",
     startedAt: "2026-04-27T10:00:00",
     endedAt: "2026-04-27T10:35:00",
-    pageCount: 5,
+    pageCount: 0,
     status: "FAILED",
     isFavorite: true,
     isPublic: false,
-    tags: ["일본", "후쿠오카"],
+    tags: [],
   },
   sessionById(9001),
 ];
@@ -177,9 +190,10 @@ export const TAG_GROUPS: TagGroup[] = [
 
 // ---------- 세션 상세 (GET /sessions/{id}) ----------
 
-/** 로마 세션 — 본문은 `##` 소제목만, 출처 3개(하나는 제목 없음) */
+/** 로마 세션 — 본문은 `##` 소제목부터, 출처 3개(방문 시각 오름차순, 하나는 제목 · 방문 시각 없음) */
 export const ROME_DETAIL: SessionDetail = {
   ...sessionById(9001),
+  isOwner: true,
   summary: {
     markdown: [
       "## 한눈에 보기",
@@ -201,28 +215,30 @@ export const ROME_DETAIL: SessionDetail = {
       title: "콜로세움 통합권 예매 안내",
       url: "https://www.coopculture.it/en/colosseo-e-shop.cfm",
       excerpt: "통합권 하나로 콜로세움, 포로 로마노, 팔라티노 언덕을 24시간 안에 둘러볼 수 있습니다.",
+      visitedAt: "2026-04-26T21:16:30.512",
     },
     {
       title: "바티칸 박물관 예약",
       url: "https://tickets.museivaticani.va/home",
       excerpt: "온라인으로 예약하면 tickets.museivaticani.va 에서 받은 QR 로 줄 없이 들어갑니다.",
+      visitedAt: "2026-04-26T21:40:02.938",
     },
     {
       title: "",
       url: "https://blog.naver.com/romefood/223456",
       excerpt: "트라스테베레 골목의 카초 에 페페 맛집 다섯 곳을 정리했습니다.",
+      visitedAt: null,
     },
   ],
 };
 
-/** 파리 세션 — 본문이 `# 제목` 으로 시작, 제목에 파일 이름으로 못 쓰는 '/' 가 있음, 공개 */
+/** 파리 세션 — 제목에 파일 이름으로 못 쓰는 '/' 가 있음, 공개 */
 export const PARIS_DETAIL: SessionDetail = {
   ...sessionById(9003),
   isPublic: true,
+  isOwner: true,
   summary: {
     markdown: [
-      "# 파리 미술관 4곳 비교",
-      "",
       "## 루브르",
       "- 모나리자는 오전 9시 개장 직후가 한산하다.",
       "",
@@ -231,13 +247,148 @@ export const PARIS_DETAIL: SessionDetail = {
     ].join("\n"),
   },
   sources: [
-    { title: "루브르 박물관", url: "https://www.louvre.fr/en/visit", excerpt: "루브르는 화요일에 휴관합니다." },
-    { title: "오르세 미술관", url: "https://www.musee-orsay.fr/en", excerpt: "목요일은 야간 개장합니다." },
+    {
+      title: "루브르 박물관",
+      url: "https://www.louvre.fr/en/visit",
+      excerpt: "루브르는 화요일에 휴관합니다.",
+      visitedAt: "2026-04-24T10:06:12.104",
+    },
+    {
+      title: "오르세 미술관",
+      url: "https://www.musee-orsay.fr/en",
+      excerpt: "목요일은 야간 개장합니다.",
+      visitedAt: "2026-04-24T10:51:47.220",
+    },
   ],
 };
 
-/** 아직 분석 중 — 요약 · 출처 없음 */
-export const ANALYZING_DETAIL: SessionDetail = { ...ANALYZING_SESSION, summary: null, sources: [] };
+/** 다른 사람의 공개 세션 — 내 세션이 아니라 즐겨찾기는 항상 false */
+export const FOREIGN_DETAIL: SessionDetail = { ...PARIS_DETAIL, isOwner: false, isFavorite: false };
+
+/** 본문에서 제목을 빼기 전에 고쳐 저장한 세션 — 본문 맨 앞에 화면 제목과 다른 옛 `# 제목` 이 남아 있다 */
+export const OLD_EDITED_DETAIL: SessionDetail = {
+  ...sessionById(9004),
+  isOwner: true,
+  summary: { markdown: "# 유레일패스 비교 (옛 제목)\n\n## 결론\n\n- 일정이 짧으면 개별 구매가 낫다." },
+  sources: [
+    {
+      title: "유레일패스 가격표",
+      url: "https://www.eurail.com/en/eurail-passes",
+      excerpt: "유럽 33개국을 오가는 통합 패스입니다.",
+      visitedAt: "2026-04-23T19:15:00.000",
+    },
+  ],
+};
+
+/** 작성자가 '원문 URL만 공개'일 때 다른 사용자가 받는 응답 (제목 · 본문 · 발췌 · 방문 시각 없음) */
+export const LINK_ONLY_DETAIL: SessionDetail = {
+  ...FOREIGN_DETAIL,
+  title: "",
+  summary: null,
+  sources: FOREIGN_DETAIL.sources!.map(({ url }) => ({ title: null, url, excerpt: null, visitedAt: null })),
+};
+
+/** 완료 전 · 실패 세션 상세 — 요약 · 출처 없음 */
+const beforeAnalysis = (session: SessionListItem): SessionDetail => ({
+  ...session,
+  summary: null,
+  sources: [],
+  isOwner: true,
+});
+
+export const COLLECTING_DETAIL = beforeAnalysis(STATUS_SESSIONS[0]);
+export const READY_DETAIL = beforeAnalysis(STATUS_SESSIONS[1]);
+export const ANALYZING_DETAIL = beforeAnalysis(ANALYZING_SESSION);
+export const FAILED_DETAIL = beforeAnalysis(STATUS_SESSIONS[3]);
+
+// ---------- 세션 마인드맵 (GET /sessions/{id}/mindmap) ----------
+
+const rootNode = (id: string, keyword: string, childCount: number): SessionMindmapNode => ({
+  id,
+  type: "root",
+  keyword,
+  score: 3.999,
+  childCount,
+  citation: null,
+});
+const topicNode = (id: string, keyword: string, childCount: number): SessionMindmapNode => ({
+  id,
+  type: "topic",
+  keyword,
+  score: 3.1,
+  childCount,
+  citation: null,
+});
+const unitNode = (id: string, keyword: string, citation: SessionMindmapCitation): SessionMindmapNode => ({
+  id,
+  type: "unit",
+  keyword,
+  score: 2.7,
+  childCount: 0,
+  citation,
+});
+const child = (from: string, to: string): SessionMindmapEdge => ({ from, to, type: "hierarchy", primary: true });
+
+/** 유닛 노드 id — 페이지 URL + 문단 id */
+export const ROME_UNIT = {
+  /** 발췌문에 키워드 '통합권' 이 있다 */
+  pass: `${ROME_DETAIL.sources[0].url}?lang=ko&seat=a|b#u3t0hv`,
+  /** 발췌문에 키워드 '사전 예약' 이 없다 */
+  ticket: `${ROME_DETAIL.sources[1].url}#udzovb6`,
+  /** 출처 제목이 없다, 발췌문에 키워드 '카초 에 페페' 가 있다 */
+  food: `${ROME_DETAIL.sources[2].url}#u1ic2mq4`,
+};
+
+/** 로마 세션 — 루트 1개, 주제 3개, 주제마다 유닛 1개 */
+export const ROME_MINDMAP: SessionMindmap = {
+  nodes: [
+    rootNode("root:1", "로마 여행", 3),
+    topicNode("topic:0", "콜로세움", 1),
+    topicNode("topic:1", "바티칸", 1),
+    topicNode("topic:2", "먹거리", 1),
+    unitNode(ROME_UNIT.pass, "통합권", ROME_DETAIL.sources[0] as SessionMindmapCitation),
+    unitNode(ROME_UNIT.ticket, "사전 예약", ROME_DETAIL.sources[1] as SessionMindmapCitation),
+    unitNode(ROME_UNIT.food, "카초 에 페페", ROME_DETAIL.sources[2] as SessionMindmapCitation),
+  ],
+  edges: [
+    child("root:1", "topic:0"),
+    child("root:1", "topic:1"),
+    child("root:1", "topic:2"),
+    child("topic:0", ROME_UNIT.pass),
+    child("topic:1", ROME_UNIT.ticket),
+    child("topic:2", ROME_UNIT.food),
+  ],
+};
+
+/** 유닛 id 에 URL 에 들어갈 수 있는 온갖 문자가 있다 */
+export const PARIS_UNIT = {
+  mona: `https://www.louvre.fr/en/visit?a=1&b=[2]|"3"#u'1`,
+  night: "https://www.musee-orsay.fr/en/a b,c?x=<y>#p%202",
+};
+
+/** 파리 세션 — 루트 2개, 다른 주제의 유닛끼리 related 연결, 주 부모가 아닌 부모로 가는 지름길(primary 아님) */
+export const PARIS_MINDMAP: SessionMindmap = {
+  nodes: [
+    rootNode("root:1", "루브르", 1),
+    rootNode("root:2", "오르세", 1),
+    topicNode("topic:0", "모나리자", 1),
+    topicNode("topic:1", "야간 개장", 1),
+    unitNode(PARIS_UNIT.mona, "화요일", PARIS_DETAIL.sources[0] as SessionMindmapCitation),
+    unitNode(PARIS_UNIT.night, "목요일", PARIS_DETAIL.sources[1] as SessionMindmapCitation),
+  ],
+  edges: [
+    child("root:1", "topic:0"),
+    child("root:2", "topic:1"),
+    child("topic:0", PARIS_UNIT.mona),
+    child("topic:1", PARIS_UNIT.night),
+    { from: "root:2", to: PARIS_UNIT.mona, type: "hierarchy", primary: false },
+    { from: PARIS_UNIT.mona, to: PARIS_UNIT.night, type: "related", primary: false },
+    { from: PARIS_UNIT.night, to: PARIS_UNIT.mona, type: "related", primary: false },
+  ],
+};
+
+/** 분석 결과가 없을 때 */
+export const EMPTY_MINDMAP: SessionMindmap = { nodes: [], edges: [] };
 
 /** PATCH /sessions/{id} 를 백엔드처럼 반영한 응답 (보낸 필드만 수정) */
 export function applySessionUpdate(detail: SessionDetail, body: SessionUpdateRequest): SessionDetail {
@@ -249,4 +400,10 @@ export function applySessionUpdate(detail: SessionDetail, body: SessionUpdateReq
     ...(body.tags !== undefined && { tags: body.tags }),
     ...(body.editedMarkdown !== undefined && { summary: { markdown: body.editedMarkdown } }),
   };
+}
+
+/** 목록의 분석 완료 세션에 보낸 PATCH 의 응답 */
+export function patchedSession(id: number, body: SessionUpdateRequest): SessionDetail {
+  const detail = { ...sessionById(id), summary: { markdown: "## 요약" }, sources: [], isOwner: true };
+  return applySessionUpdate(detail, body);
 }

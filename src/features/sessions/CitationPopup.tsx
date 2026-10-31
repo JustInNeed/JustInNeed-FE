@@ -1,38 +1,34 @@
 import type { ReactNode } from "react";
 import { Icon, Button } from "@/components/ui";
-import type { SessionDetail } from "@/lib/api";
 import { hostFromUrl } from "@/lib/format";
-import type { MindmapNode } from "@/lib/types";
+import type { SessionMapNode } from "./buildSessionMindmap";
 import styles from "./CitationPopup.module.css";
 
 export interface CitationPopupProps {
-  node: MindmapNode | undefined;
-  session: SessionDetail;
+  node: SessionMapNode | undefined;
   onClose: () => void;
 }
 
-export function CitationPopup({ node, session, onClose }: CitationPopupProps) {
+export function CitationPopup({ node, onClose }: CitationPopupProps) {
   if (!node) return null;
 
-  const sources = session.sources ?? [];
-  const sourceIdx = node.id.startsWith("u") ? parseInt(node.id.slice(1), 10) : -1;
-  const src = sourceIdx >= 0 ? sources[sourceIdx] : null;
-  const highlight = node.label || "";
+  const { citation } = node;
+  const keyword = node.label.trim();
 
-  // 출처의 실제 발췌문을 미리보기 본문으로 사용
+  // 노드의 근거 원문을 미리보기 본문으로 사용. 루트 · 주제 노드는 원문이 없다
   const paras: string[] = [];
-  if (src?.excerpt) paras.push(src.excerpt);
+  if (citation?.excerpt) paras.push(citation.excerpt);
   if (paras.length === 0) paras.push("이 노드에 연결된 본문 미리보기가 없습니다.");
 
   const renderHighlighted = (text: string): ReactNode => {
-    if (!highlight || !text.includes(highlight)) return text;
-    const parts = text.split(highlight);
+    if (!citation?.excerpt || !keyword || !text.includes(keyword)) return text;
+    const parts = text.split(keyword);
     return parts.flatMap((p, i) =>
       i < parts.length - 1
         ? [
             p,
             <mark key={i} className={styles.mark}>
-              {highlight}
+              {keyword}
             </mark>,
           ]
         : [p],
@@ -51,11 +47,11 @@ export function CitationPopup({ node, session, onClose }: CitationPopupProps) {
       </div>
 
       <div className={styles.titleWrap}>
-        <div className={styles.title}>{src?.title || node.label}</div>
-        {src && (
+        <div className={styles.title}>{citation?.title || node.label}</div>
+        {citation && (
           <div className={styles.srcRow}>
-            <span className={styles.favicon}>{hostFromUrl(src.url).slice(0, 2).toUpperCase()}</span>
-            <span className={styles.srcHost}>{hostFromUrl(src.url)}</span>
+            <span className={styles.favicon}>{hostFromUrl(citation.url).slice(0, 2).toUpperCase()}</span>
+            <span className={styles.srcHost}>{hostFromUrl(citation.url)}</span>
           </div>
         )}
       </div>
@@ -69,8 +65,8 @@ export function CitationPopup({ node, session, onClose }: CitationPopupProps) {
       </div>
 
       <div className={styles.footer}>
-        {src ? (
-          <a href={src.url} target="_blank" rel="noreferrer" className={styles.footerLink}>
+        {citation ? (
+          <a href={citation.url} target="_blank" rel="noreferrer" className={styles.footerLink}>
             <Button variant="secondary" className={styles.footerBtn}>
               <Icon name="link" size={11} /> 원문 열기
             </Button>

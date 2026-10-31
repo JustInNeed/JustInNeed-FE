@@ -85,9 +85,11 @@ export interface SessionPage {
 }
 
 export interface Source {
-  title: string;
+  /** 작성자가 원문 URL만 공개했으면 다른 사용자에게 title · excerpt · visitedAt 은 null */
+  title: string | null;
   url: string;
-  excerpt: string;
+  excerpt: string | null;
+  visitedAt: string | null; // ISO datetime (KST, 타임존 없음). 모르면 null
 }
 
 export interface SessionSummary {
@@ -99,7 +101,40 @@ export interface SessionSummary {
 /** 상세용 — 요약/출처 포함. */
 export interface SessionDetail extends SessionListItem {
   summary: SessionSummary | null;
-  sources: Source[];
+  sources: Source[]; // 방문 시각 오름차순
+  /** 내 세션이면 true, 다른 사람의 공개 세션이면 false (읽기 전용) */
+  isOwner: boolean;
+}
+
+/** 노드의 근거 원문 — 유닛 노드에만 있다 */
+export interface SessionMindmapCitation {
+  title: string;
+  url: string;
+  excerpt: string;
+  visitedAt: string | null;
+}
+
+export interface SessionMindmapNode {
+  /** 유닛 노드는 `https://x/y#pid` 처럼 URL 문자가 그대로 들어간다 */
+  id: string;
+  type: "root" | "topic" | "unit";
+  keyword: string;
+  score: number | null;
+  childCount: number;
+  citation: SessionMindmapCitation | null;
+}
+
+export interface SessionMindmapEdge {
+  from: string;
+  to: string;
+  type: "hierarchy" | "related";
+  primary: boolean;
+}
+
+/** GET /sessions/{id}/mindmap — 루트는 최대 3개, 분석 결과가 없으면 빈 목록 */
+export interface SessionMindmap {
+  nodes: SessionMindmapNode[];
+  edges: SessionMindmapEdge[];
 }
 
 /** 모든 필드 optional — 보낸 필드만 수정. */

@@ -2,22 +2,25 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Card, Button, Markdown, InlineState } from "@/components/ui";
+import { Icon, Card, Button, HashChip, Markdown, InlineState } from "@/components/ui";
 import { Mindmap } from "@/components/mindmap/Mindmap";
 import {
   ApiError,
   deleteSession,
   getSession,
+  getSessionMindmap,
   updateSession,
   type SessionDetail as SessionDetailType,
+  type SessionMindmap,
   type SessionUpdateRequest,
 } from "@/lib/api";
 import { useApi } from "@/lib/hooks/useApi";
 import { useToast } from "@/lib/app/ToastContext";
 import { formatDateTime, formatDuration, formatTime, hostFromUrl, STATUS_LABEL, withHash } from "@/lib/format";
-import { buildSessionMindmap } from "./buildSessionMindmap";
+import { MAP_HEIGHT, MAP_WIDTH, buildSessionMindmap } from "./buildSessionMindmap";
 import { CitationPopup } from "./CitationPopup";
 import { SessionEditor } from "./SessionEditor";
+import { SessionStatusView } from "./SessionStatusView";
 import { AddHashtagPopover } from "./AddHashtagPopover";
 import { LeaveConfirmModal } from "./LeaveConfirmModal";
 import styles from "./SessionDetail.module.css";
@@ -40,9 +43,15 @@ function savedAgo(at: number, now: number): string {
   return `${Math.floor(min / 60)}시간 전`;
 }
 
-/** LLM 줄글이 이미 `# 제목` 으로 시작하면 내보낼 때 제목을 또 붙이지 않는다. */
+/** 본문에서 제목을 빼기 전에 고쳐 저장한 본문은 아직 `# 옛 제목` 으로 시작한다. */
 function startsWithHeading(markdown: string): boolean {
   return /^#\s/.test(markdown.trimStart());
+}
+
+/** 내보낼 때는 현재 제목을 붙이므로 본문 맨 앞의 `# 옛 제목` 줄은 뗀다 */
+function withoutTitleHeading(markdown: string): string {
+  if (!startsWithHeading(markdown)) return markdown;
+  return markdown.trimStart().replace(/^[^\n]*\n?/, "").trimStart();
 }
 
 export interface SessionDetailProps {
@@ -73,6 +82,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   // 마인드맵 정렬 — 배치 변경 · 자동 정렬(옮긴 위치 초기화) 모두 key 로 다시 마운트
   const [mapLayout, setMapLayout] = useState<MapLayout>("radial");
   const [mapResetKey, setMapResetKey] = useState(0);
+  // 마인드맵은 탭을 처음 열 때 한 번만 받는다 — 분석이 끝난 세션의 마인드맵은 바뀌지 않는다
+  const [mapOpened, setMapOpened] = useState(false);
+  const mapQuery = useApi<SessionMindmap>(() => getSessionMindmap(sessionId), [sessionId], { enabled: mapOpened });
 
   // edit mode — 제목 + 본문(markdown) 편집
   const [editing, setEditing] = useState(false);
@@ -143,9 +155,10 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     if (data) setDetail(data);
   }, [data]);
 
-  const { nodes, edges } = useMemo(
-    () => (detail ? buildSessionMindmap(detail) : { nodes: [], edges: [] }),
-    [detail],
+  const title = detail?.title ?? "";
+  const sessionMap = useMemo(
+    () => (mapQuery.data ? buildSessionMindmap(mapQuery.data, title) : null),
+    [mapQuery.data, title],
   );
 
   const blocked = !validId
@@ -182,6 +195,32 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   }
   if (!detail) return null;
 
+  const onDelete = async () => {
+    if (!confirm("이 세션을 삭제할까요?")) return;
+    try {
+      await deleteSession(detail.id);
+      router.push("/sessions");
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "삭제에 실패했습니다. 다시 시도해 주세요.");
+    }
+  };
+
+  if (detail.status !== "COMPLETED") {
+    return (
+      <SessionStatusView
+        sessionId={detail.id}
+        title={detail.title}
+        status={detail.status}
+        isOwner={detail.isOwner}
+        onDelete={onDelete}
+        onReanalyzed={setDetail}
+      />
+    );
+  }
+
+  // 작성자가 원문 URL만 공개하면 다른 사용자에게 제목 · 본문 · 마인드맵이 오지 않는다 (COM-1-1)
+  const linkOnly = !detail.isOwner && !detail.summary;
+
   // 낙관적 업데이트 + 서버 동기화. 실패하면 되돌리고 false
   const persist = async (body: SessionUpdateRequest, optimistic: Partial<SessionDetailType>): Promise<boolean> => {
     const prev = detail;
@@ -207,16 +246,6 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const removeTag = (tag: string) => {
     const next = detail.tags.filter((t) => t !== tag);
     persist({ tags: next }, { tags: next });
-  };
-
-  const onDelete = async () => {
-    if (!confirm("이 세션을 삭제할까요?")) return;
-    try {
-      await deleteSession(detail.id);
-      router.push("/sessions");
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "삭제에 실패했습니다. 다시 시도해 주세요.");
-    }
   };
 
   const onTagDrop = (i: number) => {
@@ -284,9 +313,13 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
 
   const copyText = async () => {
     const md = detail.summary?.markdown ?? "";
-    const body = bodyRef.current?.innerText.trim() ?? md;
+    // 본문은 화면에 보이는 글 그대로 (마크다운 기호 없이)
+    const shown = bodyRef.current;
+    const oldTitle = startsWithHeading(md) ? shown?.querySelector("h1")?.innerText.trim() : null;
+    const text = shown?.innerText.trim() ?? withoutTitleHeading(md);
+    const body = oldTitle ? text.slice(oldTitle.length).trimStart() : text;
     try {
-      await navigator.clipboard.writeText(startsWithHeading(md) ? body : `${detail.title}\n\n${body}`);
+      await navigator.clipboard.writeText(`# ${detail.title}\n\n${body}`);
       toast.success("줄글을 복사했어요.");
     } catch {
       toast.error("복사하지 못했어요. 다시 시도해 주세요.");
@@ -294,7 +327,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   };
   const downloadMarkdown = () => {
     const md = detail.summary?.markdown ?? "";
-    const content = startsWithHeading(md) ? `${md}\n` : `# ${detail.title}\n\n${md}\n`;
+    const content = `# ${detail.title}\n\n${withoutTitleHeading(md)}\n`;
     const url = URL.createObjectURL(new Blob([content], { type: "text/markdown;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
@@ -340,9 +373,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   className={styles.titleInput}
                 />
               ) : (
-                <h1 className={styles.title}>{detail.title}</h1>
+                <h1 className={styles.title}>{linkOnly ? "원문 링크만 공개된 세션" : detail.title}</h1>
               )}
-              {!editing && (
+              {!editing && detail.isOwner && (
                 <button
                   onClick={toggleFavorite}
                   className={styles.favBtn}
@@ -371,114 +404,120 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                 <Icon name="link" size={12} /> {detail.pageCount}개 페이지
               </span>
               <span>·</span>
-              <span
-                className={styles.metaDone}
-                style={{ color: detail.status === "FAILED" ? "#c44" : "var(--green-700)" }}
-              >
+              <span className={styles.metaDone}>
                 <Icon name="dot" size={10} /> {STATUS_LABEL[detail.status]}
               </span>
             </div>
 
             <div className={styles.tags}>
-              {detail.tags.map((h, i) => (
-                <span
-                  key={h}
-                  draggable
-                  onDragStart={(e) => {
-                    setTagDragIdx(i);
-                    e.dataTransfer.effectAllowed = "move";
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    if (tagDragIdx !== null && tagDragIdx !== i) setTagOverIdx(i);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    onTagDrop(i);
-                  }}
-                  onDragEnd={() => {
-                    setTagDragIdx(null);
-                    setTagOverIdx(null);
-                  }}
-                  className={styles.tagDrag}
-                  style={{
-                    opacity: tagDragIdx === i ? 0.4 : 1,
-                    outline: tagOverIdx === i && tagDragIdx !== i ? "2px solid var(--green-700)" : "none",
-                  }}
-                  title="드래그로 순서 변경"
-                >
-                  {withHash(h)}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeTag(h);
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    draggable={false}
-                    className={styles.tagRemove}
-                    aria-label={`${withHash(h)} 삭제`}
-                    title="삭제"
-                  >
-                    <Icon name="x" size={10} />
-                  </button>
-                </span>
-              ))}
-              <div className={styles.tagPickerWrap}>
-                <button onClick={() => setShowTagPicker((v) => !v)} className={styles.addTag}>
-                  <Icon name="plus" size={10} /> 추가
-                </button>
-                {showTagPicker && (
-                  <AddHashtagPopover
-                    existing={detail.tags}
-                    onClose={() => setShowTagPicker(false)}
-                    onAdd={addTag}
-                  />
-                )}
-              </div>
+              {detail.isOwner ? (
+                <>
+                  {detail.tags.map((h, i) => (
+                    <span
+                      key={h}
+                      draggable
+                      onDragStart={(e) => {
+                        setTagDragIdx(i);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (tagDragIdx !== null && tagDragIdx !== i) setTagOverIdx(i);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        onTagDrop(i);
+                      }}
+                      onDragEnd={() => {
+                        setTagDragIdx(null);
+                        setTagOverIdx(null);
+                      }}
+                      className={styles.tagDrag}
+                      style={{
+                        opacity: tagDragIdx === i ? 0.4 : 1,
+                        outline: tagOverIdx === i && tagDragIdx !== i ? "2px solid var(--green-700)" : "none",
+                      }}
+                      title="드래그로 순서 변경"
+                    >
+                      {withHash(h)}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeTag(h);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        draggable={false}
+                        className={styles.tagRemove}
+                        aria-label={`${withHash(h)} 삭제`}
+                        title="삭제"
+                      >
+                        <Icon name="x" size={10} />
+                      </button>
+                    </span>
+                  ))}
+                  <div className={styles.tagPickerWrap}>
+                    <button onClick={() => setShowTagPicker((v) => !v)} className={styles.addTag}>
+                      <Icon name="plus" size={10} /> 추가
+                    </button>
+                    {showTagPicker && (
+                      <AddHashtagPopover
+                        existing={detail.tags}
+                        onClose={() => setShowTagPicker(false)}
+                        onAdd={addTag}
+                      />
+                    )}
+                  </div>
+                </>
+              ) : (
+                detail.tags.map((h) => <HashChip key={h} label={withHash(h)} size="sm" />)
+              )}
             </div>
           </div>
 
-          <div className={styles.actions}>
-            {editing ? (
-              <>
-                {autoSave.status !== "idle" && (
-                  <span className={styles.autoSave} role="status">
-                    <Icon name={autoSave.status === "saving" ? "refresh" : "check"} size={13} stroke={2.2} />
-                    {autoSave.status === "saving" || autoSave.at === null
-                      ? "저장 중…"
-                      : `저장됨 · ${savedAgo(autoSave.at, now)}`}
-                  </span>
-                )}
-                <Button variant="secondary" onClick={() => requestLeave({ kind: "cancel" })}>
-                  취소
-                </Button>
-                <Button variant="primary" onClick={saveEdit}>
-                  <Icon name="check" size={14} /> 저장
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="secondary"
-                  active={detail.isPublic}
-                  onClick={togglePublic}
-                  title={detail.isPublic ? "공개 — 클릭하여 비공개로" : "비공개 — 클릭하여 공개로"}
-                >
-                  <Icon name={detail.isPublic ? "unlock" : "lock"} size={14} />
-                  {detail.isPublic ? "공개" : "비공개"}
-                </Button>
-                <Button variant="secondary" onClick={enterEdit}>
-                  <Icon name="edit" size={14} /> 편집
-                </Button>
-                <Button variant="secondary" onClick={onDelete} aria-label="삭제">
-                  <Icon name="trash" size={14} />
-                </Button>
-              </>
-            )}
-          </div>
+          {detail.isOwner && (
+            <div className={styles.actions}>
+              {editing ? (
+                <>
+                  {autoSave.status !== "idle" && (
+                    <span className={styles.autoSave} role="status">
+                      <Icon name={autoSave.status === "saving" ? "refresh" : "check"} size={13} stroke={2.2} />
+                      {autoSave.status === "saving" || autoSave.at === null
+                        ? "저장 중…"
+                        : `저장됨 · ${savedAgo(autoSave.at, now)}`}
+                    </span>
+                  )}
+                  <Button variant="secondary" onClick={() => requestLeave({ kind: "cancel" })}>
+                    취소
+                  </Button>
+                  <Button variant="primary" onClick={saveEdit}>
+                    <Icon name="check" size={14} /> 저장
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    active={detail.isPublic}
+                    onClick={togglePublic}
+                    title={detail.isPublic ? "공개 — 클릭하여 비공개로" : "비공개 — 클릭하여 공개로"}
+                  >
+                    <Icon name={detail.isPublic ? "unlock" : "lock"} size={14} />
+                    {detail.isPublic ? "공개" : "비공개"}
+                  </Button>
+                  <Button variant="secondary" onClick={enterEdit}>
+                    <Icon name="edit" size={14} /> 편집
+                  </Button>
+                  <Button variant="secondary" onClick={onDelete} aria-label="삭제">
+                    <Icon name="trash" size={14} />
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
+      {!linkOnly && (
       <div className={styles.tabs}>
         <button
           onClick={() => setView("text")}
@@ -487,12 +526,16 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
           <Icon name="text" size={14} /> 줄글 보기
         </button>
         <button
-          onClick={() => setView("graph")}
+          onClick={() => {
+            setView("graph");
+            setMapOpened(true);
+          }}
           className={`${styles.tab} ${view === "graph" ? styles.tabActive : ""}`}
         >
           <Icon name="network" size={14} /> 마인드맵 보기
         </button>
       </div>
+      )}
 
       <div className={styles.content}>
         {view === "text" ? (
@@ -523,49 +566,63 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   <Markdown>{detail.summary.markdown}</Markdown>
                 </div>
               ) : (
-                <p className={styles.bodyMuted}>
-                  {detail.status === "ANALYZING"
-                    ? "아직 분석 중이에요. 잠시 후 다시 확인해주세요."
-                    : "요약 본문이 없습니다."}
-                </p>
+                <p className={styles.bodyMuted}>{linkOnly ? "작성자가 원문 링크만 공개했어요." : "요약 본문이 없습니다."}</p>
               )}
             </Card>
           )
         ) : (
           <Card style={{ padding: 0, overflow: "hidden", position: "relative" }}>
-            <div className={styles.mapToolbar}>
-              <div className={styles.segment} role="group" aria-label="마인드맵 배치">
-                {MAP_LAYOUTS.map(([value, label]) => (
-                  <button
-                    key={value}
-                    onClick={() => setMapLayout(value)}
-                    aria-pressed={mapLayout === value}
-                    className={`${styles.segBtn} ${mapLayout === value ? styles.segBtnActive : ""}`}
-                  >
-                    {label}
-                  </button>
-                ))}
+            {mapQuery.error ? (
+              <div className={styles.state}>
+                <div className={styles.stateBox}>
+                  <InlineState kind="error" title={mapQuery.error} onRetry={mapQuery.refetch} />
+                </div>
               </div>
-              <Button variant="secondary" onClick={() => setMapResetKey((k) => k + 1)} title="옮긴 노드를 처음 배치로">
-                <Icon name="refresh" size={13} /> 자동 정렬
-              </Button>
-            </div>
-            <Mindmap
-              key={`${mapLayout}-${mapResetKey}`}
-              layout={mapLayout}
-              nodes={nodes}
-              edges={edges}
-              width={1000}
-              height={680}
-              selectedId={selectedNode}
-              onSelect={(id) => setSelectedNode((cur) => (id === cur ? null : id))}
-            />
-            {selectedNode && (
-              <CitationPopup
-                node={nodes.find((n) => n.id === selectedNode)}
-                session={detail}
-                onClose={() => setSelectedNode(null)}
-              />
+            ) : !sessionMap ? (
+              <div className={styles.state}>불러오는 중…</div>
+            ) : sessionMap.nodes.length === 0 ? (
+              <div className={styles.state}>
+                <div className={styles.stateBox}>
+                  <InlineState kind="empty" title="아직 마인드맵이 없어요" description="분석 결과에 마인드맵이 없는 세션이에요." />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className={styles.mapToolbar}>
+                  <div className={styles.segment} role="group" aria-label="마인드맵 배치">
+                    {MAP_LAYOUTS.map(([value, label]) => (
+                      <button
+                        key={value}
+                        onClick={() => setMapLayout(value)}
+                        aria-pressed={mapLayout === value}
+                        className={`${styles.segBtn} ${mapLayout === value ? styles.segBtnActive : ""}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <Button variant="secondary" onClick={() => setMapResetKey((k) => k + 1)} title="옮긴 노드를 처음 배치로">
+                    <Icon name="refresh" size={13} /> 자동 정렬
+                  </Button>
+                </div>
+                <Mindmap
+                  key={`${mapLayout}-${mapResetKey}`}
+                  layout={mapLayout}
+                  nodes={sessionMap.nodes}
+                  edges={sessionMap.edges}
+                  treeEdges={sessionMap.treeEdges}
+                  width={MAP_WIDTH}
+                  height={MAP_HEIGHT}
+                  selectedId={selectedNode}
+                  onSelect={(id) => setSelectedNode((cur) => (id === cur ? null : id))}
+                />
+                {selectedNode && (
+                  <CitationPopup
+                    node={sessionMap.nodes.find((n) => n.id === selectedNode)}
+                    onClose={() => setSelectedNode(null)}
+                  />
+                )}
+              </>
             )}
           </Card>
         )}
@@ -583,7 +640,10 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   <div className={styles.favicon}>{hostFromUrl(s.url).slice(0, 2).toUpperCase()}</div>
                   <div className={styles.sourceMain}>
                     <div className={styles.sourceHost}>{s.title || hostFromUrl(s.url)}</div>
-                    <div className={styles.sourceMeta}>{hostFromUrl(s.url)}</div>
+                    <div className={styles.sourceMeta}>
+                      <span>{hostFromUrl(s.url)}</span>
+                      {s.visitedAt && <span>{formatDateTime(s.visitedAt)}</span>}
+                    </div>
                   </div>
                   <a href={s.url} target="_blank" rel="noreferrer">
                     <Button variant="ghost" style={{ width: 24, height: 24 }} aria-label="원문 열기">
