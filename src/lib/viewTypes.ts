@@ -91,8 +91,13 @@ export interface ProfileData {
 
 /** 프로필 마인드맵 탭 카드 — 작성자는 프로필 주인이라 user 는 받지 않는다 */
 export interface ProfileMindmap extends Omit<CommunityPost, "user"> {
-  /** 상세 팝업의 관련 세션 (이 마인드맵의 출처가 된 세션) */
+  /** 상세 팝업의 관련 세션 (이 마인드맵의 출처가 된 세션). 다른 사용자 프로필은 팝업을 열 때 받아 비어 있다 */
   sessions: SessionListItem[];
+  /** 다른 사용자 카드의 작성자 · 내 반응 */
+  ownerId?: number;
+  likedByMe?: boolean;
+  bookmarkId?: number | null;
+  exploringByMe?: boolean;
 }
 
 /** 프로필 화면 데이터 (내 프로필 · 다른 사용자 프로필 공통) */
@@ -106,6 +111,9 @@ export interface ProfilePageData {
   sessions: SessionListItem[];
   /** 다른 사용자 프로필의 "나도 탐색중" 수 */
   exploringCount?: number;
+  /** 다른 사용자 프로필에 내가 누른 좋아요 · 팔로우 */
+  likedByMe?: boolean;
+  following?: boolean;
 }
 
 // ---------- 홈 대시보드 ----------
@@ -196,11 +204,11 @@ export interface BookmarkedMindmap {
 }
 
 // ---------- 커뮤니티 · 북마크 · 검색 화면 데이터 ----------
-/** 작성자의 전체 마인드맵 — 노드 · 연결선과 리프 노드의 원문 URL (전체 마인드맵 보기) */
+/** 작성자의 전체 마인드맵 — 노드 · 연결선과 노드의 원문 URL (전체 마인드맵 보기) */
 export interface FullMindmap {
   nodes: MindmapNode[];
   edges: MindmapEdge[];
-  /** 노드 id → 원문 URL (연결이 1개인 리프 노드만 눌러서 열린다) */
+  /** 노드 id → 원문 URL. 연결 수와 상관없이 누르면 열린다 */
   nodeUrls: Record<string, string>;
 }
 

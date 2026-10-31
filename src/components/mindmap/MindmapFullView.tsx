@@ -19,7 +19,7 @@ export interface MindmapFullViewProps {
   highlightIds?: readonly string[];
 }
 
-/** 작성자의 전체 마인드맵을 화면 가득 보여주는 오버레이. 리프 노드를 누르면 원문 URL 을 새 탭으로 연다. */
+/** 작성자의 전체 마인드맵을 화면 가득 보여주는 오버레이. URL 이 있는 노드를 누르면 원문을 새 탭으로 연다. */
 export function MindmapFullView({ title, mindmap, onClose, highlightIds }: MindmapFullViewProps) {
   const { nodes, edges, nodeUrls } = mindmap;
   useOverlayClose(onClose);
@@ -28,18 +28,8 @@ export function MindmapFullView({ title, mindmap, onClose, highlightIds }: Mindm
   const downAt = useRef<{ x: number; y: number } | null>(null);
   const dragged = useRef(false);
 
-  const leafUrls = useMemo(() => {
-    const degree = new Map<string, number>();
-    edges.forEach(([a, b]) => {
-      degree.set(a, (degree.get(a) ?? 0) + 1);
-      degree.set(b, (degree.get(b) ?? 0) + 1);
-    });
-    const map = new Map<string, string>();
-    Object.entries(nodeUrls).forEach(([id, url]) => {
-      if (degree.get(id) === 1) map.set(id, url);
-    });
-    return map;
-  }, [edges, nodeUrls]);
+  // 연결 수로 거르지 않는다 — URL 만 공개한 마인드맵의 노드는 해시태그 여럿에 이어지거나 연결이 하나도 없다
+  const urls = useMemo(() => new Map(Object.entries(nodeUrls)), [nodeUrls]);
 
   const highlight = useMemo(() => (highlightIds?.length ? new Set(highlightIds) : undefined), [highlightIds]);
   const dimmedIds = useMemo(
@@ -49,7 +39,7 @@ export function MindmapFullView({ title, mindmap, onClose, highlightIds }: Mindm
 
   const onSelect = (id: string) => {
     if (dragged.current) return; // 노드를 끌어 옮긴 뒤의 클릭은 무시
-    const url = leafUrls.get(id);
+    const url = urls.get(id);
     if (url) {
       window.open(url, "_blank", "noopener,noreferrer");
       return;
@@ -57,8 +47,9 @@ export function MindmapFullView({ title, mindmap, onClose, highlightIds }: Mindm
     setSelected((cur) => (cur === id ? null : id));
   };
 
-  const hoveredUrl = hovered ? leafUrls.get(hovered) : undefined;
+  const hoveredUrl = hovered ? urls.get(hovered) : undefined;
   const hoveredLabel = nodes.find((n) => n.id === hovered)?.label;
+  const hoveredHost = hoveredUrl ? hostFromUrl(hoveredUrl) : undefined;
 
   return createPortal(
     <div
@@ -116,10 +107,10 @@ export function MindmapFullView({ title, mindmap, onClose, highlightIds }: Mindm
             {hoveredUrl ? (
               <>
                 <Icon name="link" size={11} stroke={2} />
-                {hoveredLabel} · {hostFromUrl(hoveredUrl)} 원문 열기
+                {hoveredLabel === hoveredHost ? hoveredHost : `${hoveredLabel} · ${hoveredHost}`} 원문 열기
               </>
             ) : (
-              "드래그로 이동 · 휠로 줌 · 리프 노드를 누르면 원문이 새 탭에서 열려요"
+              "드래그로 이동 · 휠로 줌 · URL 이 있는 노드를 누르면 원문이 새 탭에서 열려요"
             )}
           </div>
         </div>

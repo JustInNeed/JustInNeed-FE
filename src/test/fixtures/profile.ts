@@ -1,6 +1,12 @@
 // 프로필 화면 픽스처 — 디자인 시안 목 데이터(내 프로필 · 다른 사용자 wanderlust)를 ProfilePageData 로 묶은 값.
 // 화면은 props 로만 받고, 테스트는 이 값을 넘겨 "이 데이터면 이렇게 보인다"를 검증한다.
-import type { SessionListItem } from "@/lib/api";
+import type {
+  CommunityProfileCard,
+  CommunityProfileMindmap,
+  CommunityProfileResponse,
+  CommunitySharedSession,
+  SessionListItem,
+} from "@/lib/api";
 import type { FullMindmap, ProfileData, ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
 
 const session = (
@@ -118,12 +124,12 @@ export const OTHER_PROFILE: ProfileData = {
 };
 
 export const OTHER_MINDMAPS: ProfileMindmap[] = [
-  mindmap("o1", "동유럽 3주 살이 전체 동선", ["#프라하", "#동유럽", "#야간열차"], 64, 284, 91, [otherSession(9102), otherSession(9107)]),
-  mindmap("o2", "비엔나 카페 투어", ["#카페", "#비엔나", "#자허토르테"], 41, 120, 40, [otherSession(9104)]),
-  mindmap("o3", "프라하 천천히 걷기", ["#슬로우트래블", "#프라하"], 33, 98, 27, [otherSession(9107)]),
-  mindmap("o4", "야간열차 노선 정리", ["#야간열차", "#나이트젯"], 29, 77, 30, [otherSession(9102)]),
-  mindmap("o5", "부다페스트 온천 비교", ["#부다페스트", "#온천"], 22, 54, 11, [otherSession(9102)]),
-  mindmap("o6", "체코 소도시 당일치기", ["#체코", "#소도시"], 18, 31, 8, [otherSession(9105)]),
+  mindmap("101", "동유럽 3주 살이 전체 동선", ["#프라하", "#동유럽", "#야간열차"], 64, 284, 91, [otherSession(9102), otherSession(9107)]),
+  mindmap("102", "비엔나 카페 투어", ["#카페", "#비엔나", "#자허토르테"], 41, 120, 40, [otherSession(9104)]),
+  mindmap("103", "프라하 천천히 걷기", ["#슬로우트래블", "#프라하"], 33, 98, 27, [otherSession(9107)]),
+  mindmap("104", "야간열차 노선 정리", ["#야간열차", "#나이트젯"], 29, 77, 30, [otherSession(9102)]),
+  mindmap("105", "부다페스트 온천 비교", ["#부다페스트", "#온천"], 22, 54, 11, [otherSession(9102)]),
+  mindmap("106", "체코 소도시 당일치기", ["#체코", "#소도시"], 18, 31, 8, [otherSession(9105)]),
 ];
 
 export const OTHER_FULL_MINDMAP: FullMindmap = {
@@ -146,9 +152,86 @@ export const OTHER_PROFILE_PAGE: ProfilePageData = {
   exploringCount: 12,
 };
 
-/** 프로필 이동(핸들 변경) 확인용 두 번째 사용자 (@foodtrip) */
-export const ANOTHER_PROFILE_PAGE: ProfilePageData = {
-  ...OTHER_PROFILE_PAGE,
-  profile: { ...OTHER_PROFILE, name: "foodtrip", handle: "@foodtrip", avatar: "🥖", likes: 412 },
-  exploringCount: 34,
+// ---------- 커뮤니티 프로필 API 응답 (실제 응답 모양) ----------
+// API_PROFILE: URL_ONLY(기본값) 사용자. 공유 세션에 title 키가 없고 카드 title · snippet 이 null 이다.
+
+const urlOnlySession = (id: number, tags: string[]): CommunitySharedSession => ({
+  id,
+  tags,
+  urls: ["https://www.nightjet.com/en"],
+  startedAt: "2026-10-20T20:10:00",
+  endedAt: "2026-10-20T20:55:00",
+  pageCount: 4,
+  status: "COMPLETED",
+});
+
+export const API_PROFILE: CommunityProfileResponse = {
+  userId: 7,
+  nickname: "냥집사",
+  bio: "고양이와 사는 사람",
+  visibility: "URL_ONLY",
+  totalNodeCount: 22,
+  topHashtags: [
+    { hashtagId: 1, name: "놀이", nodeCount: 7 },
+    { hashtagId: 2, name: "사료", nodeCount: 5 },
+  ],
+  interests: ["놀이", "동물병원"],
+  likeCount: 2,
+  likedByMe: true,
+  following: true,
+  exploringCount: 3,
+  pinnedSessions: [urlOnlySession(31, ["놀이", "사료"]), urlOnlySession(32, [])],
+};
+
+/** CONTENT 공개 사용자의 공유 세션 — title 이 온다 */
+export const API_CONTENT_SESSION: CommunitySharedSession = { ...urlOnlySession(33, ["로마"]), title: "로마 3박 4일 동선" };
+
+export const apiCard = (over: Partial<CommunityProfileCard> = {}): CommunityProfileCard => ({
+  mindmapId: 31,
+  owner: { userId: 7, nickname: "냥집사" },
+  title: null,
+  snippet: null,
+  hashtags: ["놀이", "사료"],
+  nodeCount: 9,
+  likeCount: 2,
+  likedByMe: false,
+  bookmarkCount: 1,
+  bookmarkId: null,
+  exploringCount: 3,
+  exploringByMe: false,
+  lastActivityAt: "2026-10-31T10:00:00",
+  relatedUrls: [{ title: null, url: "https://www.nightjet.com/en" }],
+  ...over,
+});
+
+const apiNode = (nodeId: number, sourceUrl: string | null, label = sourceUrl ?? "") => ({
+  nodeId,
+  label,
+  sourceUrl,
+  content: null,
+  visibilityScope: "URL_ONLY" as const,
+});
+
+/** node:1 은 태그 둘에, node:2 는 한 태그에 이어지고, node:3 · tag:3(관심 해시태그) 은 연결이 없다 */
+export const API_MINDMAP: CommunityProfileMindmap = {
+  mindmapId: 7,
+  ownerId: 7,
+  nickname: "냥집사",
+  title: "Community mindmap",
+  hashtags: [
+    { hashtagId: 1, ownerId: 7, name: "놀이" },
+    { hashtagId: 2, ownerId: 7, name: "사료" },
+    { hashtagId: 3, ownerId: 7, name: "동물병원" },
+  ],
+  nodes: [
+    apiNode(1, "https://www.nightjet.com/en"),
+    apiNode(2, "https://www.cd.cz/en/"),
+    apiNode(3, "https://example.com/no-tags"),
+  ],
+  edges: [
+    { from: "tag:1", to: "node:1" },
+    { from: "tag:2", to: "node:1" },
+    { from: "tag:2", to: "node:2" },
+  ],
+  topHashtags: [],
 };

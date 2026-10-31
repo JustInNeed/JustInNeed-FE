@@ -32,6 +32,109 @@ export interface NicknameAvailabilityResponse {
   available: boolean;
 }
 
+// ---------- 커뮤니티 프로필 (다른 사용자 프로필 화면) ----------
+export type CommunityProfileVisibility = "URL_ONLY" | "CONTENT";
+
+export interface CommunityProfileHashtag {
+  hashtagId: number;
+  name: string; // '#' 없는 원문
+  nodeCount: number;
+}
+
+/** 프로필에 공유한 세션. URL_ONLY 에선 title 키가 없고, CONTENT 에선 title · markdown · sources 가 더 온다 */
+export interface CommunitySharedSession {
+  id: number;
+  title?: string;
+  tags: string[];
+  urls: string[];
+  startedAt: string;
+  endedAt: string | null;
+  pageCount: number;
+  status: SessionStatus;
+}
+
+/** GET /community/profiles/{userId} — 없거나 탈퇴한 회원이면 404 */
+export interface CommunityProfileResponse {
+  userId: number;
+  nickname: string | null;
+  bio: string | null;
+  visibility: CommunityProfileVisibility;
+  totalNodeCount: number;
+  topHashtags: CommunityProfileHashtag[];
+  interests: string[];
+  likeCount: number;
+  likedByMe: boolean;
+  following: boolean;
+  exploringCount: number;
+  pinnedSessions: CommunitySharedSession[];
+}
+
+/** 프로필 마인드맵 카드 (카드 = 공개 세션 1개). URL_ONLY 에선 title · snippet · relatedUrls[].title 이 null */
+export interface CommunityProfileCard {
+  mindmapId: number;
+  owner: { userId: number; nickname: string | null };
+  title: string | null;
+  snippet: string | null;
+  hashtags: string[]; // '#' 없는 원문, 비공개 태그 제외
+  nodeCount: number;
+  likeCount: number;
+  likedByMe: boolean;
+  bookmarkCount: number;
+  bookmarkId: number | null;
+  exploringCount: number;
+  exploringByMe: boolean;
+  lastActivityAt: string;
+  relatedUrls: { title: string | null; url: string }[];
+}
+
+export interface CommunityProfileCardPage {
+  mindmaps: CommunityProfileCard[];
+  hasNext: boolean;
+}
+
+/** 프로필 주인의 전체 마인드맵. 연결선 양 끝은 tag:<hashtagId> · node:<nodeId> */
+export interface CommunityProfileMindmap {
+  mindmapId: number; // 작성자 id
+  ownerId: number;
+  nickname: string | null;
+  title: string | null;
+  hashtags: { hashtagId: number; ownerId: number; name: string }[];
+  nodes: {
+    nodeId: number;
+    label: string; // URL_ONLY 에선 원문 URL 그대로
+    sourceUrl: string | null;
+    content: string | null;
+    visibilityScope: CommunityProfileVisibility;
+  }[];
+  edges: { from: string; to: string }[];
+  topHashtags: CommunityProfileHashtag[];
+}
+
+export interface ProfileLikeResponse {
+  userId: number;
+  liked: boolean;
+  likeCount: number;
+}
+
+export interface ProfileFollowResponse {
+  following: boolean;
+}
+
+export interface ProfileCardLikeResponse {
+  likeCount: number;
+  likedByMe: boolean;
+}
+
+export interface ProfileCardExploringResponse {
+  exploringCount: number;
+  exploringByMe: boolean;
+}
+
+export interface ProfileCardBookmarkResponse {
+  bookmarkCount: number;
+  bookmarkId: number | null;
+}
+
 // ---------- 분석 ----------
 /** 읽기 행동 4분류 — 화면 표기는 영어 (Deep Reading / Reading / Scanning / Idle) */
 export type ReadingLevel = "DEEP_READING" | "READING" | "SCANNING" | "IDLE";

@@ -228,6 +228,28 @@
   font-size: 13px;
   color: var(--ink-500);
 }
+.stateInline {
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-500);
+}
+.notFound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 24px;
+}
+.mapMore {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 28px;
+}
+.mapMoreLoading {
+  font-size: 13px;
+  color: var(--ink-500);
+}
 .exploreBtn {
   margin-left: auto;
   font-size: 11px;
@@ -239,6 +261,13 @@
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 .exploreBtnOn {
+  color: var(--green-300);
+}
+.cardAction {
+  color: inherit;
+  font: inherit;
+}
+.cardActionOn {
   color: var(--green-300);
 }
 

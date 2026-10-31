@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui";
 import type { SessionListItem } from "@/lib/api";
-import { formatDateTime, formatDuration, STATUS_LABEL, withHash } from "@/lib/format";
+import { formatDateTime, formatDuration, LINK_ONLY_SESSION_TITLE, STATUS_LABEL, withHash } from "@/lib/format";
 import type { CommunityPost } from "@/lib/viewTypes";
 import { MindmapPreview } from "./MindmapPreview";
 import { useOverlayClose } from "./useOverlayClose";
@@ -84,7 +84,7 @@ export function MindmapDetailModal({ post, sessions, sessionsStatus, onClose, on
               const body = (
                 <>
                   <div className={styles.rowTop}>
-                    <div className={styles.rowTitle}>{s.title}</div>
+                    <div className={styles.rowTitle}>{s.title || LINK_ONLY_SESSION_TITLE}</div>
                     <span className={styles.rowDuration}>
                       <Icon name="clock" size={11} />
                       {formatDuration(s.startedAt, s.endedAt) ?? STATUS_LABEL[s.status]}
