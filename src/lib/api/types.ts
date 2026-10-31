@@ -116,25 +116,6 @@ export interface ProfileLikeResponse {
   likeCount: number;
 }
 
-export interface ProfileFollowResponse {
-  following: boolean;
-}
-
-export interface ProfileCardLikeResponse {
-  likeCount: number;
-  likedByMe: boolean;
-}
-
-export interface ProfileCardExploringResponse {
-  exploringCount: number;
-  exploringByMe: boolean;
-}
-
-export interface ProfileCardBookmarkResponse {
-  bookmarkCount: number;
-  bookmarkId: number | null;
-}
-
 // ---------- 분석 ----------
 /** 읽기 행동 4분류 — 화면 표기는 영어 (Deep Reading / Reading / Scanning / Idle) */
 export type ReadingLevel = "DEEP_READING" | "READING" | "SCANNING" | "IDLE";

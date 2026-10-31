@@ -16,12 +16,7 @@ export {
   getCommunityProfile,
   getProfileCards,
   getProfileMindmap,
-  getProfileCardSessions,
   updateProfileLike,
-  updateProfileFollow,
-  updateProfileCardLike,
-  updateProfileCardBookmark,
-  updateProfileCardExploring,
 } from "./profiles";
 export {
   getAnalyticsWeekSessions,

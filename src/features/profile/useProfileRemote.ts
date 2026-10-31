@@ -6,7 +6,7 @@ import {
   ApiError,
   getCommunityProfile,
   getProfileCards,
-  getProfileCardSessions,
+  getCardSessions,
   getProfileMindmap,
   type SessionListItem,
 } from "@/lib/api";
@@ -55,7 +55,7 @@ export function useCardSessions(mindmapId: string | null, enabled: boolean) {
   const sessions = mindmapId === null ? undefined : cache[mindmapId];
   const { error, refetch } = useApi(
     async () => {
-      const { sessions: fetched } = await getProfileCardSessions(Number(mindmapId));
+      const { sessions: fetched } = await getCardSessions(Number(mindmapId));
       setCache((c) => ({ ...c, [mindmapId!]: fetched }));
       return fetched;
     },

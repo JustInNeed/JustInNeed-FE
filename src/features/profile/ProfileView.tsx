@@ -10,10 +10,10 @@ import { SessionCard } from "@/features/sessions";
 import {
   ApiError,
   SessionExpiredError,
-  updateProfileCardBookmark,
-  updateProfileCardExploring,
-  updateProfileCardLike,
-  updateProfileFollow,
+  setCardBookmark,
+  setCardExploring,
+  setCardLike,
+  setProfileFollow,
   updateProfileLike,
   type SessionListItem,
 } from "@/lib/api";
@@ -273,7 +273,7 @@ function ProfileScreen({
     once("follow", async () => {
       setFollowing(!following);
       try {
-        setFollowing((await updateProfileFollow(userId!, !following)).following);
+        setFollowing((await setProfileFollow(userId!, !following)).following);
       } catch (e) {
         setFollowing(following);
         notifyFailure(e, "팔로우를 바꾸지 못했어요. 다시 시도해 주세요.");
@@ -308,7 +308,7 @@ function ProfileScreen({
       { likedByMe: liked, likes: p.likes + (liked ? 1 : -1) },
       { likedByMe: p.likedByMe, likes: p.likes },
       async () => {
-        const res = await updateProfileCardLike(Number(p.id), liked);
+        const res = await setCardLike(Number(p.id), liked);
         return { likedByMe: res.likedByMe, likes: res.likeCount };
       },
       "좋아요를 바꾸지 못했어요. 다시 시도해 주세요.",
@@ -323,7 +323,7 @@ function ProfileScreen({
       { bookmarkId: bookmarked ? 0 : null, bookmarks: p.bookmarks + (bookmarked ? 1 : -1) },
       { bookmarkId: p.bookmarkId, bookmarks: p.bookmarks },
       async () => {
-        const res = await updateProfileCardBookmark(Number(p.id), bookmarked);
+        const res = await setCardBookmark(Number(p.id), bookmarked);
         return { bookmarkId: res.bookmarkId, bookmarks: res.bookmarkCount };
       },
       "북마크를 바꾸지 못했어요. 다시 시도해 주세요.",
@@ -337,7 +337,7 @@ function ProfileScreen({
       { exploringByMe: exploring, exploring: p.exploring + (exploring ? 1 : -1) },
       { exploringByMe: p.exploringByMe, exploring: p.exploring },
       async () => {
-        const res = await updateProfileCardExploring(Number(p.id), exploring);
+        const res = await setCardExploring(Number(p.id), exploring);
         return { exploringByMe: res.exploringByMe, exploring: res.exploringCount };
       },
       "나도 탐색을 바꾸지 못했어요. 다시 시도해 주세요.",
@@ -523,6 +523,7 @@ function ProfileScreen({
 
       {detail && !(fullView && fullMindmap) && (
         <MindmapDetailModal
+          onSessionClick={(id) => router.push(`/sessions/${id}`)}
           // 작성자는 이 프로필 주인, 해시태그 · 관련 세션 태그는 비공개를 뺀 값
           post={{
             ...detail,
