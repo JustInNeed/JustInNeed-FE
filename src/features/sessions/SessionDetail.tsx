@@ -41,9 +41,15 @@ function savedAgo(at: number, now: number): string {
   return `${Math.floor(min / 60)}시간 전`;
 }
 
-/** LLM 줄글이 이미 `# 제목` 으로 시작하면 내보낼 때 제목을 또 붙이지 않는다. */
+/** 본문에서 제목을 빼기 전에 고쳐 저장한 본문은 아직 `# 옛 제목` 으로 시작한다. */
 function startsWithHeading(markdown: string): boolean {
   return /^#\s/.test(markdown.trimStart());
+}
+
+/** 내보낼 때는 현재 제목을 붙이므로 본문 맨 앞의 `# 옛 제목` 줄은 뗀다 */
+function withoutTitleHeading(markdown: string): string {
+  if (!startsWithHeading(markdown)) return markdown;
+  return markdown.trimStart().replace(/^[^\n]*\n?/, "").trimStart();
 }
 
 export interface SessionDetailProps {
@@ -298,9 +304,13 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
 
   const copyText = async () => {
     const md = detail.summary?.markdown ?? "";
-    const body = bodyRef.current?.innerText.trim() ?? md;
+    // 본문은 화면에 보이는 글 그대로 (마크다운 기호 없이)
+    const shown = bodyRef.current;
+    const oldTitle = startsWithHeading(md) ? shown?.querySelector("h1")?.innerText.trim() : null;
+    const text = shown?.innerText.trim() ?? withoutTitleHeading(md);
+    const body = oldTitle ? text.slice(oldTitle.length).trimStart() : text;
     try {
-      await navigator.clipboard.writeText(startsWithHeading(md) ? body : `${detail.title}\n\n${body}`);
+      await navigator.clipboard.writeText(`# ${detail.title}\n\n${body}`);
       toast.success("줄글을 복사했어요.");
     } catch {
       toast.error("복사하지 못했어요. 다시 시도해 주세요.");
@@ -308,7 +318,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   };
   const downloadMarkdown = () => {
     const md = detail.summary?.markdown ?? "";
-    const content = startsWithHeading(md) ? `${md}\n` : `# ${detail.title}\n\n${md}\n`;
+    const content = `# ${detail.title}\n\n${withoutTitleHeading(md)}\n`;
     const url = URL.createObjectURL(new Blob([content], { type: "text/markdown;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;

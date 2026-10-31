@@ -425,26 +425,52 @@ describe("세션 상세 — 줄글 복사 · .md 다운로드", () => {
     return { create, revoke, click };
   }
 
-  it("줄글 복사를 누르면 제목과 본문 글을 클립보드에 넣고 알려 준다", async () => {
+  it("줄글 복사를 누르면 '# 제목' 과 본문 글을 클립보드에 넣고 알려 준다", async () => {
     const { user } = await renderDetail();
     const write = vi.spyOn(navigator.clipboard, "writeText");
     await user.click(screen.getByRole("button", { name: "줄글 복사" }));
 
     expect(write).toHaveBeenCalledOnce();
     const text = write.mock.calls[0][0];
-    expect(text.startsWith("로마 3박 4일 동선 짜기\n\n")).toBe(true);
-    expect(text).toContain("한눈에 보기");
+    expect(text.startsWith("# 로마 3박 4일 동선 짜기\n\n")).toBe(true);
+    expect(text.split("한눈에 보기")).toHaveLength(2); // 본문은 한 번만
     expect(text).toContain("트라스테베레의 카초 에 페페");
     expect(text).not.toContain("**"); // 마크다운 기호가 아니라 화면에 보이는 글
     expect(await screen.findByText("줄글을 복사했어요.")).toBeInTheDocument();
   });
 
-  it("본문이 이미 # 제목으로 시작하면 제목을 또 붙이지 않는다", async () => {
+  it("본문이 옛 # 제목으로 시작하면 현재 제목으로 바꿔서 복사한다", async () => {
     const { user } = await renderDetail(OLD_EDITED_DETAIL);
     const write = vi.spyOn(navigator.clipboard, "writeText");
     await user.click(screen.getByRole("button", { name: "줄글 복사" }));
-    expect(write.mock.calls[0][0].startsWith("유레일패스 비교 (옛 제목)")).toBe(true);
-    expect(write.mock.calls[0][0]).not.toContain(OLD_EDITED_DETAIL.title);
+
+    const text = write.mock.calls[0][0];
+    expect(text.startsWith(`# ${OLD_EDITED_DETAIL.title}\n\n결론`)).toBe(true);
+    expect(text).toContain("일정이 짧으면 개별 구매가 낫다.");
+    expect(text).not.toContain("옛 제목");
+  });
+
+  it("본문의 # 제목이 현재 제목과 같으면 한 번만 넣는다", async () => {
+    const title = OLD_EDITED_DETAIL.title;
+    serveSession({ ...OLD_EDITED_DETAIL, summary: { markdown: `# ${title}\n\n## 결론` } });
+    const { user } = renderPersonal(<SessionDetail sessionId={OLD_EDITED_DETAIL.id} />);
+    await screen.findAllByRole("heading", { level: 1, name: title }); // 화면 제목 + 본문 # 제목
+    const write = vi.spyOn(navigator.clipboard, "writeText");
+    const { create } = spyDownload();
+    await user.click(screen.getByRole("button", { name: "줄글 복사" }));
+    await user.click(screen.getByRole("button", { name: ".md 파일 다운로드" }));
+
+    expect(write.mock.calls[0][0].split(title)).toHaveLength(2);
+    expect(await readBlob(create.mock.calls[0][0] as Blob)).toBe(`# ${title}\n\n## 결론\n`);
+  });
+
+  it("## 소제목으로 시작하는 본문은 소제목을 그대로 둔다", async () => {
+    const { user } = await renderDetail(PARIS_DETAIL);
+    const { create } = spyDownload();
+    await user.click(screen.getByRole("button", { name: ".md 파일 다운로드" }));
+    expect(await readBlob(create.mock.calls[0][0] as Blob)).toBe(
+      `# ${PARIS_DETAIL.title}\n\n${PARIS_DETAIL.summary!.markdown}\n`,
+    );
   });
 
   it("클립보드에 못 넣으면 다시 시도하라고 알려 준다", async () => {
@@ -469,11 +495,34 @@ describe("세션 상세 — 줄글 복사 · .md 다운로드", () => {
     await waitFor(() => expect(revoke).toHaveBeenCalledWith("blob:session"), { timeout: 2000 });
   });
 
-  it("본문이 # 제목으로 시작하면 그대로 내려받는다", async () => {
+  it("본문이 옛 # 제목으로 시작하면 현재 제목으로 바꿔서 내려받는다", async () => {
     const { user } = await renderDetail(OLD_EDITED_DETAIL);
     const { create } = spyDownload();
     await user.click(screen.getByRole("button", { name: ".md 파일 다운로드" }));
-    expect(await readBlob(create.mock.calls[0][0] as Blob)).toBe(`${OLD_EDITED_DETAIL.summary!.markdown}\n`);
+    expect(await readBlob(create.mock.calls[0][0] as Blob)).toBe(
+      `# ${OLD_EDITED_DETAIL.title}\n\n## 결론\n\n- 일정이 짧으면 개별 구매가 낫다.\n`,
+    );
+  });
+
+  it.each([
+    { label: "지금 본문", detail: ROME_DETAIL, body: ROME_DETAIL.summary!.markdown },
+    { label: "옛 # 제목이 남은 본문", detail: OLD_EDITED_DETAIL, body: "## 결론\n\n- 일정이 짧으면 개별 구매가 낫다." },
+  ])("제목을 고쳐 저장하면 복사 · .md 가 고친 제목으로 시작한다 ($label)", async ({ detail, body }) => {
+    const { user } = await renderDetail(detail);
+    await user.click(screen.getByRole("button", { name: "편집" }));
+    await user.clear(screen.getByPlaceholderText("세션 제목"));
+    await user.type(screen.getByPlaceholderText("세션 제목"), "새 제목");
+    await user.click(screen.getByRole("button", { name: "저장" }));
+    await screen.findByRole("heading", { level: 1, name: "새 제목" });
+
+    const write = vi.spyOn(navigator.clipboard, "writeText");
+    const { create } = spyDownload();
+    await user.click(screen.getByRole("button", { name: "줄글 복사" }));
+    await user.click(screen.getByRole("button", { name: ".md 파일 다운로드" }));
+
+    expect(write.mock.calls[0][0].startsWith("# 새 제목\n\n")).toBe(true);
+    expect(write.mock.calls[0][0]).not.toContain(detail.title);
+    expect(await readBlob(create.mock.calls[0][0] as Blob)).toBe(`# 새 제목\n\n${body}\n`);
   });
 
   it("파일 이름에 못 쓰는 글자는 _ 로 바꾼다", async () => {
