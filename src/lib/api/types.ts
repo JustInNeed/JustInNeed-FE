@@ -520,6 +520,15 @@ export interface CardBookmarkResponse {
   bookmarkId: number | null; // 해제하면 null
 }
 
+/** POST /community/bookmarks */
+export interface SaveBookmarkRequest {
+  targetType: "NODE" | "HASHTAG";
+  targetIds: number[];
+  saveType: "HASHTAG_BUNDLE" | "MINI_MINDMAP";
+  sourceMindmapId?: number; // 원본 작성자 id
+  name?: string; // 해시태그 묶음만. 미니 마인드맵에 보내면 400
+}
+
 export interface CardSessionsResponse {
   sessions: SessionListItem[]; // URL 만 공개한 작성자의 세션은 title 이 ""
 }
@@ -531,7 +540,7 @@ export interface BookmarkSaveTarget<S extends string> {
   saveType: S;
   targetType: SavedTargetType;
   targetIds: number[];
-  sourceMindmapId: number | null; // 작성자 id
+  sourceMindmapId: number | null; // 작성자 id. targetIds 는 지금 저장할 수 있는 대상만 와서 비어 있을 수 있다
 }
 
 /** 저장한 미니 마인드맵. 세션이 여럿이면 sessionId · title · snippet 이 null, URL 만 공개면 title · snippet 이 null */
@@ -564,6 +573,7 @@ export interface BookmarkBundleItem extends BookmarkSaveTarget<"HASHTAG_BUNDLE">
 }
 
 export interface BookmarkBundlePage {
+  code: number;
   bundles: BookmarkBundleItem[];
   hasNext: boolean;
 }
@@ -572,14 +582,6 @@ export interface BookmarkOriginalResponse {
   sourceAvailable: boolean;
   mindmap: CommunityProfileMindmap | null;
   highlightedNodeIds: number[]; // 전체 마인드맵의 nodeId
-}
-
-export interface RestoreBookmarkRequest extends BookmarkSaveTarget<"MINI_MINDMAP" | "HASHTAG_BUNDLE"> {
-  name: string | null; // 해시태그 묶음에만 붙는다
-}
-
-export interface RestoreBookmarkResponse {
-  bookmarkId: number;
 }
 
 export interface SimilarPersonItem {

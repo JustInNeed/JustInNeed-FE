@@ -99,6 +99,7 @@ export const BOOKMARK_MINDMAPS_PAGE: BookmarkMindmapPage = {
 };
 
 export const BOOKMARK_BUNDLES_PAGE: BookmarkBundlePage = {
+  code: 200,
   bundles: [NAMED_BUNDLE, SAME_NAME_BUNDLE, UNNAMED_BUNDLE],
   hasNext: false,
 };

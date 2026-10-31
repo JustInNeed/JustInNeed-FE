@@ -47,7 +47,7 @@ export {
   getBookmarkBundles,
   deleteBookmark,
   getBookmarkOriginal,
-  restoreBookmark,
+  saveBookmark,
 } from "./bookmarks";
 export {
   getExcludedUrls,

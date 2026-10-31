@@ -5,7 +5,7 @@ import {
   ApiError,
   BOOKMARK_PAGE_SIZE,
   deleteBookmark,
-  restoreBookmark,
+  saveBookmark,
   SessionExpiredError,
   setCardBookmark,
   type BookmarkSaveTarget,
@@ -41,12 +41,19 @@ export interface BookmarkTab<T> extends SearchTab<T> {
 /** 다시 저장 — 새 bookmarkId 로 항목을 돌려준다 */
 export type ResaveBookmark<T> = (item: T) => Promise<T>;
 
-const restore = <S extends "MINI_MINDMAP" | "HASHTAG_BUNDLE">(target: BookmarkSaveTarget<S>, name: string | null) =>
-  restoreBookmark({ ...target, name }).then((res) => res.bookmarkId);
+/** 목록이 준 저장 대상을 그대로 다시 저장한다. 지금 저장할 수 있는 대상이 없으면 서버의 입력 오류 대신 되돌리기 실패로 알린다 */
+async function saveAgain(
+  { sourceMindmapId, ...target }: BookmarkSaveTarget<"MINI_MINDMAP" | "HASHTAG_BUNDLE">,
+  name?: string,
+): Promise<number> {
+  if (target.targetIds.length === 0) throw new Error("다시 저장할 대상이 없습니다.");
+  const { bookmarkId } = await saveBookmark({ ...target, sourceMindmapId: sourceMindmapId ?? undefined, name });
+  return bookmarkId;
+}
 
 /** 카드 저장은 카드 API 로 되살린다 — 일반 저장으로 남기면 카드의 북마크 표시와 끊어진다 */
 async function restoreMindmapId({ cardBookmark, sessionId, target }: SavedMindmap): Promise<number> {
-  if (!cardBookmark || sessionId === null) return restore(target, null);
+  if (!cardBookmark || sessionId === null) return saveAgain(target);
   const { bookmarkId } = await setCardBookmark(sessionId, true);
   if (bookmarkId === null) throw new Error("카드 저장 응답에 bookmarkId 가 없습니다.");
   return bookmarkId;
@@ -60,7 +67,7 @@ export const resaveMindmap: ResaveBookmark<SavedMindmap> = async (item) => ({
 
 export const resaveBundle: ResaveBookmark<SavedBundle> = async (item) => ({
   ...item,
-  bookmarkId: await restore(item.target, item.name),
+  bookmarkId: await saveAgain(item.target, item.name ?? undefined),
 });
 
 /** /bookmarks 의 탭 하나 — 탭마다 따로 불러와서 한쪽이 실패해도 다른 쪽은 그대로 보인다 */

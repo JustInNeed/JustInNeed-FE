@@ -3,8 +3,7 @@ import type {
   BookmarkBundlePage,
   BookmarkMindmapPage,
   BookmarkOriginalResponse,
-  RestoreBookmarkRequest,
-  RestoreBookmarkResponse,
+  SaveBookmarkRequest,
 } from "./types";
 
 /** /bookmarks 화면 — 탭마다 한 번에 불러오는 수 */
@@ -23,6 +22,6 @@ export const deleteBookmark = (bookmarkId: number) => api.del<void>(`/community/
 export const getBookmarkOriginal = (bookmarkId: number) =>
   api.get<BookmarkOriginalResponse>(`/community/me/bookmarks/${bookmarkId}/original`);
 
-/** 되돌리기 — 목록 항목이 받은 저장 대상을 그대로 다시 저장한다. 새 bookmarkId 가 온다 */
-export const restoreBookmark = (body: RestoreBookmarkRequest) =>
-  api.post<RestoreBookmarkResponse>("/community/bookmarks", body);
+/** 같은 선택을 다시 저장하면 있던 북마크를 돌려주고, name 을 보내면 그 이름으로 바꾼다 */
+export const saveBookmark = (body: SaveBookmarkRequest) =>
+  api.post<{ bookmarkId: number }>("/community/bookmarks", body);

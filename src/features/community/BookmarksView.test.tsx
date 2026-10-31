@@ -360,6 +360,11 @@ describe("toSavedMindmap", () => {
     expect(ownerId).toBe(7);
   });
 
+  it("URL 만 공개라 nodes 가 비어 있어도 노드 수는 nodeCount 를 쓴다", () => {
+    const item = bookmarkMindmap({ bookmarkId: 1, title: null, snippet: null, nodes: [], edges: [], nodeCount: 5 });
+    expect(toSavedMindmap(item, BOOKMARK_NOW).post.nodes).toBe(5);
+  });
+
   it("제목이 있으면 해시태그에 # 를 붙이고 저장 대상을 그대로 들고 있는다", () => {
     const { post, target } = toSavedMindmap(CARD_BOOKMARK, BOOKMARK_NOW);
     expect(post.hashtags).toEqual(["#프라하", "#동유럽", "#야간열차"]);
