@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http } from "msw";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -620,23 +620,247 @@ describe("다른 사용자 프로필", () => {
       expect(screen.queryByText(/개 선택$/)).not.toBeInTheDocument();
     });
 
-    it.each(["해시태그 묶음으로 저장", "미니 마인드맵으로 저장"])(
-      "북마크 → %s 을 누르면 저장 토스트가 뜨고 선택이 풀린다",
-      async (option) => {
+    describe("저장", () => {
+      const BOOKMARKS = `${API}/community/bookmarks`;
+      const MINDMAP = `${API}/community/profiles/7/mindmap`;
+      const BAD_SELECTION = "저장할 대상은 중복 없이 1개부터 100개까지 선택할 수 있습니다.";
+      const SAVED = "북마크에 저장했어요.";
+      /** 고른 태그의 행 — #카페투어 14 · #비엔나 12 */
+      const hashtag = (hashtagId: number, name: string) => ({ hashtagId, ownerId: 7, name });
+      const TAGS = [hashtag(11, "프라하"), hashtag(12, "비엔나"), hashtag(13, "야간열차"), hashtag(14, "카페투어")];
+
+      /** 실제로 나간 POST 본문. MSW 가 모르는 요청은 네트워크 오류로 끝나 테스트를 실패시키지 않으므로 fetch 를 직접 본다 */
+      const spyFetch = () => {
+        const spy = vi.spyOn(globalThis, "fetch");
+        return {
+          posted: () =>
+            spy.mock.calls
+              .filter(([url, init]) => url === BOOKMARKS && init?.method === "POST")
+              .map(([, init]) => JSON.parse(init!.body as string) as unknown),
+          count: () => spy.mock.calls.length,
+        };
+      };
+      const serveTags = (hashtags = TAGS) => server.use(http.get(MINDMAP, () => ok({ ...API_MINDMAP, hashtags })));
+      const serveSave = () =>
+        server.use(http.post(BOOKMARKS, () => ok({ code: 201, bookmarkId: 5, targetIds: [], saveType: "MINI_MINDMAP" }, { status: 201 })));
+      const openMenu = async (user: ReturnType<typeof renderOther>["user"]) => {
+        await user.click(screen.getByRole("button", { name: "북마크" }));
+        return within(screen.getByRole("menu"));
+      };
+      const openNameForm = async (user: ReturnType<typeof renderOther>["user"]) => {
+        const menu = await openMenu(user);
+        await user.click(menu.getByRole("menuitem", { name: /해시태그 묶음으로 저장/ }));
+        return screen.getByRole("textbox", { name: "묶음 이름" });
+      };
+      const expectCleared = () => {
+        expect(screen.queryByText(/개 선택$/)).not.toBeInTheDocument();
+        expect(within(tagRow()).queryAllByRole("button", { pressed: true })).toHaveLength(0);
+      };
+
+      it("미니 마인드맵은 이름을 묻지 않고 바로 저장하고 선택을 푼다", async () => {
+        serveTags();
+        serveSave();
+        const sent = spyFetch();
         const { user } = renderOther();
         await pick(user);
 
-        await user.click(screen.getByRole("button", { name: "북마크" }));
-        const menu = screen.getByRole("menu");
-        expect(within(menu).getAllByRole("menuitem")).toHaveLength(2);
-        await user.click(within(menu).getByRole("menuitem", { name: new RegExp(option) }));
+        const menu = await openMenu(user);
+        expect(menu.getAllByRole("menuitem")).toHaveLength(2);
+        await user.click(menu.getByRole("menuitem", { name: /미니 마인드맵으로 저장/ }));
 
-        expect(screen.getByText("북마크에 저장했어요.")).toBeInTheDocument();
+        expect(await screen.findByText(SAVED)).toBeInTheDocument();
+        expect(sent.posted()).toEqual([{ targetType: "HASHTAG", targetIds: [14, 12], saveType: "MINI_MINDMAP", sourceMindmapId: 7 }]);
+        expect(screen.queryByRole("textbox", { name: "묶음 이름" })).not.toBeInTheDocument();
         expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-        expect(screen.queryByText(/개 선택$/)).not.toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "#카페투어" })).toHaveAttribute("aria-pressed", "false");
-      },
-    );
+        expectCleared();
+      });
+
+      it("해시태그 묶음은 이름 입력이 뜨고, 저장을 누르기 전엔 요청이 나가지 않는다", async () => {
+        const sent = spyFetch();
+        const { user } = renderOther();
+        await pick(user);
+
+        const input = await openNameForm(user);
+
+        expect(input).toHaveFocus();
+        expect(input).toHaveAttribute("maxlength", "30");
+        expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+        expect(sent.count()).toBe(0);
+      });
+
+      it("Enter 를 누르면 앞뒤 공백을 뺀 이름으로 묶음을 저장한다", async () => {
+        serveTags();
+        serveSave();
+        const sent = spyFetch();
+        const { user } = renderOther();
+        await pick(user);
+
+        await user.type(await openNameForm(user), "  동유럽 카페  {Enter}");
+
+        expect(await screen.findByText(SAVED)).toBeInTheDocument();
+        expect(sent.posted()).toEqual([
+          { targetType: "HASHTAG", targetIds: [14, 12], saveType: "HASHTAG_BUNDLE", sourceMindmapId: 7, name: "동유럽 카페" },
+        ]);
+        expect(screen.queryByRole("textbox", { name: "묶음 이름" })).not.toBeInTheDocument();
+        expectCleared();
+      });
+
+      it.each([
+        ["비워 두면", ""],
+        ["공백만 넣으면", "   "],
+      ])("%s 이름 없이 저장한다", async (_, typed) => {
+        serveTags();
+        serveSave();
+        const sent = spyFetch();
+        const { user } = renderOther();
+        await pick(user);
+
+        const input = await openNameForm(user);
+        if (typed) await user.type(input, typed);
+        await user.click(screen.getByRole("button", { name: "저장" }));
+
+        expect(await screen.findByText(SAVED)).toBeInTheDocument();
+        expect(sent.posted()).toEqual([{ targetType: "HASHTAG", targetIds: [14, 12], saveType: "HASHTAG_BUNDLE", sourceMindmapId: 7 }]);
+      });
+
+      it("한글 조합을 끝내는 Enter 로는 저장하지 않는다", async () => {
+        const sent = spyFetch();
+        const { user } = renderOther();
+        await pick(user);
+
+        fireEvent.keyDown(await openNameForm(user), { key: "Enter", isComposing: true });
+
+        expect(sent.count()).toBe(0);
+        expect(screen.getByRole("textbox", { name: "묶음 이름" })).toBeInTheDocument();
+      });
+
+      it.each([
+        ["Esc", (user: ReturnType<typeof renderOther>["user"]) => user.keyboard("{Escape}")],
+        ["취소", (user: ReturnType<typeof renderOther>["user"]) => user.click(screen.getByRole("button", { name: "취소" }))],
+      ])("%s 는 저장 없이 닫고 선택은 그대로 둔다", async (_, cancel) => {
+        const sent = spyFetch();
+        const { user } = renderOther();
+        await pick(user);
+        await user.type(await openNameForm(user), "이름");
+
+        await cancel(user);
+
+        expect(screen.queryByRole("textbox", { name: "묶음 이름" })).not.toBeInTheDocument();
+        expect(screen.getByText("2개 선택")).toBeInTheDocument();
+        expect(sent.count()).toBe(0);
+
+        // 다시 열면 입력이 비어 있다
+        expect(await openNameForm(user)).toHaveValue("");
+      });
+
+      it("저장 중에 다시 눌러도 요청은 하나만 가고, 응답을 기다리는 동안 닫거나 선택을 바꿀 수 없다", async () => {
+        let release = () => {};
+        const gate = new Promise<void>((resolve) => (release = resolve));
+        serveTags();
+        server.use(
+          http.post(BOOKMARKS, async () => {
+            await gate;
+            return ok({ code: 201, bookmarkId: 5 }, { status: 201 });
+          }),
+        );
+        const sent = spyFetch();
+        const { user } = renderOther();
+        await pick(user);
+        const input = await openNameForm(user);
+
+        await user.type(input, "묶음{Enter}{Enter}");
+        await waitFor(() => expect(sent.posted()).toHaveLength(1));
+        expect(screen.getByRole("button", { name: "저장" })).toBeDisabled();
+        await user.type(input, "{Enter}");
+        await user.keyboard("{Escape}");
+        await user.click(screen.getByRole("button", { name: /^#프라하\s?32$/ }));
+
+        expect(input).toBeInTheDocument();
+        expect(screen.getByText("2개 선택")).toBeInTheDocument();
+        release();
+
+        expect(await screen.findByText(SAVED)).toBeInTheDocument();
+        expect(sent.posted()).toHaveLength(1);
+        expectCleared();
+      });
+
+      it("저장이 실패하면 서버 메시지를 보여주고 선택 · 입력을 그대로 둬 다시 저장할 수 있다", async () => {
+        serveTags();
+        server.use(http.post(BOOKMARKS, () => fail(400, BAD_SELECTION)));
+        const sent = spyFetch();
+        const { user } = renderOther();
+        await pick(user);
+        const input = await openNameForm(user);
+        await user.type(input, "묶음{Enter}");
+
+        expect(await screen.findByText(BAD_SELECTION)).toBeInTheDocument();
+        expect(screen.queryByText(SAVED)).not.toBeInTheDocument();
+        expect(screen.getByText("2개 선택")).toBeInTheDocument();
+        expect(input).toHaveValue("묶음");
+        await waitFor(() => expect(screen.getByRole("button", { name: "저장" })).toBeEnabled());
+
+        serveSave();
+        await user.click(screen.getByRole("button", { name: "저장" }));
+
+        expect(await screen.findByText(SAVED)).toBeInTheDocument();
+        expect(sent.posted()).toHaveLength(2);
+        expectCleared();
+      });
+
+      it("미니 마인드맵 저장이 실패해도 선택은 남고 메뉴에서 다시 고를 수 있다", async () => {
+        serveTags();
+        server.use(http.post(BOOKMARKS, () => fail(500, SERVER_ERROR)));
+        const { user } = renderOther();
+        await pick(user);
+
+        await user.click((await openMenu(user)).getByRole("menuitem", { name: /미니 마인드맵으로 저장/ }));
+
+        expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
+        expect(screen.getByText("2개 선택")).toBeInTheDocument();
+        await waitFor(() => expect(screen.getByRole("menuitem", { name: /미니 마인드맵으로 저장/ })).toBeEnabled());
+      });
+
+      it("해시태그 id 를 받지 못하면 저장 요청을 보내지 않고 선택을 남긴다", async () => {
+        server.use(http.get(MINDMAP, () => fail(500, SERVER_ERROR)));
+        const sent = spyFetch();
+        const { user } = renderOther();
+        await pick(user);
+
+        await user.click((await openMenu(user)).getByRole("menuitem", { name: /미니 마인드맵으로 저장/ }));
+
+        expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
+        expect(sent.posted()).toEqual([]);
+        expect(screen.getByText("2개 선택")).toBeInTheDocument();
+      });
+
+      it("id 가 없는 태그가 섞이면 일부만 저장하지 않고 그 태그를 알려준다", async () => {
+        serveTags(TAGS.filter((t) => t.name !== "카페투어"));
+        const sent = spyFetch();
+        const { user } = renderOther();
+        await pick(user);
+
+        await user.click((await openMenu(user)).getByRole("menuitem", { name: /미니 마인드맵으로 저장/ }));
+
+        expect(await screen.findByText(/#카페투어 태그는 저장할 수 없어요/)).toBeInTheDocument();
+        expect(sent.posted()).toEqual([]);
+        expect(screen.getByText("2개 선택")).toBeInTheDocument();
+      });
+
+      it("대소문자만 다른 자주 쓴 태그 · 관심 태그는 같은 id 하나로 보낸다", async () => {
+        serveTags([hashtag(21, "HCI")]);
+        serveSave();
+        const sent = spyFetch();
+        const profile = { ...OTHER_PROFILE, interests: ["#hci"], topTags: [{ tag: "#HCI", count: 3, isPublic: true }] };
+        const { user } = renderOther({ ...OTHER_PROFILE_PAGE, profile });
+
+        await user.click(screen.getByRole("button", { name: "#hci" }));
+        await user.click(screen.getByRole("button", { name: /^#HCI\s?3$/ }));
+        await user.click((await openMenu(user)).getByRole("menuitem", { name: /미니 마인드맵으로 저장/ }));
+
+        expect(await screen.findByText(SAVED)).toBeInTheDocument();
+        expect(sent.posted()).toEqual([{ targetType: "HASHTAG", targetIds: [21], saveType: "MINI_MINDMAP", sourceMindmapId: 7 }]);
+      });
+    });
 
     it("× 를 누르면 고른 해시태그가 모두 풀린다", async () => {
       const { user } = renderOther();

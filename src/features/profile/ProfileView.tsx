@@ -10,27 +10,32 @@ import { SessionCard } from "@/features/sessions";
 import {
   ApiError,
   SessionExpiredError,
+  getProfileMindmap,
   setCardBookmark,
   setCardExploring,
   setCardLike,
   setProfileFollow,
   updateProfileLike,
+  type SaveBookmarkRequest,
   type SessionListItem,
 } from "@/lib/api";
+import { saveBookmark } from "@/lib/api/bookmarks";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import { useToast } from "@/lib/app/ToastContext";
 import { withHash } from "@/lib/format";
 import type { ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
 import { ProfileEdit, type ProfileDraft } from "./ProfileEdit";
-import { titleFromTags } from "./toProfilePage";
+import { titleFromTags, toHashtagIds } from "./toProfilePage";
 import { useCardSessions, useOwnerMindmap } from "./useProfileRemote";
 import styles from "./Profile.module.css";
 
 // 다른 사용자 해시태그 북마크 저장 방식
 const BOOKMARK_OPTIONS = [
-  { l: "해시태그 묶음으로 저장", d: "선택한 태그를 한 묶음으로 모아요" },
-  { l: "미니 마인드맵으로 저장", d: "노드 간 관계까지 함께 담아요" },
-];
+  { l: "해시태그 묶음으로 저장", d: "선택한 태그를 한 묶음으로 모아요", saveType: "HASHTAG_BUNDLE" },
+  { l: "미니 마인드맵으로 저장", d: "노드 간 관계까지 함께 담아요", saveType: "MINI_MINDMAP" },
+] as const;
+const BUNDLE_NAME_MAX_LENGTH = 30;
+const BUNDLE_FORM_BUTTON = { padding: "6px 12px" };
 
 // 내 프로필 데이터가 없을 때 — 이름 · 핸들은 로그인 회원 닉네임으로 채우고 나머지는 빈 상태로 보여준다
 const EMPTY_PAGE: ProfilePageData = {
@@ -135,7 +140,9 @@ function ProfileScreen({
   const [cardPatches, setCardPatches] = useState<Record<string, Partial<ProfileMindmap>>>({});
   const pending = useRef(new Set<string>());
   const [selected, setSelected] = useState<string[]>([]);
-  const [bookmarkOpen, setBookmarkOpen] = useState(false);
+  // 북마크 팝오버 — 저장 방식 메뉴, 또는 묶음 이름 입력
+  const [bookmarkPop, setBookmarkPop] = useState<"menu" | "name" | null>(null);
+  const [savingBookmark, setSavingBookmark] = useState(false);
   const bookmarkRef = useRef<HTMLDivElement>(null);
   // 마인드맵 카드 → 상세 팝업 → 크게 보기 (URL 이 있는 노드는 원문으로). 크게 보기를 닫으면 팝업으로 돌아간다
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -154,13 +161,15 @@ function ProfileScreen({
     ownerMindmap.open();
   };
 
+  const bookmarkOpen = bookmarkPop !== null;
   useEffect(() => {
-    if (!bookmarkOpen) return;
+    // 저장 중에는 닫지 않는다 — 닫아도 요청은 취소되지 않는다
+    if (!bookmarkOpen || savingBookmark) return;
     const onDoc = (e: MouseEvent) => {
-      if (bookmarkRef.current && !bookmarkRef.current.contains(e.target as Node)) setBookmarkOpen(false);
+      if (bookmarkRef.current && !bookmarkRef.current.contains(e.target as Node)) setBookmarkPop(null);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setBookmarkOpen(false);
+      if (e.key === "Escape") setBookmarkPop(null);
     };
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
@@ -168,7 +177,7 @@ function ProfileScreen({
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
     };
-  }, [bookmarkOpen]);
+  }, [bookmarkOpen, savingBookmark]);
 
   const saveProfile = (draft: ProfileDraft) => {
     setSaved(draft);
@@ -203,17 +212,14 @@ function ProfileScreen({
     .map(withTitle);
 
   const toggleSelect = (tag: string) => {
+    if (savingBookmark) return; // 보내는 중인 선택이 저장 뒤 풀리므로 바꾸지 않는다
     const next = selected.includes(tag) ? selected.filter((x) => x !== tag) : [...selected, tag];
     setSelected(next);
-    if (next.length === 0) setBookmarkOpen(false);
+    if (next.length === 0) setBookmarkPop(null);
   };
   const clearSelection = () => {
     setSelected([]);
-    setBookmarkOpen(false);
-  };
-  const saveBookmark = () => {
-    toast.success("북마크에 저장했어요.");
-    clearSelection();
+    setBookmarkPop(null);
   };
 
   // 다른 사용자 프로필의 태그는 골라서 북마크할 수 있음
@@ -255,6 +261,33 @@ function ProfileScreen({
     if (e instanceof SessionExpiredError) return; // 이미 로그인 화면으로 이동
     toast.error(e instanceof ApiError ? e.message : fallback);
   };
+
+  // 프로필 응답엔 관심 해시태그의 id 가 없어, 저장할 때 전체 마인드맵의 해시태그에서 찾는다
+  const submitBookmark = (saveType: SaveBookmarkRequest["saveType"], name = "") =>
+    once("save-bookmark", async () => {
+      setSavingBookmark(true);
+      try {
+        const { hashtags } = await getProfileMindmap(userId!);
+        const { ids, missing } = toHashtagIds(selected, hashtags);
+        if (missing.length > 0) {
+          toast.error(`${missing.join(" ")} 태그는 저장할 수 없어요. 선택을 빼고 다시 저장해 주세요.`);
+          return;
+        }
+        await saveBookmark({
+          targetType: "HASHTAG",
+          targetIds: ids,
+          saveType,
+          sourceMindmapId: userId!,
+          name: name.trim() || undefined,
+        });
+        toast.success("북마크에 저장했어요.");
+        clearSelection();
+      } catch (e) {
+        notifyFailure(e, "북마크에 저장하지 못했어요. 다시 시도해 주세요.");
+      } finally {
+        setSavingBookmark(false);
+      }
+    });
 
   // 누르면 바로 바꾸고, 응답 값으로 맞추고, 실패하면 되돌린다
   const toggleLike = () =>
@@ -404,21 +437,41 @@ function ProfileScreen({
           <div className={styles.selectBar}>
             <span className={styles.selectCount}>{selected.length}개 선택</span>
             <div ref={bookmarkRef} className={styles.bookmarkWrap}>
-              <Button variant="primary" onClick={() => setBookmarkOpen((v) => !v)} aria-haspopup="menu" aria-expanded={bookmarkOpen}>
+              <Button
+                variant="primary"
+                onClick={() => setBookmarkPop((v) => (v ? null : "menu"))}
+                disabled={savingBookmark}
+                aria-haspopup="menu"
+                aria-expanded={bookmarkOpen}
+              >
                 <Icon name="bookmark" size={13} /> 북마크
               </Button>
-              {bookmarkOpen && (
+              {bookmarkPop === "menu" && (
                 <div role="menu" className={styles.bookmarkPop}>
                   {BOOKMARK_OPTIONS.map((o) => (
-                    <button key={o.l} type="button" role="menuitem" onClick={saveBookmark} className={styles.bookmarkOpt}>
+                    <button
+                      key={o.l}
+                      type="button"
+                      role="menuitem"
+                      disabled={savingBookmark}
+                      onClick={() => (o.saveType === "HASHTAG_BUNDLE" ? setBookmarkPop("name") : submitBookmark(o.saveType))}
+                      className={styles.bookmarkOpt}
+                    >
                       <span className={styles.bookmarkOptTitle}>{o.l}</span>
                       <span className={styles.bookmarkOptDesc}>{o.d}</span>
                     </button>
                   ))}
                 </div>
               )}
+              {bookmarkPop === "name" && (
+                <BundleNameForm
+                  saving={savingBookmark}
+                  onSave={(name) => submitBookmark("HASHTAG_BUNDLE", name)}
+                  onCancel={() => setBookmarkPop(null)}
+                />
+              )}
             </div>
-            <Button variant="ghost" onClick={clearSelection} aria-label="선택 해제">
+            <Button variant="ghost" onClick={clearSelection} disabled={savingBookmark} aria-label="선택 해제">
               <Icon name="x" size={14} />
             </Button>
           </div>
@@ -557,6 +610,36 @@ function ProfileScreen({
       {detail && fullView && fullMindmap && (
         <MindmapFullView title={`${profile.name}님의 전체 마인드맵`} mindmap={fullMindmap} onClose={closeFullView} />
       )}
+    </div>
+  );
+}
+
+/** 해시태그 묶음 이름 입력. 비워 두면 이름 없이 저장한다. Esc · 바깥 누르기는 팝오버 쪽에서 닫는다 */
+function BundleNameForm({ saving, onSave, onCancel }: { saving: boolean; onSave: (name: string) => void; onCancel: () => void }) {
+  const [name, setName] = useState("");
+  return (
+    <div role="group" aria-label="묶음 이름 입력" className={`${styles.bookmarkPop} ${styles.bookmarkForm}`}>
+      <input
+        autoFocus
+        aria-label="묶음 이름"
+        placeholder="묶음 이름 (선택)"
+        value={name}
+        maxLength={BUNDLE_NAME_MAX_LENGTH}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.nativeEvent.isComposing) onSave(name);
+        }}
+        className={styles.bookmarkInput}
+      />
+      <span className={styles.bookmarkOptDesc}>비워 두면 태그로 표시돼요</span>
+      <div className={styles.bookmarkFormActions}>
+        <Button variant="secondary" onClick={onCancel} disabled={saving} style={BUNDLE_FORM_BUTTON}>
+          취소
+        </Button>
+        <Button variant="primary" onClick={() => onSave(name)} disabled={saving} style={BUNDLE_FORM_BUTTON}>
+          저장
+        </Button>
+      </div>
     </div>
   );
 }

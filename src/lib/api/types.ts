@@ -520,6 +520,15 @@ export interface CardBookmarkResponse {
   bookmarkId: number | null; // 해제하면 null
 }
 
+/** POST /community/bookmarks */
+export interface SaveBookmarkRequest {
+  targetType: "NODE" | "HASHTAG";
+  targetIds: number[];
+  saveType: "HASHTAG_BUNDLE" | "MINI_MINDMAP";
+  sourceMindmapId?: number; // 원본 작성자 id
+  name?: string; // 해시태그 묶음만. 미니 마인드맵에 보내면 400
+}
+
 export interface CardSessionsResponse {
   sessions: SessionListItem[]; // URL 만 공개한 작성자의 세션은 title 이 ""
 }
