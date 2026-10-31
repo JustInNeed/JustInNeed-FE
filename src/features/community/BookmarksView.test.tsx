@@ -1,219 +1,265 @@
 import { screen, within } from "@testing-library/react";
+import { http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  bookmarkBundle,
+  bookmarkMindmap,
+  BOOKMARK_NOW,
+  CARD_BOOKMARK,
+  MIXED_BOOKMARK,
+  NAMED_BUNDLE,
+  PICKED_BOOKMARK,
+  SAME_NAME_BUNDLE,
+  UNNAMED_BUNDLE,
+} from "@/test/fixtures/bookmarksApi";
+import { CARD_SESSIONS } from "@/test/fixtures/communityApi";
+import { API, fail, ok, server, SERVER_ERROR } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
-import { BOOKMARKS_DATA } from "@/test/fixtures/community";
+import type { SavedBundle, SavedMindmap } from "@/lib/viewTypes";
 import { BookmarksView, type BookmarksViewProps } from "./BookmarksView";
+import { toSavedBundle, toSavedMindmap } from "./toBookmarks";
+import type { BookmarkTab } from "./useBookmarkTab";
+
+function tabOf<T>(items: T[], overrides: Partial<BookmarkTab<T>> = {}): BookmarkTab<T> {
+  return {
+    status: "ready",
+    items,
+    hasNext: false,
+    error: null,
+    retry: vi.fn(),
+    loadMore: vi.fn(),
+    loadingMore: false,
+    moreError: null,
+    shiftList: vi.fn(),
+    remove: vi.fn(),
+    ...overrides,
+  };
+}
+
+const saved = (...items: Parameters<typeof toSavedMindmap>[0][]): SavedMindmap[] => items.map((i) => toSavedMindmap(i, BOOKMARK_NOW));
+const MINDMAPS = saved(CARD_BOOKMARK, PICKED_BOOKMARK, MIXED_BOOKMARK);
+const BUNDLES: SavedBundle[] = [NAMED_BUNDLE, SAME_NAME_BUNDLE, UNNAMED_BUNDLE].map(toSavedBundle);
 
 function renderBookmarks(props: Partial<BookmarksViewProps> = {}) {
-  return renderPersonal(<BookmarksView data={BOOKMARKS_DATA} {...props} />);
+  return renderPersonal(<BookmarksView mindmaps={tabOf(MINDMAPS)} bundles={tabOf(BUNDLES)} {...props} />);
 }
 
 const tab = (name: RegExp) => screen.getByRole("button", { name });
-/** 마인드맵 카드 (제목으로 찾기) */
 const mapCard = (title: string) => screen.getByText(title).closest<HTMLElement>(".card")!;
 const mapTitles = () => Array.from(document.querySelectorAll(".bmGrid .title"), (el) => el.textContent);
-const sessionTitles = () => Array.from(document.querySelectorAll(".bmSession h3"), (el) => el.textContent);
-const bundleNames = () => Array.from(document.querySelectorAll(".bundleTitle"), (el) => el.textContent);
-const bundleCard = (name: string) => screen.getByText(name).closest<HTMLElement>(".bundleCard")!;
+const bundleTitles = () => Array.from(document.querySelectorAll(".bundleTitle"), (el) => el.textContent);
 
-/** 노드가 강조 상태면 바깥 링이 그려진다 */
-const hasRing = (g: Element) => g.querySelector('circle[stroke="#2D6A1B"]') !== null;
+const mockSessions = (response: () => Response | Promise<Response> = () => ok(CARD_SESSIONS)) => {
+  const sessionIds: string[] = [];
+  server.use(
+    http.get(`${API}/community/mindmaps/:id/sessions`, ({ params }) => {
+      sessionIds.push(String(params.id));
+      return response();
+    }),
+  );
+  return sessionIds;
+};
 
 describe("BookmarksView — 탭 · 목록", () => {
-  it("탭마다 북마크 수를 보여주고 처음에는 마인드맵 탭이 선택돼 있다", () => {
-    renderBookmarks();
-    expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (6)");
-    expect(tab(/^세션/)).toHaveTextContent("세션 (7)");
-    expect(tab(/^해시태그 묶음/)).toHaveTextContent("해시태그 묶음 (4)");
+  it("세션 탭은 없고, 탭마다 불러온 수를 보여주며 더 있으면 + 를 붙인다", () => {
+    renderBookmarks({ mindmaps: tabOf(MINDMAPS, { hasNext: true }) });
+    expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (3+)");
+    expect(tab(/^해시태그 묶음/)).toHaveTextContent("해시태그 묶음 (3)");
     expect(tab(/^마인드맵/)).toHaveClass("active");
+    expect(screen.queryByRole("button", { name: /^세션/ })).toBeNull();
+  });
+
+  it("불러오기 전 탭에는 수를 쓰지 않는다", () => {
+    renderBookmarks({ mindmaps: tabOf<SavedMindmap>([], { status: "loading" }) });
+    expect(tab(/^마인드맵/)).toHaveTextContent(/^마인드맵$/);
   });
 
   it("마인드맵 카드는 받은 순서대로 제목 · 작성자 · 저장 시점 · 앞의 해시태그 2개 · 노드 수를 보여준다", () => {
     renderBookmarks();
-    expect(mapTitles()).toEqual([
-      "동유럽 3주 살이 전체 동선",
-      "파리 미식 지도 — 1구부터 20구까지",
-      "유럽 한 달 200만원으로 살기",
-      "유럽 미술관 30곳 우선순위",
-      "이탈리아 시골 마을 7곳",
-      "유레일 vs 저가항공 — 실비 비교",
-    ]);
+    expect(mapTitles()).toEqual(["동유럽 3주 살이 전체 동선", "파리 미식 지도", "#화장실 #놀이"]);
     const card = within(mapCard("동유럽 3주 살이 전체 동선"));
     expect(card.getByText("by wanderlust · 저장 4일 전")).toBeInTheDocument();
     expect(card.getByText("#프라하")).toBeInTheDocument();
     expect(card.getByText("#동유럽")).toBeInTheDocument();
     expect(card.queryByText("#야간열차")).toBeNull();
-    expect(card.getByText("노드 142")).toBeInTheDocument();
+    expect(card.getByText("노드 14")).toBeInTheDocument();
   });
 
-  it("세션 탭을 누르면 북마크한 세션 카드가, 해시태그 묶음 탭을 누르면 묶음이 보인다", async () => {
+  it("URL 만 공개한 저장은 해시태그가 제목 자리에 가고 태그 칩을 또 그리지 않는다", () => {
+    renderBookmarks();
+    const card = within(mapCard("#화장실 #놀이"));
+    expect(card.getByText("by wanderlust · 저장 1시간 전")).toBeInTheDocument();
+    expect(card.queryByText("#화장실")).toBeNull();
+  });
+
+  it("이름이 있는 묶음은 이름과 태그를, 이름이 없으면 태그를 제목 자리에 보여준다", async () => {
     const { user } = renderBookmarks();
-    await user.click(tab(/^세션/));
-    expect(tab(/^세션/)).toHaveClass("active");
-    expect(sessionTitles()).toHaveLength(7);
-    expect(sessionTitles()[0]).toBe("로마 3박 4일 동선 짜기");
     await user.click(tab(/^해시태그 묶음/));
-    expect(bundleNames()).toEqual(["동유럽 자료", "미술관 모음", "예산 짜기", "항공권 비교"]);
-    const bundle = within(bundleCard("미술관 모음"));
-    ["#루브르", "#오르세", "#프라도", "#리이크스"].forEach((t) => expect(bundle.getByRole("button", { name: t })).toBeInTheDocument());
+    expect(bundleTitles()).toEqual(["미술관 모음", "미술관 모음", "#호스텔 #무료투어"]);
+    const first = document.querySelector<HTMLElement>(".bundleCard")!;
+    ["#루브르", "#오르세"].forEach((t) => expect(within(first).getByRole("button", { name: t })).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "#호스텔" })).toBeNull();
   });
 
-  it("세션 카드를 누르면 그 세션 상세로 이동한다", async () => {
-    const { user } = renderBookmarks();
-    await user.click(tab(/^세션/));
-    await user.click(screen.getByText("파리 미술관 4곳 비교 (루브르/오르세/오랑주리/퐁피두)"));
-    expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9003");
+  it("이름이 같은 묶음이어도 누른 묶음만 해제한다", async () => {
+    const bundles = tabOf(BUNDLES);
+    const { user } = renderBookmarks({ bundles });
+    await user.click(tab(/^해시태그 묶음/));
+    const second = document.querySelectorAll<HTMLElement>(".bundleCard")[1];
+    await user.click(within(second).getByRole("button", { name: "북마크 해제" }));
+    expect(bundles.remove).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ bookmarkId: SAME_NAME_BUNDLE.bookmarkId }));
+  });
+
+  it("카드의 북마크 해제는 팝업을 열지 않는다", async () => {
+    const mindmaps = tabOf(MINDMAPS);
+    const { user } = renderBookmarks({ mindmaps });
+    await user.click(within(mapCard("파리 미식 지도")).getByRole("button", { name: "북마크 해제" }));
+    expect(mindmaps.remove).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ bookmarkId: PICKED_BOOKMARK.bookmarkId }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
 
-describe("BookmarksView — 마인드맵 상세 팝업 · 원래 마인드맵에서 보기", () => {
+describe("BookmarksView — 상세 팝업", () => {
   beforeEach(() => {
-    // 전체 마인드맵 보기의 force simulation 은 멈춰 둔다 (노드 배치는 초기 좌표 그대로)
     vi.spyOn(window, "requestAnimationFrame").mockReturnValue(0);
   });
 
-  it("마인드맵 카드를 누르면 상세 팝업이 관련 세션 · 원래 마인드맵에서 보기 버튼과 함께 열린다", async () => {
+  it("카드를 누르면 팝업이 열리고 그 세션의 관련 세션을 sessionId 로 불러온다", async () => {
+    const sessionIds = mockSessions();
     const { user } = renderBookmarks();
-    await user.click(mapCard("유레일 vs 저가항공 — 실비 비교"));
-    const dialog = within(screen.getByRole("dialog", { name: "유레일 vs 저가항공 — 실비 비교" }));
-    expect(dialog.getByText("· 2개")).toBeInTheDocument();
-    expect(dialog.getByText("유레일패스 vs 개별 구매")).toBeInTheDocument();
-    expect(dialog.getByRole("button", { name: "원래 마인드맵에서 보기" })).toBeInTheDocument();
+    await user.click(mapCard("파리 미식 지도"));
+    const dialog = within(screen.getByRole("dialog", { name: "파리 미식 지도" }));
+    expect(await dialog.findByText(`· ${CARD_SESSIONS.sessions.length}개`)).toBeInTheDocument();
+    expect(sessionIds).toEqual([String(PICKED_BOOKMARK.sessionId)]);
+    expect(dialog.getByText("1구부터 20구까지 비스트로 정리.")).toBeInTheDocument();
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("팝업에서 작성자 이름을 누르면 그 사람 프로필로 이동하고 팝업이 닫힌다", async () => {
+  it("관련 세션을 기다리는 동안 팝업 안에 불러오는 중을 보여준다", async () => {
+    mockSessions(() => new Promise<never>(() => {}));
     const { user } = renderBookmarks();
-    await user.click(mapCard("파리 미식 지도 — 1구부터 20구까지"));
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "🥖 foodtrip" }));
-    expect(mockRouter.push).toHaveBeenCalledWith("/profile/foodtrip");
+    await user.click(mapCard("파리 미식 지도"));
+    expect(within(screen.getByRole("dialog")).getByText("불러오는 중…")).toBeInTheDocument();
+  });
+
+  it("세션 행을 누르면 그 세션 상세로 이동한다", async () => {
+    mockSessions();
+    const { user } = renderBookmarks();
+    await user.click(mapCard("동유럽 3주 살이 전체 동선"));
+    const row = await screen.findByRole("button", { name: new RegExp(CARD_SESSIONS.sessions[0].title) });
+    await user.click(row);
+    expect(mockRouter.push).toHaveBeenCalledWith(`/sessions/${CARD_SESSIONS.sessions[0].id}`);
+  });
+
+  it("작성자를 누르면 handle 없이 회원 id 프로필로 이동하고 팝업이 닫힌다", async () => {
+    mockSessions();
+    const { user } = renderBookmarks();
+    await user.click(mapCard("파리 미식 지도"));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "🌱 foodtrip" }));
+    expect(mockRouter.push).toHaveBeenCalledWith("/profile/102");
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("원래 마인드맵에서 보기를 누르면 작성자 전체 마인드맵에서 저장한 노드만 강조한다", async () => {
+  it("sessionId 가 없는 저장은 요청 없이 관련 세션 영역을 그리지 않는다", async () => {
+    const sessionIds = mockSessions();
     const { user } = renderBookmarks();
-    await user.click(mapCard("동유럽 3주 살이 전체 동선"));
-    await user.click(screen.getByRole("button", { name: "원래 마인드맵에서 보기" }));
-
-    // 상세 팝업은 숨고 전체 보기만 남는다
-    const dialogs = screen.getAllByRole("dialog");
-    expect(dialogs).toHaveLength(1);
-    const full = dialogs[0];
-    expect(full).toHaveAccessibleName("wanderlust님의 전체 마인드맵");
-    expect(within(full).getByText("저장한 노드 4개만 강조했어요")).toBeInTheDocument();
-
-    const node = (label: string) => within(full).getByText(label).closest("g")!;
-    // 저장한 노드: prague · castle · bridge · rail
-    ["프라하", "프라하성", "카를교", "유레일패스"].forEach((label) => {
-      expect(node(label)).toHaveStyle({ opacity: "1" });
-      expect(hasRing(node(label))).toBe(true);
-    });
-    ["유럽 여행", "로마", "파리", "에펠탑"].forEach((label) => {
-      expect(node(label)).toHaveStyle({ opacity: "0.25" });
-      expect(hasRing(node(label))).toBe(false);
-    });
+    await user.click(mapCard("#화장실 #놀이"));
+    const dialog = within(screen.getByRole("dialog", { name: "#화장실 #놀이" }));
+    expect(dialog.queryByText(/관련 세션/)).toBeNull();
+    expect(dialog.queryByText("불러오는 중…")).toBeNull();
+    expect(sessionIds).toEqual([]);
   });
 
-  it("전체 마인드맵 보기를 닫으면 원래의 상세 팝업으로 돌아온다", async () => {
+  it("관련 세션을 불러오지 못하면 팝업 안에서 다시 시도할 수 있다", async () => {
+    let failing = true;
+    mockSessions(() => (failing ? fail(500, SERVER_ERROR) : ok(CARD_SESSIONS)));
     const { user } = renderBookmarks();
-    await user.click(mapCard("동유럽 3주 살이 전체 동선"));
-    await user.click(screen.getByRole("button", { name: "원래 마인드맵에서 보기" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "닫기" }));
-    expect(screen.getByRole("dialog", { name: "동유럽 3주 살이 전체 동선" })).toBeInTheDocument();
-    expect(screen.queryByRole("dialog", { name: "wanderlust님의 전체 마인드맵" })).toBeNull();
-  });
-
-  it("마인드맵마다 저장한 노드가 다르게 강조된다", async () => {
-    const { user } = renderBookmarks();
-    await user.click(mapCard("유레일 vs 저가항공 — 실비 비교"));
-    await user.click(screen.getByRole("button", { name: "원래 마인드맵에서 보기" }));
-    const full = screen.getByRole("dialog", { name: "rail.kr님의 전체 마인드맵" });
-    expect(within(full).getByText("저장한 노드 5개만 강조했어요")).toBeInTheDocument();
-    expect(within(full).getByText("항공권").closest("g")).toHaveStyle({ opacity: "1" });
-    expect(within(full).getByText("프라하").closest("g")).toHaveStyle({ opacity: "0.25" });
-  });
-});
-
-describe("BookmarksView — 북마크 해제", () => {
-  it("마인드맵 북마크를 해제하면 카드가 빠지고 탭 수가 줄며, 팝업은 열리지 않는다", async () => {
-    const { user } = renderBookmarks();
-    await user.click(within(mapCard("파리 미식 지도 — 1구부터 20구까지")).getByRole("button", { name: "북마크 해제" }));
-    expect(screen.queryByText("파리 미식 지도 — 1구부터 20구까지")).toBeNull();
-    expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (5)");
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByText("북마크를 해제했어요.")).toBeInTheDocument();
-  });
-
-  it("토스트의 되돌리기를 누르면 해제한 마인드맵이 같은 자리로 돌아온다", async () => {
-    const { user } = renderBookmarks();
-    const before = mapTitles();
-    await user.click(within(mapCard("유럽 한 달 200만원으로 살기")).getByRole("button", { name: "북마크 해제" }));
-    expect(mapTitles()).not.toContain("유럽 한 달 200만원으로 살기");
-    await user.click(screen.getByRole("button", { name: "되돌리기" }));
-    expect(mapTitles()).toEqual(before);
-    expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (6)");
-    expect(screen.queryByText("북마크를 해제했어요.")).toBeNull();
-  });
-
-  it("세션 북마크를 해제하면 세션 카드가 빠지고 상세로 이동하지 않으며, 되돌리면 같은 자리로 돌아온다", async () => {
-    const { user } = renderBookmarks();
-    await user.click(tab(/^세션/));
-    const before = sessionTitles();
-    const session = screen.getByText("유럽 항공권 비교 (인천→로마 IN, 프라하→인천 OUT)").closest<HTMLElement>(".bmSession")!;
-    await user.click(within(session).getByRole("button", { name: "북마크 해제" }));
-    expect(sessionTitles()).not.toContain("유럽 항공권 비교 (인천→로마 IN, 프라하→인천 OUT)");
-    expect(tab(/^세션/)).toHaveTextContent("세션 (6)");
-    expect(mockRouter.push).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "되돌리기" }));
-    expect(sessionTitles()).toEqual(before);
-  });
-
-  it("해시태그 묶음 북마크를 해제하면 묶음이 빠지고, 되돌리면 같은 자리로 돌아온다", async () => {
-    const { user } = renderBookmarks();
-    await user.click(tab(/^해시태그 묶음/));
-    await user.click(within(bundleCard("미술관 모음")).getByRole("button", { name: "북마크 해제" }));
-    expect(bundleNames()).toEqual(["동유럽 자료", "예산 짜기", "항공권 비교"]);
-    expect(tab(/^해시태그 묶음/)).toHaveTextContent("해시태그 묶음 (3)");
-    await user.click(screen.getByRole("button", { name: "되돌리기" }));
-    expect(bundleNames()).toEqual(["동유럽 자료", "미술관 모음", "예산 짜기", "항공권 비교"]);
-  });
-
-  it("탭의 마지막 항목까지 해제하면 그 탭에 빈 안내가 보인다", async () => {
-    const { user } = renderBookmarks({ data: { ...BOOKMARKS_DATA, mindmaps: BOOKMARKS_DATA.mindmaps.slice(0, 1) } });
-    await user.click(within(mapCard("동유럽 3주 살이 전체 동선")).getByRole("button", { name: "북마크 해제" }));
-    expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (0)");
-    expect(screen.getByText("북마크한 항목이 없어요")).toBeInTheDocument();
+    await user.click(mapCard("파리 미식 지도"));
+    const dialog = within(screen.getByRole("dialog"));
+    expect(await dialog.findByRole("alert")).toHaveTextContent(SERVER_ERROR);
+    failing = false;
+    await user.click(dialog.getByRole("button", { name: "다시 시도" }));
+    expect(await dialog.findByText(`· ${CARD_SESSIONS.sessions.length}개`)).toBeInTheDocument();
   });
 });
 
 describe("BookmarksView — 빈 · 오류 상태", () => {
-  it("한 탭만 비어 있으면 그 탭에서만 빈 안내를 보여준다", async () => {
-    const { user } = renderBookmarks({ data: { ...BOOKMARKS_DATA, sessions: [] } });
-    expect(screen.queryByText("북마크한 항목이 없어요")).toBeNull();
-    await user.click(tab(/^세션/));
-    expect(tab(/^세션/)).toHaveTextContent("세션 (0)");
-    expect(screen.getByRole("status")).toHaveTextContent("북마크한 항목이 없어요");
-  });
-
-  it("데이터가 없으면 북마크 빈 상태를 보여주고 탭은 그리지 않는다", () => {
-    renderBookmarks({ data: null });
-    expect(screen.getByRole("heading", { name: "북마크" })).toBeInTheDocument();
+  it("빈 탭에서만 빈 안내를 보여준다", async () => {
+    const { user } = renderBookmarks({ bundles: tabOf<SavedBundle>([]) });
+    expect(screen.queryByText("아직 북마크한 항목이 없어요")).toBeNull();
+    await user.click(tab(/^해시태그 묶음/));
+    expect(tab(/^해시태그 묶음/)).toHaveTextContent("해시태그 묶음 (0)");
     expect(screen.getByRole("status")).toHaveTextContent("아직 북마크한 항목이 없어요");
-    expect(screen.queryByRole("button", { name: /^마인드맵/ })).toBeNull();
   });
 
-  it("불러오는 중이면 안내 문구만 보여준다", () => {
-    renderBookmarks({ loading: true });
+  it("보이는 항목을 다 해제했어도 더 있으면 빈 안내 대신 더 보기를 보여준다", () => {
+    renderBookmarks({ mindmaps: tabOf<SavedMindmap>([], { hasNext: true }) });
+    expect(screen.queryByText("아직 북마크한 항목이 없어요")).toBeNull();
+    expect(screen.getByRole("button", { name: "더 보기" })).toBeInTheDocument();
+  });
+
+  it("불러오는 중이면 그 탭에 안내 문구를 보여준다", () => {
+    renderBookmarks({ mindmaps: tabOf<SavedMindmap>([], { status: "loading" }) });
     expect(screen.getByText("불러오는 중…")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^마인드맵/ })).toBeNull();
   });
 
-  it("불러오지 못하면 오류 메시지와 다시 시도 버튼을 보여주고, 누르면 onRetry 를 부른다", async () => {
-    const onRetry = vi.fn();
-    const { user } = renderBookmarks({ data: null, error: "북마크를 불러오지 못했어요.", onRetry });
-    expect(screen.getByRole("alert")).toHaveTextContent("북마크를 불러오지 못했어요.");
+  it("실패한 탭은 오류 메시지와 다시 시도 버튼을 보여주고, 다른 탭은 그대로다", async () => {
+    const retry = vi.fn();
+    const { user } = renderBookmarks({ mindmaps: tabOf<SavedMindmap>([], { status: "error", error: SERVER_ERROR, retry }) });
+    expect(screen.getByRole("alert")).toHaveTextContent(SERVER_ERROR);
     await user.click(screen.getByRole("button", { name: "다시 시도" }));
-    expect(onRetry).toHaveBeenCalledOnce();
+    expect(retry).toHaveBeenCalledOnce();
+    await user.click(tab(/^해시태그 묶음/));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(bundleTitles()).toHaveLength(3);
+  });
+
+  it("더 보기가 실패해도 불러온 항목은 남고 다시 시도하면 loadMore 를 부른다", async () => {
+    const loadMore = vi.fn();
+    const { user } = renderBookmarks({ mindmaps: tabOf(MINDMAPS, { hasNext: true, moreError: "결과를 더 불러오지 못했어요.", loadMore }) });
+    expect(mapTitles()).toHaveLength(3);
+    await user.click(within(screen.getByRole("alert")).getByRole("button", { name: "다시 시도" }));
+    expect(loadMore).toHaveBeenCalledOnce();
+  });
+
+  it("더 보기를 누르면 loadMore 를 부르고, 더 없으면 버튼이 없다", async () => {
+    const loadMore = vi.fn();
+    const { user, unmount } = renderBookmarks({ mindmaps: tabOf(MINDMAPS, { hasNext: true, loadMore }) });
+    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    expect(loadMore).toHaveBeenCalledOnce();
+    unmount();
+    renderBookmarks();
+    expect(screen.queryByRole("button", { name: "더 보기" })).toBeNull();
+  });
+});
+
+describe("toSavedMindmap", () => {
+  it("저장 시각은 UTC 시각 기준이다 — 글자 그대로의 날짜가 아니다", () => {
+    const now = Date.parse("2026-11-01T00:31:00+09:00");
+    const item = bookmarkMindmap({ bookmarkId: 1, savedAt: "2026-10-31T15:29:26.482424Z" });
+    expect(toSavedMindmap(item, now).savedAgo).toBe("1분 전");
+  });
+
+  it("닉네임이 없으면 이름 없는 사용자, URL 만 공개에 태그도 없으면 안내 문구를 쓴다", () => {
+    const item = bookmarkMindmap({ bookmarkId: 1, title: null, snippet: null, hashtags: [], owner: { userId: 7, nickname: null } });
+    const { post, ownerId } = toSavedMindmap(item, BOOKMARK_NOW);
+    expect(post.user.name).toBe("이름 없는 사용자");
+    expect(post.title).toBe("원문 링크만 공개된 마인드맵");
+    expect(post.snippet).toBe("");
+    expect(ownerId).toBe(7);
+  });
+
+  it("제목이 있으면 해시태그에 # 를 붙이고 저장 대상을 그대로 들고 있는다", () => {
+    const { post, target } = toSavedMindmap(CARD_BOOKMARK, BOOKMARK_NOW);
+    expect(post.hashtags).toEqual(["#프라하", "#동유럽", "#야간열차"]);
+    expect(target).toEqual({ saveType: "MINI_MINDMAP", targetType: "NODE", targetIds: [81, 82], sourceMindmapId: 101 });
+  });
+});
+
+describe("toSavedBundle", () => {
+  it("태그에 # 를 붙이고 이름이 없으면 null 그대로 둔다", () => {
+    const bundle = toSavedBundle(bookmarkBundle({ bookmarkId: 1, name: null, hashtags: ["#이미", "없음"] }));
+    expect(bundle).toMatchObject({ bookmarkId: 1, name: null, tags: ["#이미", "#없음"] });
   });
 });

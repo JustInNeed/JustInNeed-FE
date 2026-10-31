@@ -16,7 +16,7 @@ import {
 } from "@/lib/api";
 import { useApi } from "@/lib/hooks/useApi";
 import { useToast } from "@/lib/app/ToastContext";
-import { formatDateTime, formatDuration, formatTime, hostFromUrl, STATUS_LABEL, withHash } from "@/lib/format";
+import { formatDateTime, formatDuration, formatTime, hostFromUrl, savedAgo, STATUS_LABEL, withHash } from "@/lib/format";
 import { MAP_HEIGHT, MAP_WIDTH, buildSessionMindmap } from "./buildSessionMindmap";
 import { CitationPopup } from "./CitationPopup";
 import { SessionEditor } from "./SessionEditor";
@@ -35,13 +35,6 @@ const MAP_LAYOUTS: [MapLayout, string][] = [
   ["radial", "방사형"],
   ["tree", "계층형"],
 ];
-
-function savedAgo(at: number, now: number): string {
-  const min = Math.floor((now - at) / 60_000);
-  if (min < 1) return "방금 전";
-  if (min < 60) return `${min}분 전`;
-  return `${Math.floor(min / 60)}시간 전`;
-}
 
 /** 본문에서 제목을 빼기 전에 고쳐 저장한 본문은 아직 `# 옛 제목` 으로 시작한다. */
 function startsWithHeading(markdown: string): boolean {

@@ -1,18 +1,21 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader, Button, HashChip, Icon, InlineState } from "@/components/ui";
 import { MindmapCard } from "@/components/mindmap/MindmapCard";
 import { MindmapDetailModal } from "@/components/mindmap/MindmapDetailModal";
-import { MindmapFullView } from "@/components/mindmap/MindmapFullView";
-import { SessionCard } from "@/features/sessions";
-import type { BookmarksData, SavedMindmap } from "@/lib/viewTypes";
-import { useToast } from "@/lib/app/ToastContext";
+import { getCardSessions } from "@/lib/api";
+import { useApi } from "@/lib/hooks/useApi";
+import type { SavedBundle, SavedMindmap } from "@/lib/viewTypes";
 import { profilePath } from "./CommunityView";
+import { MoreResults, tabLabel } from "./SearchView";
+import { toDetailSession } from "./toCommunityData";
+import type { BookmarkTab } from "./useBookmarkTab";
+import type { SearchTab } from "./useSearchTab";
 import styles from "./Community.module.css";
 
-/** 카드 위 북마크 해제 버튼 — 카드 클릭(팝업 · 이동)으로 번지지 않는다 */
+/** 카드 위 북마크 해제 버튼 — 카드 클릭(팝업)으로 번지지 않는다 */
 function UnbookmarkButton({ onClick, dark = false }: { onClick: () => void; dark?: boolean }) {
   return (
     <button
@@ -30,152 +33,120 @@ function UnbookmarkButton({ onClick, dark = false }: { onClick: () => void; dark
 }
 
 export interface BookmarksViewProps {
-  /** 없으면(null) 빈 상태 — 북마크 API 가 생기기 전까지 */
-  data: BookmarksData | null;
-  loading?: boolean;
-  /** 불러오기 실패 메시지 */
-  error?: string | null;
-  onRetry?: () => void;
+  mindmaps: BookmarkTab<SavedMindmap>;
+  bundles: BookmarkTab<SavedBundle>;
 }
 
-export function BookmarksView({ data, loading = false, error, onRetry }: BookmarksViewProps) {
+export function BookmarksView({ mindmaps, bundles }: BookmarksViewProps) {
+  const [filter, setFilter] = useState<"mindmap" | "tags">("mindmap");
+  const [detail, setDetail] = useState<SavedMindmap | null>(null);
+  const closeDetail = useCallback(() => setDetail(null), []);
+
   return (
     <div className={styles.page}>
-      <PageHeader title="북마크" subtitle="저장한 마인드맵·세션·해시태그 묶음" />
-      {loading ? (
-        <div className={styles.state}>불러오는 중…</div>
-      ) : error ? (
-        <div className={styles.searchBody}>
-          <InlineState kind="error" title={error} onRetry={onRetry} />
-        </div>
-      ) : !data ? (
-        <div className={styles.searchBody}>
-          <InlineState
-            kind="empty"
-            title="아직 북마크한 항목이 없어요"
-            description="커뮤니티에서 마음에 드는 마인드맵이나 세션을 북마크해 보세요."
-          />
-        </div>
-      ) : (
-        <BookmarksBody data={data} />
-      )}
+      <PageHeader title="북마크" subtitle="저장한 마인드맵·해시태그 묶음" />
+      <div className={styles.bmTabs}>
+        <Button variant="secondary" active={filter === "mindmap"} onClick={() => setFilter("mindmap")}>
+          {tabLabel("마인드맵", mindmaps)}
+        </Button>
+        <Button variant="secondary" active={filter === "tags"} onClick={() => setFilter("tags")}>
+          {tabLabel("해시태그 묶음", bundles)}
+        </Button>
+      </div>
+      <div className={styles.searchBody}>
+        {filter === "mindmap" ? (
+          <TabBody tab={mindmaps}>
+            <div className={styles.bmGrid}>
+              {mindmaps.items.map((m) => (
+                <MindmapCard
+                  key={m.bookmarkId}
+                  seed={m.post.id}
+                  nodes={m.post.nodes}
+                  height={210}
+                  title={m.post.title}
+                  meta={`by ${m.post.user.name} · 저장 ${m.savedAgo}`}
+                  tags={m.post.hashtags.slice(0, 2)}
+                  topLeft={<UnbookmarkButton dark onClick={() => mindmaps.remove(m)} />}
+                  topRight={`노드 ${m.post.nodes}`}
+                  onClick={() => setDetail(m)}
+                />
+              ))}
+            </div>
+          </TabBody>
+        ) : (
+          <TabBody tab={bundles}>
+            <div className={styles.bundleGrid}>
+              {bundles.items.map((g) => (
+                <div key={g.bookmarkId} className={styles.bundleCard}>
+                  <div className={styles.bundleHead}>
+                    {/* 이름 없이 저장한 묶음은 태그가 제목 자리로 간다 */}
+                    <h4 className={styles.bundleTitle}>{g.name ?? g.tags.join(" ")}</h4>
+                    <UnbookmarkButton onClick={() => bundles.remove(g)} />
+                  </div>
+                  {g.name !== null && (
+                    <div className={styles.feedTags} style={{ marginBottom: 0 }}>
+                      {g.tags.map((t) => (
+                        <HashChip key={t} label={t} size="sm" />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </TabBody>
+        )}
+      </div>
+
+      {detail && <SavedMindmapDetail key={detail.bookmarkId} saved={detail} onClose={closeDetail} />}
     </div>
   );
 }
 
-function BookmarksBody({ data }: { data: BookmarksData }) {
-  const router = useRouter();
-  const toast = useToast();
-  const [tab, setTab] = useState<"mindmap" | "sessions" | "tags">("mindmap");
-
-  // 북마크 해제 (API 연결 전: 로컬 상태). 받은 순서에서 걸러내므로 되돌리면 같은 자리로 돌아온다.
-  const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
-  const unbookmark = (key: string) => {
-    setRemoved((cur) => new Set(cur).add(key));
-    toast.success("북마크를 해제했어요.", {
-      action: {
-        label: "되돌리기",
-        onClick: () =>
-          setRemoved((cur) => {
-            const next = new Set(cur);
-            next.delete(key);
-            return next;
-          }),
-      },
-    });
-  };
-  const maps = data.mindmaps.filter((m) => !removed.has(`map:${m.post.id}`));
-  const sessions = data.sessions.filter((s) => !removed.has(`session:${s.id}`));
-  const bundles = data.tagBundles.filter((g) => !removed.has(`tag:${g.name}`));
-
-  // 상세 팝업 → 원래 마인드맵에서 보기. 전체 보기를 닫으면 팝업으로 돌아간다.
-  const [detail, setDetail] = useState<SavedMindmap | null>(null);
-  const [fullView, setFullView] = useState(false);
-  const closeDetail = useCallback(() => setDetail(null), []);
-  const closeFullView = useCallback(() => setFullView(false), []);
-
+/** 탭 하나의 로딩 · 실패 · 빈 상태 · 더 보기. 앞에서 다 해제했어도 더 있으면 빈 안내 대신 더 보기가 남는다 */
+function TabBody({ tab, children }: { tab: SearchTab<unknown>; children: ReactNode }) {
+  if (tab.status === "error") return <InlineState kind="error" title={tab.error ?? "북마크를 불러오지 못했어요."} onRetry={tab.retry} />;
+  if (tab.status !== "ready") return <div className={styles.state}>불러오는 중…</div>;
+  const empty = tab.items.length === 0;
   return (
     <>
-      <div className={styles.bmTabs}>
-        <Button variant="secondary" active={tab === "mindmap"} onClick={() => setTab("mindmap")}>마인드맵 ({maps.length})</Button>
-        <Button variant="secondary" active={tab === "sessions"} onClick={() => setTab("sessions")}>세션 ({sessions.length})</Button>
-        <Button variant="secondary" active={tab === "tags"} onClick={() => setTab("tags")}>해시태그 묶음 ({bundles.length})</Button>
-      </div>
-      <div className={styles.searchBody}>
-        {((tab === "mindmap" && maps.length === 0) ||
-          (tab === "sessions" && sessions.length === 0) ||
-          (tab === "tags" && bundles.length === 0)) && <InlineState kind="empty" title="북마크한 항목이 없어요" />}
-        {tab === "mindmap" && (
-          <div className={styles.bmGrid}>
-            {maps.map((m) => (
-              <MindmapCard
-                key={m.post.id}
-                seed={m.post.id}
-                nodes={m.post.nodes}
-                height={210}
-                title={m.post.title}
-                meta={`by ${m.post.user.name} · 저장 ${m.savedAgo}`}
-                tags={m.post.hashtags.slice(0, 2)}
-                topLeft={<UnbookmarkButton dark onClick={() => unbookmark(`map:${m.post.id}`)} />}
-                topRight={`노드 ${m.post.nodes}`}
-                onClick={() => setDetail(m)}
-              />
-            ))}
-          </div>
-        )}
-        {tab === "sessions" && (
-          <div className={styles.bmGrid}>
-            {sessions.map((s) => (
-              <div key={s.id} className={styles.bmSession}>
-                <SessionCard session={s} onClick={() => router.push(`/sessions/${s.id}`)} />
-                <div className={styles.bmSessionFoot}>
-                  <UnbookmarkButton onClick={() => unbookmark(`session:${s.id}`)} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {tab === "tags" && (
-          <div className={styles.bundleGrid}>
-            {bundles.map((g) => (
-              <div key={g.name} className={styles.bundleCard}>
-                <div className={styles.bundleHead}>
-                  <h4 className={styles.bundleTitle}>{g.name}</h4>
-                  <UnbookmarkButton onClick={() => unbookmark(`tag:${g.name}`)} />
-                </div>
-                <div className={styles.feedTags} style={{ marginBottom: 0 }}>
-                  {g.tags.map((t) => (
-                    <HashChip key={t} label={t} size="sm" />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {detail && !fullView && (
-        <MindmapDetailModal
-          post={detail.post}
-          sessions={data.relatedSessions[detail.post.id] ?? []}
-          onClose={closeDetail}
-          onOpenProfile={(handle) => router.push(profilePath(handle))}
-          actions={
-            <Button variant="primary" onClick={() => setFullView(true)}>
-              <Icon name="network" size={13} />
-              원래 마인드맵에서 보기
-            </Button>
-          }
+      {empty && !tab.hasNext ? (
+        <InlineState
+          kind="empty"
+          title="아직 북마크한 항목이 없어요"
+          description="커뮤니티에서 마음에 드는 마인드맵이나 해시태그를 북마크해 보세요."
         />
+      ) : (
+        !empty && children
       )}
-      {detail && fullView && (
-        <MindmapFullView
-          title={`${detail.post.user.name}님의 전체 마인드맵`}
-          mindmap={detail.authorMindmap}
-          highlightIds={detail.savedNodeIds}
-          onClose={closeFullView}
-        />
-      )}
+      <MoreResults tab={tab} />
     </>
+  );
+}
+
+/** 카드 상세 팝업 — 열 때 관련 세션을 불러온다. 여러 세션에서 고른 저장은 세션 목록이 없다 */
+function SavedMindmapDetail({ saved, onClose }: { saved: SavedMindmap; onClose: () => void }) {
+  const router = useRouter();
+  const { sessionId, ownerId, post } = saved;
+  const sessions = useApi(
+    () => getCardSessions(sessionId as number).then((r) => r.sessions.map(toDetailSession)),
+    [sessionId],
+    { enabled: sessionId !== null },
+  );
+
+  return (
+    <MindmapDetailModal
+      post={post}
+      sessions={sessionId === null ? null : (sessions.data ?? [])}
+      sessionsStatus={
+        sessions.error ? (
+          <InlineState kind="error" title={sessions.error} onRetry={sessions.refetch} />
+        ) : sessions.loading ? (
+          <div className={styles.sectionState}>불러오는 중…</div>
+        ) : undefined
+      }
+      onClose={onClose}
+      onOpenProfile={() => router.push(profilePath(ownerId))}
+      onSessionClick={(id) => router.push(`/sessions/${id}`)}
+    />
   );
 }

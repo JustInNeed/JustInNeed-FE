@@ -16,6 +16,7 @@ function tab<T>(items: T[], overrides: Partial<SearchTab<T>> = {}): SearchTab<T>
     loadMore: vi.fn(),
     loadingMore: false,
     moreError: null,
+    shiftList: vi.fn(),
     ...overrides,
   };
 }

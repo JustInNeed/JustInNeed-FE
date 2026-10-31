@@ -544,6 +544,8 @@ export interface BookmarkMindmapItem extends BookmarkSaveTarget<"MINI_MINDMAP"> 
   title: string | null;
   snippet: string | null;
   hashtags: { hashtagId: number; name: string }[]; // '#' 없이 raw 문자열
+  nodes: CommunityProfileMindmap["nodes"];
+  edges: CommunityProfileMindmap["edges"];
   nodeCount: number;
   likeCount: number;
   savedAt: string; // UTC 시각 (끝에 Z)

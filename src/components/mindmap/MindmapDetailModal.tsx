@@ -5,15 +5,15 @@ import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui";
 import type { SessionListItem } from "@/lib/api";
 import { formatDateTime, formatDuration, LINK_ONLY_SESSION_TITLE, STATUS_LABEL, withHash } from "@/lib/format";
-import type { CommunityPost } from "@/lib/viewTypes";
+import type { MindmapDetailPost } from "@/lib/viewTypes";
 import { MindmapPreview } from "./MindmapPreview";
 import { useOverlayClose } from "./useOverlayClose";
 import styles from "./MindmapDetailModal.module.css";
 
 export interface MindmapDetailModalProps {
-  post: CommunityPost;
-  /** 이 마인드맵의 출처가 된 세션 */
-  sessions: SessionListItem[];
+  post: MindmapDetailPost;
+  /** 이 마인드맵의 출처가 된 세션. null 이면 관련 세션 영역을 그리지 않는다 (여러 세션에서 고른 저장) */
+  sessions: SessionListItem[] | null;
   /** 세션을 불러오는 중 · 실패 안내 — 넘기면 세션 목록과 개수 대신 보여준다 */
   sessionsStatus?: ReactNode;
   onClose: () => void;
@@ -72,46 +72,48 @@ export function MindmapDetailModal({ post, sessions, sessionsStatus, onClose, on
 
         {post.snippet && <p className={styles.snippet}>{post.snippet}</p>}
 
-        <div className={styles.sessions}>
-          <div className={styles.sessionsHead}>
-            <div className={styles.sessionsTitle}>
-              관련 세션 {!sessionsStatus && <span className={styles.sessionsCount}>· {sessions.length}개</span>}
+        {sessions && (
+          <div className={styles.sessions}>
+            <div className={styles.sessionsHead}>
+              <div className={styles.sessionsTitle}>
+                관련 세션 {!sessionsStatus && <span className={styles.sessionsCount}>· {sessions.length}개</span>}
+              </div>
+              <span className={styles.sessionsHint}>이 마인드맵의 출처가 된 검색 세션</span>
             </div>
-            <span className={styles.sessionsHint}>이 마인드맵의 출처가 된 검색 세션</span>
+            <div className={styles.sessionList}>
+              {sessionsStatus ?? sessions.map((s) => {
+                const body = (
+                  <>
+                    <div className={styles.rowTop}>
+                      <div className={styles.rowTitle}>{s.title || LINK_ONLY_SESSION_TITLE}</div>
+                      <span className={styles.rowDuration}>
+                        <Icon name="clock" size={11} />
+                        {formatDuration(s.startedAt, s.endedAt) ?? STATUS_LABEL[s.status]}
+                      </span>
+                    </div>
+                    <div className={styles.rowMeta}>
+                      {formatDateTime(s.startedAt)} · 출처 {s.pageCount}개
+                    </div>
+                    <div className={styles.rowTags}>
+                      {s.tags.slice(0, 4).map((t) => (
+                        <span key={t} className={styles.rowTag}>{withHash(t)}</span>
+                      ))}
+                    </div>
+                  </>
+                );
+                return onSessionClick ? (
+                  <button key={s.id} className={`${styles.row} ${styles.rowClickable}`} onClick={() => onSessionClick(s.id)}>
+                    {body}
+                  </button>
+                ) : (
+                  <div key={s.id} className={styles.row}>
+                    {body}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className={styles.sessionList}>
-            {sessionsStatus ?? sessions.map((s) => {
-              const body = (
-                <>
-                  <div className={styles.rowTop}>
-                    <div className={styles.rowTitle}>{s.title || LINK_ONLY_SESSION_TITLE}</div>
-                    <span className={styles.rowDuration}>
-                      <Icon name="clock" size={11} />
-                      {formatDuration(s.startedAt, s.endedAt) ?? STATUS_LABEL[s.status]}
-                    </span>
-                  </div>
-                  <div className={styles.rowMeta}>
-                    {formatDateTime(s.startedAt)} · 출처 {s.pageCount}개
-                  </div>
-                  <div className={styles.rowTags}>
-                    {s.tags.slice(0, 4).map((t) => (
-                      <span key={t} className={styles.rowTag}>{withHash(t)}</span>
-                    ))}
-                  </div>
-                </>
-              );
-              return onSessionClick ? (
-                <button key={s.id} className={`${styles.row} ${styles.rowClickable}`} onClick={() => onSessionClick(s.id)}>
-                  {body}
-                </button>
-              ) : (
-                <div key={s.id} className={styles.row}>
-                  {body}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        )}
 
         {actions && <div className={styles.actions}>{actions}</div>}
       </div>

@@ -4,7 +4,6 @@
 import type { BannerTip, SessionListItem } from "@/lib/api";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
 import type {
-  BookmarkedMindmap,
   CommunityPost,
   GraphPeriod,
   TimelineSite,
@@ -259,20 +258,3 @@ export const EXPLORATION_STATS = [
 
 // ---------- 설정 ----------
 // 수집 제외 URL · 외부 연동 목록은 settings.ts 로 옮김
-
-// ---------- 북마크 ----------
-export const BOOKMARKED_MINDMAPS: BookmarkedMindmap[] = [
-  { postId: "c1", savedAgo: "4일 전", savedNodeIds: ["prague", "castle", "bridge", "rail"] },
-  { postId: "c2", savedAgo: "1일 전", savedNodeIds: ["paris", "eiffel", "mont", "orsay"] },
-  { postId: "c3", savedAgo: "3일 전", savedNodeIds: ["budget", "booking", "rail"] },
-  { postId: "c4", savedAgo: "5일 전", savedNodeIds: ["louvre", "orsay", "vatic", "paris"] },
-  { postId: "c5", savedAgo: "2일 전", savedNodeIds: ["rome", "tras", "pasta"] },
-  { postId: "c6", savedAgo: "4일 전", savedNodeIds: ["rail", "booking", "flight", "skyscan", "kayak"] },
-];
-
-export const BOOKMARK_TAG_BUNDLES = [
-  { name: "동유럽 자료", tags: ["#프라하", "#비엔나", "#부다페스트", "#야간열차"] },
-  { name: "미술관 모음", tags: ["#루브르", "#오르세", "#프라도", "#리이크스"] },
-  { name: "예산 짜기", tags: ["#호스텔", "#슈퍼마켓", "#무료투어"] },
-  { name: "항공권 비교", tags: ["#스카이스캐너", "#카타르항공", "#오픈조"] },
-];

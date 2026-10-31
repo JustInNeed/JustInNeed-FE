@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError } from "@/lib/api";
+import { ApiError, SEARCH_PAGE_SIZE } from "@/lib/api";
 
 export interface SearchPage<T> {
   items: T[];
@@ -23,15 +23,26 @@ export interface SearchTab<T> {
   loadingMore: boolean;
   /** "더 보기" 실패 — 불러온 결과는 그대로 둔다 */
   moreError: string | null;
+  /** 서버 목록에서 항목이 빠지면(-) · 맨 앞에 들어가면(+) 다음 "더 보기" 위치를 그만큼 옮긴다 */
+  shiftList: (delta: number) => void;
 }
 
 interface Loaded<T> extends SearchPage<T> {
   q: string;
   attempt: number;
   page: number;
+  /** 마지막으로 불러온 페이지 뒤로 목록이 밀린 칸 수 */
+  shift: number;
   error: string | null;
   loadingMore: boolean;
   moreError: string | null;
+}
+
+export interface SearchTabOptions {
+  /** 탭이 한 번에 불러오는 수 */
+  pageSize?: number;
+  /** 첫 페이지 실패 문구 (서버 문구가 없을 때) */
+  failedMessage?: string;
 }
 
 const messageOf = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
@@ -56,6 +67,7 @@ export function useSearchTab<T>(
   requestQ: string,
   fetchPage: FetchSearchPage<T>,
   idOf: (item: T) => number,
+  { pageSize = SEARCH_PAGE_SIZE, failedMessage = "검색 결과를 불러오지 못했어요." }: SearchTabOptions = {},
 ): SearchTab<T> {
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState<Loaded<T> | null>(null);
@@ -65,22 +77,23 @@ export function useSearchTab<T>(
   useEffect(() => {
     if (!requestQ) return;
     let active = true;
-    const first = { q: requestQ, attempt, page: 0, loadingMore: false, moreError: null };
+    const first = { q: requestQ, attempt, page: 0, shift: 0, loadingMore: false, moreError: null };
     fetchPage(requestQ, 0).then(
       ({ items, hasNext }) => {
         if (active) setLoaded({ ...first, items, hasNext, error: null });
       },
       (e: unknown) => {
-        if (active) setLoaded({ ...first, items: [], hasNext: false, error: messageOf(e, "검색 결과를 불러오지 못했어요.") });
+        if (active) setLoaded({ ...first, items: [], hasNext: false, error: messageOf(e, failedMessage) });
       },
     );
     return () => {
       active = false;
       moreRequest.current = null;
     };
-  }, [requestQ, attempt, fetchPage]);
+  }, [requestQ, attempt, fetchPage, failedMessage]);
 
   const retry = useCallback(() => setAttempt((a) => a + 1), []);
+  const shiftList = useCallback((delta: number) => setLoaded((prev) => prev && { ...prev, shift: prev.shift + delta }), []);
   const current = loaded && loaded.q === q && loaded.attempt === attempt ? loaded : null;
 
   const loadMore = () => {
@@ -88,13 +101,24 @@ export function useSearchTab<T>(
     const request = {};
     moreRequest.current = request;
     setLoaded((prev) => prev && { ...prev, loadingMore: true, moreError: null });
-    fetchPage(current.q, current.page + 1).then(
+    // 앞에서 항목이 빠지면 뒤 항목이 앞 페이지로 당겨져서, 그 페이지부터 다시 받아야 건너뛰지 않는다. 겹친 항목은 uniqueBy 가 거른다
+    const { shift } = current;
+    const nextPage = Math.floor(((current.page + 1) * pageSize + shift) / pageSize);
+    fetchPage(current.q, nextPage).then(
       ({ items, hasNext }) => {
         if (moreRequest.current !== request) return;
         moreRequest.current = null;
         setLoaded(
           (prev) =>
-            prev && { ...prev, page: prev.page + 1, items: uniqueBy([...prev.items, ...items], idOf), hasNext, loadingMore: false },
+            prev && {
+              ...prev,
+              page: nextPage,
+              // 응답을 기다리는 사이에 밀린 칸은 다음 "더 보기" 로 넘긴다
+              shift: prev.shift - shift,
+              items: uniqueBy([...prev.items, ...items], idOf),
+              hasNext,
+              loadingMore: false,
+            },
         );
       },
       (e: unknown) => {
@@ -114,5 +138,6 @@ export function useSearchTab<T>(
     loadMore,
     loadingMore: current?.loadingMore ?? false,
     moreError: current?.moreError ?? null,
+    shiftList,
   };
 }
