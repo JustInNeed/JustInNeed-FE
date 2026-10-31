@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Icon, PageHeader, InlineState } from "@/components/ui";
+import { MindmapDetailModal } from "@/components/mindmap/MindmapDetailModal";
+import { getCardSessions } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
-import type { UseApiResult } from "@/lib/hooks/useApi";
+import { useApi, type UseApiResult } from "@/lib/hooks/useApi";
 import type { TrendingHashtag } from "@/lib/viewTypes";
 import { FeedCard } from "./FeedCard";
 import { SearchResultsPanel } from "./SearchResultsPanel";
-import { DEFAULT_AVATAR, type FeedPost, type FeedRecommendation, type SimilarPersonRow } from "./toCommunityData";
+import { DEFAULT_AVATAR, toDetailSession, type FeedPost, type FeedRecommendation, type SimilarPersonRow } from "./toCommunityData";
 import { useCardReactions } from "./useCardReactions";
 import { useCommunitySearch } from "./useCommunitySearch";
 import { useFollow } from "./useFollow";
@@ -41,7 +43,8 @@ export function CommunityView({ sections }: CommunityViewProps) {
   const { withReaction, toggleLike, toggleBookmark, toggleExploring } = useCardReactions();
 
   const openProfile = (userId: number) => router.push(profilePath(userId));
-  const openDetail = (_post: FeedPost) => {};
+  const [detail, setDetail] = useState<FeedPost | null>(null);
+  const closeDetail = useCallback(() => setDetail(null), []);
 
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -98,7 +101,7 @@ export function CommunityView({ sections }: CommunityViewProps) {
                 onToggleLike={() => toggleLike(post)}
                 onToggleBookmark={() => toggleBookmark(post)}
                 onToggleExploring={() => toggleExploring(post)}
-                onOpen={() => openDetail(post)}
+                onOpen={() => setDetail(base)}
               />
             );
           })}
@@ -236,6 +239,31 @@ export function CommunityView({ sections }: CommunityViewProps) {
           </>
         )}
       </div>
+
+      {detail && <CardDetail post={withReaction(detail)} onClose={closeDetail} onOpenProfile={openProfile} />}
     </div>
+  );
+}
+
+/** 카드 상세 팝업 — 열 때 관련 세션을 불러온다 */
+function CardDetail({ post, onClose, onOpenProfile }: { post: FeedPost; onClose: () => void; onOpenProfile: (userId: number) => void }) {
+  const router = useRouter();
+  const sessions = useApi(() => getCardSessions(post.mindmapId).then((r) => r.sessions.map(toDetailSession)), [post.mindmapId]);
+
+  return (
+    <MindmapDetailModal
+      post={post}
+      sessions={sessions.data ?? []}
+      sessionsStatus={
+        sessions.error ? (
+          <InlineState kind="error" title={sessions.error} onRetry={sessions.refetch} />
+        ) : sessions.loading ? (
+          <div className={styles.sectionState}>불러오는 중…</div>
+        ) : undefined
+      }
+      onClose={onClose}
+      onOpenProfile={() => onOpenProfile(post.ownerId)}
+      onSessionClick={(id) => router.push(`/sessions/${id}`)}
+    />
   );
 }

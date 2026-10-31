@@ -45,6 +45,14 @@ describe("MindmapDetailModal", () => {
     expect(d.getByText("#스카이스캐너")).toBeInTheDocument();
   });
 
+  it("sessionsStatus 를 넘기면 세션 목록과 개수 대신 그 안내를 보여준다", () => {
+    const { dialog } = renderModal({ sessionsStatus: <p>불러오는 중…</p> });
+    const d = within(dialog);
+    expect(d.getByText("불러오는 중…")).toBeInTheDocument();
+    expect(d.queryByText("· 2개")).toBeNull();
+    expect(d.queryByText("유레일패스 vs 개별 구매")).toBeNull();
+  });
+
   it("소개글이 비어 있으면 소개 문단을 그리지 않는다", () => {
     const { dialog } = renderModal({ post: { ...POST, snippet: "" } });
     expect(dialog.querySelector(".snippet")).toBeNull();

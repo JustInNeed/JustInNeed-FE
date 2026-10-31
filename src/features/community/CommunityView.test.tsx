@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http } from "msw";
 import { describe, expect, it, vi } from "vitest";
 import type { UseApiResult } from "@/lib/hooks/useApi";
@@ -6,6 +6,7 @@ import { mockRouter } from "@/test/router";
 import { API, fail, ok, server } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import {
+  CARD_SESSIONS,
   CONTENT_CARD,
   EMPTY_RECOMMENDATION,
   INTERESTS,
@@ -356,11 +357,12 @@ describe("CommunityView — 검색바", () => {
 
   it("입력이 멈출 때까지 기다렸다가 마지막 검색어로 한 번만 찾는다", async () => {
     const urls = mockSearch();
-    const { user } = renderCommunity();
-    await user.type(searchInput(), "파리올림픽");
+    renderCommunity();
+    // 사용자 타이핑 속도에 기대지 않도록 같은 순간에 연달아 바꾼다
+    ["파", "파리", "파리올"].forEach((value) => fireEvent.change(searchInput(), { target: { value } }));
     expect(urls).toHaveLength(0);
     await (await panel()).findByText("프로필 추천");
-    expect(urls.map((u) => u.searchParams.get("q"))).toEqual(["파리올림픽", "파리올림픽", "파리올림픽"]);
+    expect(urls.map((u) => u.searchParams.get("q"))).toEqual(["파리올", "파리올", "파리올"]);
   });
 
   it("검색어 앞의 # 과 공백은 빼고 찾는다", async () => {
@@ -407,7 +409,14 @@ describe("CommunityView — 검색바", () => {
   });
 
   it("검색어를 바꾸면 이전 결과 대신 찾는 중을 보여준다", async () => {
-    mockSearch();
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    mockSearch({
+      hashtags: async (q) => {
+        if (q !== "파리") await gate;
+        return ok(SEARCH_HASHTAGS);
+      },
+    });
     const { user } = renderCommunity();
     await user.type(searchInput(), "파리");
     const p = await panel();
@@ -415,6 +424,8 @@ describe("CommunityView — 검색바", () => {
     await user.type(searchInput(), "올");
     expect(p.getByText("찾는 중…")).toBeInTheDocument();
     expect(p.queryByText("프로필 추천")).toBeNull();
+    release();
+    expect(await p.findByText("프로필 추천")).toBeInTheDocument();
   });
 
   it("일치하는 결과가 없으면 안내 문구를 보여준다", async () => {
@@ -473,9 +484,9 @@ describe("CommunityView — 검색바", () => {
 
   it("글자를 모두 지우면 드롭다운이 닫히고 요청을 보내지 않는다", async () => {
     const urls = mockSearch();
-    const { user } = renderCommunity();
-    await user.type(searchInput(), "파");
-    await user.clear(searchInput());
+    renderCommunity();
+    fireEvent.change(searchInput(), { target: { value: "파" } });
+    fireEvent.change(searchInput(), { target: { value: "" } });
     await settle();
     expect(dropdown()).toBeNull();
     expect(urls).toHaveLength(0);
@@ -516,6 +527,100 @@ describe("CommunityView — 검색바", () => {
     await user.type(searchInput(), "파리");
     await user.click(await (await panel()).findByText("#미술관 #로마"));
     expect(mockRouter.push).toHaveBeenCalledWith("/profile/103");
+  });
+});
+
+describe("CommunityView — 상세 팝업", () => {
+  const SESSIONS_URL = `${API}/community/mindmaps/12/sessions`;
+  const open = async (user: ReturnType<typeof renderCommunity>["user"]) => {
+    await user.click(within(region(INTEREST)).getByText(CONTENT_TITLE, { selector: "h4" }));
+    return screen.getByRole("dialog", { name: CONTENT_TITLE });
+  };
+
+  it("카드를 누르면 팝업이 열리고 그때 관련 세션을 불러온다", async () => {
+    let calls = 0;
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    server.use(
+      http.get(SESSIONS_URL, async () => {
+        calls += 1;
+        await gate;
+        return ok(CARD_SESSIONS);
+      }),
+    );
+    const { user } = renderCommunity();
+    expect(calls).toBe(0);
+    const dialog = within(await open(user));
+    expect(dialog.getByText("불러오는 중…")).toBeInTheDocument();
+    expect(dialog.queryByText("· 0개")).toBeNull();
+    release();
+    expect(await dialog.findByText("프라하 1박 일정 짜기")).toBeInTheDocument();
+    expect(dialog.getByText("· 2개")).toBeInTheDocument();
+    expect(calls).toBe(1);
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+
+  it("URL 만 공개한 세션은 제목 대신 안내 문구를 보여준다", async () => {
+    server.use(http.get(SESSIONS_URL, () => ok(CARD_SESSIONS)));
+    const { user } = renderCommunity();
+    expect(await within(await open(user)).findByText("원문 링크만 공개된 세션")).toBeInTheDocument();
+  });
+
+  it("관련 세션을 누르면 그 세션 화면으로 이동한다", async () => {
+    server.use(http.get(SESSIONS_URL, () => ok(CARD_SESSIONS)));
+    const { user } = renderCommunity();
+    await user.click(await within(await open(user)).findByText("프라하 1박 일정 짜기"));
+    expect(mockRouter.push).toHaveBeenCalledWith("/sessions/12");
+  });
+
+  it("작성자 이름을 누르면 회원 id 로 프로필에 이동하고 팝업이 닫힌다", async () => {
+    server.use(http.get(SESSIONS_URL, () => ok(CARD_SESSIONS)));
+    const { user } = renderCommunity();
+    const dialog = within(await open(user));
+    await dialog.findByText("프라하 1박 일정 짜기");
+    await user.click(dialog.getByRole("button", { name: "🌱 wanderlust" }));
+    expect(mockRouter.push).toHaveBeenCalledWith("/profile/101");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("세션을 불러오지 못하면 팝업 안에서 다시 시도할 수 있다", async () => {
+    let calls = 0;
+    server.use(
+      http.get(SESSIONS_URL, () => {
+        calls += 1;
+        return calls === 1 ? fail(404, "세션을 찾을 수 없습니다.") : ok(CARD_SESSIONS);
+      }),
+    );
+    const { user } = renderCommunity();
+    const dialog = within(await open(user));
+    expect(await dialog.findByRole("alert")).toHaveTextContent("세션을 찾을 수 없습니다.");
+    await user.click(dialog.getByRole("button", { name: "다시 시도" }));
+    expect(await dialog.findByText("프라하 1박 일정 짜기")).toBeInTheDocument();
+  });
+
+  it("팝업의 좋아요 수는 내가 누른 값을 따른다", async () => {
+    server.use(http.get(SESSIONS_URL, () => ok(CARD_SESSIONS)));
+    onPatch("/community/mindmaps/12/like", () => ok({ likeCount: 29, likedByMe: true }));
+    const { user } = renderCommunity();
+    const like = button(feedCard(CONTENT_TITLE, region(INTEREST)), "좋아요");
+    await user.click(like);
+    await waitFor(() => expect(like).toHaveTextContent("29"));
+    expect(within(await open(user)).getByText("좋아요 29")).toBeInTheDocument();
+    await screen.findByText("프라하 1박 일정 짜기");
+  });
+
+  it("연관 URL · 반응 버튼을 눌러도 팝업은 열리지 않는다", async () => {
+    // jsdom 은 링크 이동을 지원하지 않아 기본 동작만 막는다 (전파는 그대로)
+    const prevent = (e: Event) => e.preventDefault();
+    window.addEventListener("click", prevent, true);
+    onPatch("/community/mindmaps/12/bookmark", () => ok({ bookmarkCount: 10, bookmarkId: 7 }));
+    const { user } = renderCommunity();
+    const card = feedCard(CONTENT_TITLE, region(INTEREST));
+    await user.click(within(card).getByRole("link", { name: /ÖBB/ }));
+    await user.click(button(card, "북마크"));
+    await waitFor(() => expect(button(card, "북마크")).toHaveTextContent("10"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    window.removeEventListener("click", prevent, true);
   });
 });
 
