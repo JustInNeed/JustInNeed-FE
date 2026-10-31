@@ -13,6 +13,14 @@ export {
 } from "./sessions";
 export { getHome } from "./home";
 export {
+  getAnalyticsWeekSessions,
+  getAnalyticsExploration,
+  getAnalyticsReadingBehavior,
+  getAnalyticsCategories,
+  getAnalyticsTimePatterns,
+  getAnalyticsRecommendations,
+} from "./analytics";
+export {
   getTagGroups,
   createTagGroup,
   updateTagGroup,
