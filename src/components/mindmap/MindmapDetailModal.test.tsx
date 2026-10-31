@@ -1,13 +1,12 @@
 import { screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderApp } from "@/test/render";
-import { COMMUNITY_FEED } from "@/test/fixtures/design";
-import { COMMUNITY_DATA } from "@/test/fixtures/community";
+import { COMMUNITY_FEED, relatedSessionsFor } from "@/test/fixtures/design";
 import { MindmapDetailModal, type MindmapDetailModalProps } from "./MindmapDetailModal";
 
 // c6 — 유레일 vs 저가항공 (관련 세션 2개: 항공권 비교 · 유레일패스)
 const POST = COMMUNITY_FEED.find((p) => p.id === "c6")!;
-const SESSIONS = COMMUNITY_DATA.relatedSessions.c6;
+const SESSIONS = relatedSessionsFor(POST);
 
 function renderModal(props: Partial<MindmapDetailModalProps> = {}) {
   const onClose = vi.fn();

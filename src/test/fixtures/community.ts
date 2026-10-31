@@ -1,8 +1,7 @@
-// 커뮤니티 · 북마크 · 검색 화면 픽스처 — design.ts 의 시안 데이터를 화면이 받는 모양(viewTypes)으로 묶는다.
+// 북마크 · 검색 화면 픽스처 — design.ts 의 시안 데이터를 화면이 받는 모양(viewTypes)으로 묶는다.
 // 화면 테스트는 이 값을 props 로 넘겨 "이 데이터면 이렇게 보인다"를 검증한다.
 import type {
   BookmarksData,
-  CommunityData,
   CommunityPost,
   FullMindmap,
   RelatedSessionsByPost,
@@ -12,14 +11,10 @@ import {
   BOOKMARKED_MINDMAPS,
   BOOKMARK_TAG_BUNDLES,
   COMMUNITY_FEED,
-  COMMUNITY_RELATED_URLS,
   MINDMAP_EDGES,
   MINDMAP_NODES,
   MINDMAP_NODE_URLS,
   MOCK_SESSIONS,
-  SIMILAR_PEOPLE,
-  TRENDING_HASHTAGS,
-  TRENDING_HASHTAGS_WEEK,
   relatedSessionsFor,
 } from "./design";
 
@@ -32,18 +27,6 @@ export const AUTHOR_MINDMAP: FullMindmap = {
 
 const relatedSessionsOf = (posts: CommunityPost[]): RelatedSessionsByPost =>
   Object.fromEntries(posts.map((p) => [p.id, relatedSessionsFor(p)]));
-
-export const COMMUNITY_DATA: CommunityData = {
-  interestBased: { basisTags: ["#파리", "#로마", "#유레일"], posts: COMMUNITY_FEED.slice(0, 3) },
-  recentBookmarkBased: { basisTags: ["#야간열차", "#소도시", "#호스텔"], posts: COMMUNITY_FEED.slice(3, 6) },
-  relatedUrls: COMMUNITY_RELATED_URLS,
-  trending: { today: TRENDING_HASHTAGS, week: TRENDING_HASHTAGS_WEEK },
-  similarPeople: SIMILAR_PEOPLE,
-  searchIndex: { posts: COMMUNITY_FEED, tags: TRENDING_HASHTAGS },
-  relatedSessions: relatedSessionsOf(COMMUNITY_FEED),
-  likedPostIds: [],
-  bookmarkedPostIds: ["c2"],
-};
 
 export const BOOKMARKS_DATA: BookmarksData = {
   mindmaps: BOOKMARKED_MINDMAPS.flatMap((b) => {

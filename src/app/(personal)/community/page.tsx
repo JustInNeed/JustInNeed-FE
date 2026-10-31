@@ -1,6 +1,13 @@
+"use client";
+
 import { CommunityView } from "@/features/community/CommunityView";
+import { toRecommendation } from "@/features/community/toCommunityData";
+import { getInterestRecommendations, getRecentBookmarkRecommendations } from "@/lib/api";
+import { useApi } from "@/lib/hooks/useApi";
 
 export default function CommunityPage() {
-  // 커뮤니티 API 가 생기기 전까지는 데이터 없이 빈 상태를 보여준다
-  return <CommunityView data={null} />;
+  const interests = useApi(() => getInterestRecommendations().then(toRecommendation));
+  const recentBookmarks = useApi(() => getRecentBookmarkRecommendations().then(toRecommendation));
+
+  return <CommunityView sections={{ interests, recentBookmarks }} />;
 }
