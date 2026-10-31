@@ -1,10 +1,9 @@
 // 디자인 시안(Claude Design "JustInNeed") 기준 화면 데이터 — 테스트 픽스처.
 // 앱 화면은 이 데이터를 직접 쓰지 않고 props로 받는다. 테스트는 이 값을 넘겨
 // "이 데이터면 이렇게 보인다"를 검증하고, API를 연결하면 같은 값을 MSW 응답으로도 쓴다.
-import type { SessionListItem } from "@/lib/api";
+import type { BannerTip, SessionListItem } from "@/lib/api";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
 import type {
-  BannerTip,
   BookmarkedMindmap,
   CommunityPost,
   GraphPeriod,
@@ -277,12 +276,6 @@ export const HOME_WEEK_SESSIONS: WeekSession[] = [
 export const WEEKLY_SESSIONS = MOCK_SESSIONS;
 
 // "오늘의 웹 서핑 팁" · "오늘의 추천 행동" 슬라이드는 각 목록에서 하나를 랜덤으로 보여준다 (AnalyticsView).
-
-export const SURFING_TIPS: BannerTip[] = [
-  { title: '검색어에 큰따옴표("")를 씌워 "키워드" 형태로 검색하면 정확한 결과를 찾을 수 있어요.', body: "검색 방식만 바꿔도 정보의 질이 크게 달라져요." },
-  { title: '검색 결과가 너무 많다면 "키워드 -제외어" 형태로 불필요한 단어를 빼보세요.', body: "예) computer science -java · 원하지 않는 정보가 줄어 더 정확한 결과를 찾을 수 있어요." },
-  { title: '신뢰하는 사이트에서만 찾고 싶다면 "site:github.com 키워드"처럼 범위를 좁혀보세요.', body: "출처를 제한하면 원하는 정보를 더 빠르게 찾을 수 있어요." },
-];
 
 export const ACTION_RECOMMENDATIONS: BannerTip[] = [
   { title: "공식 문서도 한 번 정독해보세요.", body: "지금 공부하는 주제의 공식 문서나 원문을 한 번쯤 읽으며 핵심 개념을 정리해보는 건 어떨까요?" },

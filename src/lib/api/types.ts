@@ -32,6 +32,64 @@ export interface NicknameAvailabilityResponse {
   available: boolean;
 }
 
+// ---------- 분석 ----------
+/** 읽기 행동 4분류 — 화면 표기는 영어 (Deep Reading / Reading / Scanning / Idle) */
+export type ReadingLevel = "DEEP_READING" | "READING" | "SCANNING" | "IDLE";
+
+export type ExplorationType = "DISTRACTED" | "FOCUSED" | "BROAD" | "QUICK_CHECK";
+
+/** 카드 아래 분석 · 추천 문구. "**강조**" 로 감싼 부분은 강조해 보여준다 */
+export interface AnalysisNote {
+  analysis: string;
+  recommendation?: string | null;
+}
+
+export interface BannerTip {
+  title: string;
+  body: string;
+}
+
+export interface AnalyticsWeekSessions {
+  sessions: SessionListItem[];
+}
+
+export interface AnalyticsExploration {
+  avgUrlsPerSession: number;
+  avgDwellSec: number;
+  avgSessionMinutes: number;
+  type: ExplorationType | null; // 판정할 수 있는 세션이 없으면 null
+  note: AnalysisNote;
+}
+
+export interface AnalyticsReadingBehavior {
+  shares: Record<ReadingLevel, number>; // % (합 100)
+  note: AnalysisNote;
+}
+
+export interface CategoryShare {
+  name: string;
+  pct: number;
+  count: number; // 재방문 포함
+}
+
+export interface AnalyticsCategories {
+  categories: CategoryShare[];
+  note: AnalysisNote;
+}
+
+/** 시간대별 히트맵 — [요일 월~일][3시간 구간 00 · 03 · … · 21시], 값 0~1 */
+export type WeekHourGrid = number[][];
+
+export interface AnalyticsTimePatterns {
+  surfing: WeekHourGrid;
+  focus: WeekHourGrid;
+  note: AnalysisNote;
+}
+
+export interface AnalyticsRecommendations {
+  recommendations: BannerTip[];
+}
+
 // ---------- 설정 ----------
 export interface ExcludedUrlItem {
   excludedUrlId: number;
