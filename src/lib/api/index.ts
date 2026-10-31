@@ -42,6 +42,14 @@ export {
   setProfileFollow,
 } from "./community";
 export {
+  BOOKMARK_PAGE_SIZE,
+  getBookmarkMindmaps,
+  getBookmarkBundles,
+  deleteBookmark,
+  getBookmarkOriginal,
+  restoreBookmark,
+} from "./bookmarks";
+export {
   getExcludedUrls,
   addExcludedUrl,
   updateExcludedUrlSelection,

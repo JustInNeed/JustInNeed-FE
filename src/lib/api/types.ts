@@ -524,6 +524,62 @@ export interface CardSessionsResponse {
   sessions: SessionListItem[]; // URL 만 공개한 작성자의 세션은 title 이 ""
 }
 
+export type SavedTargetType = "NODE" | "HASHTAG";
+
+/** 다시 저장에 필요한 값 — 목록 항목에 함께 온다 */
+export interface BookmarkSaveTarget<S extends string> {
+  saveType: S;
+  targetType: SavedTargetType;
+  targetIds: number[];
+  sourceMindmapId: number | null; // 작성자 id
+}
+
+/** 저장한 미니 마인드맵. 세션이 여럿이면 sessionId · title · snippet 이 null, URL 만 공개면 title · snippet 이 null */
+export interface BookmarkMindmapItem extends BookmarkSaveTarget<"MINI_MINDMAP"> {
+  bookmarkId: number;
+  sessionId: number | null;
+  /** 카드 전체를 저장 — 노드를 골라 저장했으면 세션이 하나여도 false */
+  cardBookmark: boolean;
+  owner: CommunityOwner;
+  title: string | null;
+  snippet: string | null;
+  hashtags: { hashtagId: number; name: string }[]; // '#' 없이 raw 문자열
+  nodeCount: number;
+  likeCount: number;
+  savedAt: string; // UTC 시각 (끝에 Z)
+}
+
+export interface BookmarkMindmapPage {
+  mindmaps: BookmarkMindmapItem[];
+  hasNext: boolean;
+}
+
+export interface BookmarkBundleItem extends BookmarkSaveTarget<"HASHTAG_BUNDLE"> {
+  bookmarkId: number;
+  name: string | null;
+  hashtags: string[]; // '#' 없이 raw 문자열
+  savedAt: string; // UTC 시각 (끝에 Z)
+}
+
+export interface BookmarkBundlePage {
+  bundles: BookmarkBundleItem[];
+  hasNext: boolean;
+}
+
+export interface BookmarkOriginalResponse {
+  sourceAvailable: boolean;
+  mindmap: CommunityProfileMindmap | null;
+  highlightedNodeIds: number[]; // 전체 마인드맵의 nodeId
+}
+
+export interface RestoreBookmarkRequest extends BookmarkSaveTarget<"MINI_MINDMAP" | "HASHTAG_BUNDLE"> {
+  name: string | null; // 해시태그 묶음에만 붙는다
+}
+
+export interface RestoreBookmarkResponse {
+  bookmarkId: number;
+}
+
 export interface SimilarPersonItem {
   userId: number;
   nickname: string | null;
