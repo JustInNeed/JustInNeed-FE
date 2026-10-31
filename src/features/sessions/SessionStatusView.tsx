@@ -1,8 +1,10 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Button, InlineState } from "@/components/ui";
-import type { SessionStatus } from "@/lib/api";
+import { ApiError, reanalyzeSession, type SessionDetail, type SessionStatus } from "@/lib/api";
+import { useToast } from "@/lib/app/ToastContext";
 import { STATUS_LABEL } from "@/lib/format";
 import styles from "./SessionDetail.module.css";
 
@@ -16,16 +18,37 @@ const STATUS_COPY: Record<PendingStatus, string> = {
 };
 
 export interface SessionStatusViewProps {
+  sessionId: number;
   title: string;
   status: PendingStatus;
   isOwner: boolean;
   onDelete: () => void;
+  onReanalyzed: (session: SessionDetail) => void;
 }
 
 /** 분석 완료 전 · 실패 세션 — 아직 볼 본문이 없어 제목 · 상태 · 안내만 보여 준다 */
-export function SessionStatusView({ title, status, isOwner, onDelete }: SessionStatusViewProps) {
+export function SessionStatusView({ sessionId, title, status, isOwner, onDelete, onReanalyzed }: SessionStatusViewProps) {
   const router = useRouter();
+  const toast = useToast();
   const failed = status === "FAILED";
+  const canReanalyze = failed && isOwner;
+  const [reanalyzing, setReanalyzing] = useState(false);
+  // 버튼이 잠기기 전에 또 눌러도 요청은 한 번만
+  const reanalyzingRef = useRef(false);
+
+  const reanalyze = async () => {
+    if (reanalyzingRef.current) return;
+    reanalyzingRef.current = true;
+    setReanalyzing(true);
+    try {
+      onReanalyzed(await reanalyzeSession(sessionId));
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "재분석을 시작하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      reanalyzingRef.current = false;
+      setReanalyzing(false);
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -56,7 +79,14 @@ export function SessionStatusView({ title, status, isOwner, onDelete }: SessionS
 
       <div className={styles.statusBody}>
         <div className={styles.stateBox}>
-          <InlineState kind={failed ? "error" : "empty"} title={STATUS_COPY[status]} />
+          <InlineState
+            kind={failed ? "error" : "empty"}
+            title={STATUS_COPY[status]}
+            description={canReanalyze ? "재분석 버튼을 눌러 다시 시도해 주세요." : undefined}
+            onRetry={canReanalyze ? reanalyze : undefined}
+            retryLabel={reanalyzing ? "재분석 요청 중…" : "재분석"}
+            retryDisabled={reanalyzing}
+          />
         </div>
       </div>
     </div>

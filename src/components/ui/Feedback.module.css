@@ -78,6 +78,10 @@
 .stateRetry:hover {
   background: var(--danger-50);
 }
+.stateRetry:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 
 /* Banner */
 .banner {

@@ -195,7 +195,14 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
 
   if (detail.status !== "COMPLETED") {
     return (
-      <SessionStatusView title={detail.title} status={detail.status} isOwner={detail.isOwner} onDelete={onDelete} />
+      <SessionStatusView
+        sessionId={detail.id}
+        title={detail.title}
+        status={detail.status}
+        isOwner={detail.isOwner}
+        onDelete={onDelete}
+        onReanalyzed={setDetail}
+      />
     );
   }
 

@@ -10,7 +10,7 @@
   border-color: var(--green-300);
   transform: translateY(-1px);
 }
-/* 분석 완료 전 · 실패 — 상세로 열리지 않음 */
+/* 분석 완료 전 — 상세로 열리지 않음 */
 .locked {
   cursor: default;
 }

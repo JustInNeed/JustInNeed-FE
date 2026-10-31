@@ -171,14 +171,14 @@ describe("세션 목록 — 상태별 카드", () => {
     { label: "수집 중", session: STATUS_SESSIONS[0], duration: null },
     { label: "분석 대기", session: STATUS_SESSIONS[1], duration: null },
     { label: "분석 중", session: STATUS_SESSIONS[2], duration: "41분" },
-    { label: "분석 실패", session: STATUS_SESSIONS[3], duration: "35분" },
   ];
+  const FAILED = { label: "분석 실패", session: STATUS_SESSIONS[3], duration: "35분" };
 
   beforeEach(() => {
     requests = serveSessions(STATUS_SESSIONS);
   });
 
-  it.each(LOCKED)("$label 세션 카드는 걸린 시간 자리에 상태가 보이고 URL 개수는 숨긴다", async ({ label, session, duration }) => {
+  it.each([...LOCKED, FAILED])("$label 세션 카드는 걸린 시간 자리에 상태가 보이고 URL 개수는 숨긴다", async ({ label, session, duration }) => {
     renderSessions();
     await screen.findByRole("heading", { level: 3, name: session.title });
     const c = within(card(session.title));
@@ -200,6 +200,21 @@ describe("세션 목록 — 상태별 카드", () => {
     fireEvent.keyDown(c, { key: "Enter" });
     fireEvent.keyDown(c, { key: " " });
     expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+
+  it("분석 실패 세션 카드는 재분석하러 들어갈 수 있게 눌러서 · Enter · Space 로 상세로 이동한다", async () => {
+    const { user } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: FAILED.session.title });
+    const c = card(FAILED.session.title);
+    expect(c).toHaveAttribute("role", "button");
+    expect(c).toHaveAttribute("tabindex", "0");
+    expect(c).not.toHaveAttribute("aria-disabled");
+    expect(c).not.toHaveClass("locked");
+
+    await user.click(c);
+    fireEvent.keyDown(c, { key: "Enter" });
+    fireEvent.keyDown(c, { key: " " });
+    expect(mockRouter.push.mock.calls).toEqual([["/sessions/9104"], ["/sessions/9104"], ["/sessions/9104"]]);
   });
 
   it("Tab 으로 갈 때 진행 중 카드는 건너뛰고 그 카드의 별 버튼으로 간다", async () => {

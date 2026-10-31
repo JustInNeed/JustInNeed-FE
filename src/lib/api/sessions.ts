@@ -16,3 +16,6 @@ export const updateSession = (id: number, body: SessionUpdateRequest) =>
   api.patch<SessionDetail>(`/sessions/${id}`, body);
 
 export const deleteSession = (id: number) => api.del<null>(`/sessions/${id}`);
+
+/** 분석에 실패한 세션을 다시 분석 — 응답은 바뀐 세션 상세 (READY 또는 ANALYZING). 실패 세션이 아니면 409 */
+export const reanalyzeSession = (id: number) => api.post<SessionDetail>(`/sessions/${id}/reanalyze`);
