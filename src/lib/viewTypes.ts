@@ -207,39 +207,6 @@ export interface FullMindmap {
 /** post id → 마인드맵 상세 팝업에 보여줄 관련 세션 (이 마인드맵의 출처가 된 세션) */
 export type RelatedSessionsByPost = Record<string, SessionListItem[]>;
 
-/** 커뮤니티 추천 섹션 하나 — 추천 근거 해시태그 칩 + 추천 마인드맵 */
-export interface CommunityRecommendation {
-  basisTags: string[]; // '#' 포함
-  posts: CommunityPost[];
-}
-
-/** 관심사가 비슷한 사람 */
-export interface SimilarPerson {
-  name: string;
-  /** 표시용 한 줄 (예: "#파리 #먹거리") */
-  tags: string;
-  /** 이미 팔로우 중이면 true */
-  following?: boolean;
-}
-
-export interface CommunityData {
-  /** 관심 해시태그 기반 추천 */
-  interestBased: CommunityRecommendation;
-  /** 최근 저장한 해시태그 기반 추천 */
-  recentBookmarkBased: CommunityRecommendation;
-  /** post id → 추천 카드에 함께 보여줄 연관 URL (최대 2개 표시) */
-  relatedUrls: Record<string, RelatedUrl[]>;
-  /** 떠오르는 해시태그 — 오늘 / 이번 주 */
-  trending: { today: TrendingHashtag[]; week: TrendingHashtag[] };
-  similarPeople: SimilarPerson[];
-  /** 검색바 드롭다운이 찾는 대상 — 마인드맵(프로필은 작성자에서 모음) · 연관 해시태그 */
-  searchIndex: { posts: CommunityPost[]; tags: TrendingHashtag[] };
-  relatedSessions: RelatedSessionsByPost;
-  /** 내가 이미 좋아요 · 북마크한 post id — post 의 likes · bookmarks 수에 이미 포함돼 있다 */
-  likedPostIds: string[];
-  bookmarkedPostIds: string[];
-}
-
 /** 북마크 화면의 마인드맵 카드 하나 */
 export interface SavedMindmap {
   post: CommunityPost;

@@ -14,6 +14,8 @@ export interface MindmapDetailModalProps {
   post: CommunityPost;
   /** 이 마인드맵의 출처가 된 세션 */
   sessions: SessionListItem[];
+  /** 세션을 불러오는 중 · 실패 안내 — 넘기면 세션 목록과 개수 대신 보여준다 */
+  sessionsStatus?: ReactNode;
   onClose: () => void;
   /** 작성자 이름 클릭 — 팝업을 닫고 프로필로 이동 */
   onOpenProfile: (handle: string) => void;
@@ -24,7 +26,7 @@ export interface MindmapDetailModalProps {
 }
 
 /** 커뮤니티·북마크·프로필 공통 마인드맵 상세 팝업 (갤럭시 미리보기 + 관련 세션). */
-export function MindmapDetailModal({ post, sessions, onClose, onOpenProfile, onSessionClick, actions }: MindmapDetailModalProps) {
+export function MindmapDetailModal({ post, sessions, sessionsStatus, onClose, onOpenProfile, onSessionClick, actions }: MindmapDetailModalProps) {
   useOverlayClose(onClose);
 
   return createPortal(
@@ -73,12 +75,12 @@ export function MindmapDetailModal({ post, sessions, onClose, onOpenProfile, onS
         <div className={styles.sessions}>
           <div className={styles.sessionsHead}>
             <div className={styles.sessionsTitle}>
-              관련 세션 <span className={styles.sessionsCount}>· {sessions.length}개</span>
+              관련 세션 {!sessionsStatus && <span className={styles.sessionsCount}>· {sessions.length}개</span>}
             </div>
             <span className={styles.sessionsHint}>이 마인드맵의 출처가 된 검색 세션</span>
           </div>
           <div className={styles.sessionList}>
-            {sessions.map((s) => {
+            {sessionsStatus ?? sessions.map((s) => {
               const body = (
                 <>
                   <div className={styles.rowTop}>

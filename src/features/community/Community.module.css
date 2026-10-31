@@ -23,6 +23,17 @@
   color: var(--ink-500);
   font-size: 13px;
 }
+/* 섹션 하나 안의 불러오는 중 */
+.sectionState {
+  padding: 24px;
+  color: var(--ink-500);
+  font-size: 13px;
+  text-align: center;
+}
+/* 모든 섹션이 비었을 때 */
+.pageEmpty {
+  grid-column: 1 / -1;
+}
 .rightCol {
   display: flex;
   flex-direction: column;

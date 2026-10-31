@@ -346,3 +346,111 @@ export interface HomeResponse {
   /** 최근 순, 최대 300개 */
   sessions: SessionListItem[];
 }
+
+// ---------- 커뮤니티 ----------
+export interface CommunityOwner {
+  userId: number;
+  nickname: string | null; // 닉네임을 정하기 전이면 null
+}
+
+export interface CommunityRelatedUrl {
+  title: string | null; // URL 만 공개한 작성자의 카드는 null
+  url: string;
+}
+
+/** 공개 세션 1개 = 카드 1장 (mindmapId = 세션 id). URL 만 공개한 작성자의 카드는 title · snippet 이 null */
+export interface CommunityCard {
+  mindmapId: number;
+  owner: CommunityOwner;
+  title: string | null;
+  snippet: string | null;
+  hashtags: string[]; // '#' 없이 raw 문자열, 비공개 태그 제외
+  nodeCount: number;
+  likeCount: number;
+  likedByMe: boolean;
+  bookmarkCount: number;
+  bookmarkId: number | null; // 내가 저장했으면 id
+  exploringCount: number;
+  exploringByMe: boolean;
+  lastActivityAt: string; // ISO datetime (타임존 없음)
+  relatedUrls: CommunityRelatedUrl[]; // 최대 10개
+}
+
+export interface CommunityRecommendationResponse {
+  basisHashtags: string[]; // '#' 없이 raw 문자열
+  mindmaps: CommunityCard[];
+}
+
+export interface CommunityMindmapPage {
+  mindmaps: CommunityCard[];
+  hasNext: boolean;
+}
+
+export interface CommunityProfileHit {
+  userId: number;
+  nickname: string | null;
+  hashtags: string[]; // 공개 태그 많은 순 5개
+  mindmapCount: number;
+}
+
+export interface CommunityProfilePage {
+  profiles: CommunityProfileHit[];
+  hasNext: boolean;
+}
+
+export interface CommunityHashtagHit {
+  tag: string; // '#' 없이 raw 문자열
+  count: number;
+}
+
+export interface CommunityHashtagSearchResponse {
+  hashtags: CommunityHashtagHit[];
+}
+
+export type TrendingPeriod = "today" | "week";
+
+export interface TrendingHashtagItem {
+  rank: number;
+  name: string; // '#' 없이 raw 문자열
+  count: number; // 기간 안의 나도 탐색중 + 북마크
+  trend: number; // count - 직전 같은 길이 기간의 값
+}
+
+export interface TrendingHashtagsResponse {
+  period: "TODAY" | "WEEK";
+  hashtags: TrendingHashtagItem[];
+}
+
+export interface CardLikeResponse {
+  likeCount: number;
+  likedByMe: boolean;
+}
+
+export interface CardExploringResponse {
+  exploringCount: number;
+  exploringByMe: boolean;
+}
+
+export interface CardBookmarkResponse {
+  bookmarkCount: number;
+  bookmarkId: number | null; // 해제하면 null
+}
+
+export interface CardSessionsResponse {
+  sessions: SessionListItem[]; // URL 만 공개한 작성자의 세션은 title 이 ""
+}
+
+export interface SimilarPersonItem {
+  userId: number;
+  nickname: string | null;
+  matchedHashtags: string[]; // '#' 없이 raw 문자열
+  following: boolean;
+}
+
+export interface SimilarPeopleResponse {
+  people: SimilarPersonItem[];
+}
+
+export interface FollowResponse {
+  following: boolean;
+}
