@@ -196,11 +196,11 @@ export interface BookmarkedMindmap {
 }
 
 // ---------- 커뮤니티 · 북마크 · 검색 화면 데이터 ----------
-/** 작성자의 전체 마인드맵 — 노드 · 연결선과 리프 노드의 원문 URL (전체 마인드맵 보기) */
+/** 작성자의 전체 마인드맵 — 노드 · 연결선과 노드의 원문 URL (전체 마인드맵 보기) */
 export interface FullMindmap {
   nodes: MindmapNode[];
   edges: MindmapEdge[];
-  /** 노드 id → 원문 URL (연결이 1개인 리프 노드만 눌러서 열린다) */
+  /** 노드 id → 원문 URL. 연결 수와 상관없이 누르면 열린다 */
   nodeUrls: Record<string, string>;
 }
 
