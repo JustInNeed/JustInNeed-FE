@@ -103,6 +103,21 @@ describe("dimmedNodeIds", () => {
   });
 });
 
+describe("해시태그 대소문자", () => {
+  const nodeMeta = { rome: { seen: "today" as const, tags: ["FetchJoin"] } };
+  const nodes = [node("rome")];
+
+  it("같은 태그의 다른 표기도 해시태그 필터에 걸린다", () => {
+    expect(dimmedNodeIds({ ...graph, nodes, nodeMeta }, filter({ tags: ["fetchJOIN"] })).has("rome")).toBe(false);
+  });
+
+  it("그룹 태그도 표기가 달라도 같은 태그로 본다", () => {
+    const tagGroups = [{ id: 1, name: "백엔드", tags: ["FETCHJOIN"] }];
+    expect(dimmedNodeIds({ nodes, nodeMeta, tagGroups }, filter({ groupIds: [1] })).has("rome")).toBe(false);
+    expect(groupNodeCount({ nodes, nodeMeta }, tagGroups[0])).toBe(1);
+  });
+});
+
 describe("groupNodeCount", () => {
   it("그룹 태그가 붙은 노드 수를 센다", () => {
     expect(groupNodeCount(graph, graph.tagGroups[0])).toBe(15);

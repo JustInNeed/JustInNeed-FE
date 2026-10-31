@@ -25,12 +25,17 @@ export function countApplied(f: GraphFilter): number {
   return (f.period !== "all" ? 1 : 0) + (f.groupIds.length > 0 ? 1 : 0) + (f.tags.length > 0 ? 1 : 0);
 }
 
+// 해시태그는 대소문자를 구분하지 않는다 (BE 도 대소문자 무시로 합친다)
+const lowerTags = (tags: string[]) => new Set(tags.map((t) => t.toLowerCase()));
+
 function nodeMatches(node: MindmapNode, f: GraphFilter, meta: GraphNodeMeta | undefined, groupTags: Set<string> | null): boolean {
   if (node.group === "core") return true; // 중심 노드는 항상 남긴다
   if (!meta) return true;
   if (PERIOD_RANK[meta.seen] > PERIOD_RANK[f.period]) return false;
-  if (groupTags && !meta.tags.some((t) => groupTags.has(t))) return false;
-  if (f.tags.length > 0 && !meta.tags.some((t) => f.tags.includes(t))) return false;
+  const nodeTags = meta.tags.map((t) => t.toLowerCase());
+  if (groupTags && !nodeTags.some((t) => groupTags.has(t))) return false;
+  const picked = lowerTags(f.tags);
+  if (picked.size > 0 && !nodeTags.some((t) => picked.has(t))) return false;
   return true;
 }
 
@@ -38,14 +43,15 @@ function nodeMatches(node: MindmapNode, f: GraphFilter, meta: GraphNodeMeta | un
 export function dimmedNodeIds(graph: Pick<HomeGraph, "nodes" | "nodeMeta" | "tagGroups">, f: GraphFilter): Set<string> {
   const groupTags =
     f.groupIds.length > 0
-      ? new Set(graph.tagGroups.filter((g) => f.groupIds.includes(g.id)).flatMap((g) => g.tags))
+      ? lowerTags(graph.tagGroups.filter((g) => f.groupIds.includes(g.id)).flatMap((g) => g.tags))
       : null;
   return new Set(graph.nodes.filter((n) => !nodeMatches(n, f, graph.nodeMeta[n.id], groupTags)).map((n) => n.id));
 }
 
 /** 해시태그 그룹에 속한 노드 수 */
 export function groupNodeCount(graph: Pick<HomeGraph, "nodes" | "nodeMeta">, group: GraphTagGroup): number {
-  return graph.nodes.filter((n) => graph.nodeMeta[n.id]?.tags.some((t) => group.tags.includes(t))).length;
+  const groupTags = lowerTags(group.tags);
+  return graph.nodes.filter((n) => graph.nodeMeta[n.id]?.tags.some((t) => groupTags.has(t.toLowerCase()))).length;
 }
 
 export type GraphSearchResult =
