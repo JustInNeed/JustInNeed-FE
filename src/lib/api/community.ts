@@ -19,6 +19,8 @@ const RECOMMENDATION_LIMIT = 3;
 /** 검색 드롭다운 — 그룹마다 앞의 몇 개만 */
 const SEARCH_TAG_LIMIT = 5;
 const SEARCH_RESULT_SIZE = 4;
+/** /search 화면 — 탭마다 한 번에 불러오는 수 */
+export const SEARCH_PAGE_SIZE = 10;
 
 export const getInterestRecommendations = () =>
   api.get<CommunityRecommendationResponse>(`/community/recommendations/mindmaps/interests?limit=${RECOMMENDATION_LIMIT}`);
@@ -32,13 +34,13 @@ export const searchCommunityHashtags = (q: string) => {
   return api.get<CommunityHashtagSearchResponse>(`/community/search/hashtags?${query}`);
 };
 
-export const searchCommunityProfiles = (q: string) => {
-  const query = new URLSearchParams({ q, page: "0", size: String(SEARCH_RESULT_SIZE) });
+export const searchCommunityProfiles = (q: string, page = 0, size = SEARCH_RESULT_SIZE) => {
+  const query = new URLSearchParams({ q, page: String(page), size: String(size) });
   return api.get<CommunityProfilePage>(`/community/search/profiles?${query}`);
 };
 
-export const searchCommunityMindmaps = (q: string) => {
-  const query = new URLSearchParams({ q, page: "0", size: String(SEARCH_RESULT_SIZE) });
+export const searchCommunityMindmaps = (q: string, page = 0, size = SEARCH_RESULT_SIZE) => {
+  const query = new URLSearchParams({ q, page: String(page), size: String(size) });
   return api.get<CommunityMindmapPage>(`/community/search/mindmaps?${query}`);
 };
 

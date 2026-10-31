@@ -3,12 +3,12 @@ import { cleanup } from "@testing-library/react";
 import { createElement, type AnchorHTMLAttributes, type ReactNode } from "react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { server } from "./msw/server";
-import { mockPathname, mockRouter, resetMockRouter } from "./router";
+import { mockPathname, mockRouter, mockSearchParams, resetMockRouter } from "./router";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => mockRouter,
   usePathname: () => mockPathname,
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(mockSearchParams),
   redirect: vi.fn(),
   notFound: vi.fn(),
 }));

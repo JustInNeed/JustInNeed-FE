@@ -16,7 +16,7 @@ import { useCommunitySearch } from "./useCommunitySearch";
 import { useFollow } from "./useFollow";
 import styles from "./Community.module.css";
 
-/** 프로필 주소는 회원 id. 검색 · 북마크 화면은 API 연결 전이라 아직 handle 문자열을 넘긴다 */
+/** 프로필 주소는 회원 id. 북마크 화면은 API 연결 전이라 아직 handle 문자열을 넘긴다 */
 export function profilePath(id: number | string): string {
   return `/profile/${encodeURIComponent(String(id).replace(/^@/, ""))}`;
 }

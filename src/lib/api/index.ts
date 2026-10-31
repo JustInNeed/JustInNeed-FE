@@ -32,6 +32,7 @@ export {
   searchCommunityHashtags,
   searchCommunityProfiles,
   searchCommunityMindmaps,
+  SEARCH_PAGE_SIZE,
   getTrendingHashtags,
   setCardLike,
   setCardExploring,

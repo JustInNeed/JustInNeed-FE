@@ -18,7 +18,15 @@ export function setMockPathname(path: string) {
   mockPathname = path;
 }
 
+/** useSearchParams() 가 돌려줄 쿼리 문자열 */
+export let mockSearchParams = "";
+
+export function setMockSearchParams(search: string) {
+  mockSearchParams = search;
+}
+
 export function resetMockRouter() {
   Object.values(mockRouter).forEach((fn) => fn.mockReset());
   mockPathname = "/";
+  mockSearchParams = "";
 }

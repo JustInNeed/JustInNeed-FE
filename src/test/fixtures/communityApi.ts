@@ -164,3 +164,17 @@ export const SEARCH_MINDMAPS: CommunityMindmapPage = {
   mindmaps: [REACTED_CARD, URL_ONLY_CARD],
   hasNext: false,
 };
+
+/** /search 화면 — 카드 작성자와 사용자 결과가 겹치지 않고 탭마다 개수도 다르다 */
+export const SEARCH_PAGE_MINDMAPS: CommunityMindmapPage = {
+  mindmaps: [CONTENT_CARD, REACTED_CARD, URL_ONLY_CARD],
+  hasNext: true,
+};
+
+export const SEARCH_PAGE_PROFILES: CommunityProfilePage = {
+  profiles: [
+    { userId: 201, nickname: "parisienne", hashtags: ["파리", "에펠탑", "센강", "루브르"], mindmapCount: 6 },
+    { userId: 202, nickname: null, hashtags: [], mindmapCount: 1 },
+  ],
+  hasNext: false,
+};

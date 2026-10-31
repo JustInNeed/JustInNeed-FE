@@ -236,16 +236,3 @@ export interface BookmarksData {
   tagBundles: BookmarkTagBundle[];
   relatedSessions: RelatedSessionsByPost;
 }
-
-/** 검색 화면(보류)의 사용자 결과 */
-export interface SearchProfile extends CommunityUser {
-  nodes: number;
-  likes: number;
-}
-
-export interface SearchData {
-  mindmaps: CommunityPost[];
-  profiles: SearchProfile[];
-  /** 마인드맵 카드 아래 관련 세션 */
-  relatedSessions: RelatedSessionsByPost;
-}
