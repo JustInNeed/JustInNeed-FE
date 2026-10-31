@@ -13,6 +13,17 @@ export {
 } from "./sessions";
 export { getHome } from "./home";
 export {
+  getCommunityProfile,
+  getProfileCards,
+  getProfileMindmap,
+  getProfileCardSessions,
+  updateProfileLike,
+  updateProfileFollow,
+  updateProfileCardLike,
+  updateProfileCardBookmark,
+  updateProfileCardExploring,
+} from "./profiles";
+export {
   getAnalyticsWeekSessions,
   getAnalyticsExploration,
   getAnalyticsReadingBehavior,
