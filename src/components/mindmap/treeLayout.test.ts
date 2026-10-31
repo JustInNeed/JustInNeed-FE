@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
-import { treeLayout } from "./treeLayout";
+import { radialLayout, treeLayout } from "./treeLayout";
 
 const node = (id: string, group: MindmapNode["group"] = "sub"): MindmapNode => ({
   id,
@@ -73,5 +73,72 @@ describe("마인드맵 계층형 배치", () => {
     const out = treeLayout(nodes, [["core", "a"]], 1000, 680);
     expect(nodes[1]).toMatchObject({ x: 0, y: 0 });
     expect(out[1]).toMatchObject({ id: "a", label: "콜로세움", vx: 3, size: 9, group: "sub" });
+  });
+});
+
+describe("마인드맵 방사형 처음 배치", () => {
+  const CX = 500;
+  const CY = 340;
+  const radiusOf = (n: MindmapNode) => Math.hypot(n.x - CX, n.y - CY);
+  const angleOf = (n: MindmapNode) => Math.atan2(n.y - CY, n.x - CX);
+
+  it("노드가 없으면 그대로 돌려준다", () => {
+    expect(radialLayout([], [], CX, CY, 270)).toEqual([]);
+  });
+
+  it("노드가 하나면 가운데에 놓는다", () => {
+    expect(pos(radialLayout([node("core", "core")], [], CX, CY, 270))).toEqual({ core: [CX, CY] });
+  });
+
+  it("루트는 가운데, 깊이마다 바깥 원에 놓고 가장 깊은 노드가 maxRadius 에 온다", () => {
+    const nodes = radialLayout(
+      [node("core", "core"), node("a"), node("b"), node("c")],
+      [
+        ["core", "a"],
+        ["core", "b"],
+        ["a", "c"],
+      ],
+      CX,
+      CY,
+      270,
+    );
+    const [core, a, b, c] = nodes;
+    expect([core.x, core.y]).toEqual([CX, CY]);
+    expect(radiusOf(a)).toBeCloseTo(135);
+    expect(radiusOf(b)).toBeCloseTo(135);
+    expect(radiusOf(c)).toBeCloseTo(270);
+  });
+
+  it("자식은 부모와 같은 쪽에 모이고, 가지마다 다른 방향으로 뻗는다", () => {
+    const nodes = radialLayout(
+      [node("core", "core"), node("a"), node("b"), node("a1"), node("b1")],
+      [
+        ["core", "a"],
+        ["core", "b"],
+        ["a", "a1"],
+        ["b", "b1"],
+      ],
+      CX,
+      CY,
+      270,
+    );
+    const [, a, b, a1, b1] = nodes;
+    expect(angleOf(a1)).toBeCloseTo(angleOf(a));
+    expect(angleOf(b1)).toBeCloseTo(angleOf(b));
+    expect(Math.abs(angleOf(a) - angleOf(b))).toBeCloseTo(Math.PI);
+  });
+
+  it("연결이 끊긴 노드는 계층형과 같이 루트 바로 아래 깊이에 둔다", () => {
+    const nodes = radialLayout(
+      [node("core", "core"), node("a"), node("b"), node("lost")],
+      [
+        ["core", "a"],
+        ["a", "b"],
+      ],
+      CX,
+      CY,
+      270,
+    );
+    expect(radiusOf(nodes[3])).toBeCloseTo(135);
   });
 });

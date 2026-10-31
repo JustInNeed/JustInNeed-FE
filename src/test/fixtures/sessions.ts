@@ -1,7 +1,17 @@
 // 세션 목록 · 상세 · 해시태그 그룹 화면용 API 응답 픽스처.
 // 디자인 시안 세션(design.ts 의 MOCK_SESSIONS)을 앞에 두고, 무한 스크롤 테스트용으로 세션을 더 붙인다.
 // 모양은 백엔드 DTO 기준 — SessionListResponse · SessionDetailResponse · TagGroupResponse.
-import type { SessionDetail, SessionListItem, SessionPage, SessionUpdateRequest, TagGroup } from "@/lib/api";
+import type {
+  SessionDetail,
+  SessionListItem,
+  SessionMindmap,
+  SessionMindmapCitation,
+  SessionMindmapEdge,
+  SessionMindmapNode,
+  SessionPage,
+  SessionUpdateRequest,
+  TagGroup,
+} from "@/lib/api";
 import { MOCK_SESSIONS } from "./design";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -282,6 +292,95 @@ export const COLLECTING_DETAIL = beforeAnalysis(STATUS_SESSIONS[0]);
 export const READY_DETAIL = beforeAnalysis(STATUS_SESSIONS[1]);
 export const ANALYZING_DETAIL = beforeAnalysis(ANALYZING_SESSION);
 export const FAILED_DETAIL = beforeAnalysis(STATUS_SESSIONS[3]);
+
+// ---------- 세션 마인드맵 (GET /sessions/{id}/mindmap) ----------
+
+const rootNode = (id: string, keyword: string, childCount: number): SessionMindmapNode => ({
+  id,
+  type: "root",
+  keyword,
+  score: 3.999,
+  childCount,
+  citation: null,
+});
+const topicNode = (id: string, keyword: string, childCount: number): SessionMindmapNode => ({
+  id,
+  type: "topic",
+  keyword,
+  score: 3.1,
+  childCount,
+  citation: null,
+});
+const unitNode = (id: string, keyword: string, citation: SessionMindmapCitation): SessionMindmapNode => ({
+  id,
+  type: "unit",
+  keyword,
+  score: 2.7,
+  childCount: 0,
+  citation,
+});
+const child = (from: string, to: string): SessionMindmapEdge => ({ from, to, type: "hierarchy", primary: true });
+
+/** 유닛 노드 id — 페이지 URL + 문단 id */
+export const ROME_UNIT = {
+  /** 발췌문에 키워드 '통합권' 이 있다 */
+  pass: `${ROME_DETAIL.sources[0].url}?lang=ko&seat=a|b#u3t0hv`,
+  /** 발췌문에 키워드 '사전 예약' 이 없다 */
+  ticket: `${ROME_DETAIL.sources[1].url}#udzovb6`,
+  /** 출처 제목이 없다, 발췌문에 키워드 '카초 에 페페' 가 있다 */
+  food: `${ROME_DETAIL.sources[2].url}#u1ic2mq4`,
+};
+
+/** 로마 세션 — 루트 1개, 주제 3개, 주제마다 유닛 1개 */
+export const ROME_MINDMAP: SessionMindmap = {
+  nodes: [
+    rootNode("root:1", "로마 여행", 3),
+    topicNode("topic:0", "콜로세움", 1),
+    topicNode("topic:1", "바티칸", 1),
+    topicNode("topic:2", "먹거리", 1),
+    unitNode(ROME_UNIT.pass, "통합권", ROME_DETAIL.sources[0]),
+    unitNode(ROME_UNIT.ticket, "사전 예약", ROME_DETAIL.sources[1]),
+    unitNode(ROME_UNIT.food, "카초 에 페페", ROME_DETAIL.sources[2]),
+  ],
+  edges: [
+    child("root:1", "topic:0"),
+    child("root:1", "topic:1"),
+    child("root:1", "topic:2"),
+    child("topic:0", ROME_UNIT.pass),
+    child("topic:1", ROME_UNIT.ticket),
+    child("topic:2", ROME_UNIT.food),
+  ],
+};
+
+/** 유닛 id 에 URL 에 들어갈 수 있는 온갖 문자가 있다 */
+export const PARIS_UNIT = {
+  mona: `https://www.louvre.fr/en/visit?a=1&b=[2]|"3"#u'1`,
+  night: "https://www.musee-orsay.fr/en/a b,c?x=<y>#p%202",
+};
+
+/** 파리 세션 — 루트 2개, 다른 주제의 유닛끼리 related 연결, 주 부모가 아닌 부모로 가는 지름길(primary 아님) */
+export const PARIS_MINDMAP: SessionMindmap = {
+  nodes: [
+    rootNode("root:1", "루브르", 1),
+    rootNode("root:2", "오르세", 1),
+    topicNode("topic:0", "모나리자", 1),
+    topicNode("topic:1", "야간 개장", 1),
+    unitNode(PARIS_UNIT.mona, "화요일", PARIS_DETAIL.sources[0]),
+    unitNode(PARIS_UNIT.night, "목요일", PARIS_DETAIL.sources[1]),
+  ],
+  edges: [
+    child("root:1", "topic:0"),
+    child("root:2", "topic:1"),
+    child("topic:0", PARIS_UNIT.mona),
+    child("topic:1", PARIS_UNIT.night),
+    { from: "root:2", to: PARIS_UNIT.mona, type: "hierarchy", primary: false },
+    { from: PARIS_UNIT.mona, to: PARIS_UNIT.night, type: "related", primary: false },
+    { from: PARIS_UNIT.night, to: PARIS_UNIT.mona, type: "related", primary: false },
+  ],
+};
+
+/** 분석 결과가 없을 때 */
+export const EMPTY_MINDMAP: SessionMindmap = { nodes: [], edges: [] };
 
 /** PATCH /sessions/{id} 를 백엔드처럼 반영한 응답 (보낸 필드만 수정) */
 export function applySessionUpdate(detail: SessionDetail, body: SessionUpdateRequest): SessionDetail {

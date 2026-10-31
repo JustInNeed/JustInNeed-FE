@@ -1,8 +1,7 @@
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
 
-/** 계층형 배치 — 루트(core, 없으면 첫 노드)에서 왼쪽 → 오른쪽으로 뻗는 트리. 깊이는 열, 잎 노드 순서는 행. */
-export function treeLayout<T extends MindmapNode>(nodes: T[], edges: MindmapEdge[], width: number, height: number): T[] {
-  if (nodes.length === 0) return nodes;
+/** 루트(core, 없으면 첫 노드)에서 본 트리 모양 — 깊이와, 잎은 차례로 한 행씩 · 부모는 자식 행의 가운데인 행 번호 */
+function treeShape(nodes: MindmapNode[], edges: MindmapEdge[]) {
   const root = nodes.find((n) => n.group === "core") ?? nodes[0];
 
   const adj = new Map<string, string[]>();
@@ -43,7 +42,14 @@ export function treeLayout<T extends MindmapNode>(nodes: T[], edges: MindmapEdge
   };
   place(root.id);
 
-  const maxDepth = Math.max(...depth.values());
+  return { depth, row, leaves, maxDepth: Math.max(...depth.values()) };
+}
+
+/** 계층형 배치 — 루트에서 왼쪽 → 오른쪽으로 뻗는 트리. 깊이는 열, 잎 노드 순서는 행. */
+export function treeLayout<T extends MindmapNode>(nodes: T[], edges: MindmapEdge[], width: number, height: number): T[] {
+  if (nodes.length === 0) return nodes;
+  const { depth, row, leaves, maxDepth } = treeShape(nodes, edges);
+
   const padX = 120;
   const padY = 40;
   const colW = maxDepth ? Math.min(280, (width - padX * 2) / maxDepth) : 0;
@@ -52,4 +58,23 @@ export function treeLayout<T extends MindmapNode>(nodes: T[], edges: MindmapEdge
   const top = height / 2 - ((leaves - 1) * rowH) / 2;
 
   return nodes.map((n) => ({ ...n, x: left + depth.get(n.id)! * colW, y: top + row.get(n.id)! * rowH }));
+}
+
+/** 방사형 처음 배치 — 루트는 가운데, 깊이마다 바깥 원. 잎을 같은 각도로 나누고 부모는 자식 각도의 가운데라 가지끼리 겹치지 않는다 */
+export function radialLayout<T extends MindmapNode>(
+  nodes: T[],
+  edges: MindmapEdge[],
+  cx: number,
+  cy: number,
+  maxRadius: number,
+): T[] {
+  if (nodes.length === 0) return nodes;
+  const { depth, row, leaves, maxDepth } = treeShape(nodes, edges);
+
+  const ringGap = maxDepth ? maxRadius / maxDepth : 0;
+  return nodes.map((n) => {
+    const radius = depth.get(n.id)! * ringGap;
+    const angle = -Math.PI / 2 + (2 * Math.PI * row.get(n.id)!) / leaves;
+    return { ...n, x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
+  });
 }

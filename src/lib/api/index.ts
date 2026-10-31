@@ -6,6 +6,7 @@ export {
   getSessions,
   getSessionHashtags,
   getSession,
+  getSessionMindmap,
   updateSession,
   deleteSession,
   reanalyzeSession,

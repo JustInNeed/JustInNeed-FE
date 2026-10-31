@@ -8,14 +8,16 @@ import {
   ApiError,
   deleteSession,
   getSession,
+  getSessionMindmap,
   updateSession,
   type SessionDetail as SessionDetailType,
+  type SessionMindmap,
   type SessionUpdateRequest,
 } from "@/lib/api";
 import { useApi } from "@/lib/hooks/useApi";
 import { useToast } from "@/lib/app/ToastContext";
 import { formatDateTime, formatDuration, formatTime, hostFromUrl, STATUS_LABEL, withHash } from "@/lib/format";
-import { buildSessionMindmap } from "./buildSessionMindmap";
+import { MAP_HEIGHT, MAP_WIDTH, buildSessionMindmap } from "./buildSessionMindmap";
 import { CitationPopup } from "./CitationPopup";
 import { SessionEditor } from "./SessionEditor";
 import { SessionStatusView } from "./SessionStatusView";
@@ -80,6 +82,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   // 마인드맵 정렬 — 배치 변경 · 자동 정렬(옮긴 위치 초기화) 모두 key 로 다시 마운트
   const [mapLayout, setMapLayout] = useState<MapLayout>("radial");
   const [mapResetKey, setMapResetKey] = useState(0);
+  // 마인드맵은 탭을 처음 열 때 한 번만 받는다 — 분석이 끝난 세션의 마인드맵은 바뀌지 않는다
+  const [mapOpened, setMapOpened] = useState(false);
+  const mapQuery = useApi<SessionMindmap>(() => getSessionMindmap(sessionId), [sessionId], { enabled: mapOpened });
 
   // edit mode — 제목 + 본문(markdown) 편집
   const [editing, setEditing] = useState(false);
@@ -150,9 +155,10 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     if (data) setDetail(data);
   }, [data]);
 
-  const { nodes, edges } = useMemo(
-    () => (detail ? buildSessionMindmap(detail) : { nodes: [], edges: [] }),
-    [detail],
+  const title = detail?.title ?? "";
+  const sessionMap = useMemo(
+    () => (mapQuery.data ? buildSessionMindmap(mapQuery.data, title) : null),
+    [mapQuery.data, title],
   );
 
   const blocked = !validId
@@ -516,7 +522,10 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
           <Icon name="text" size={14} /> 줄글 보기
         </button>
         <button
-          onClick={() => setView("graph")}
+          onClick={() => {
+            setView("graph");
+            setMapOpened(true);
+          }}
           className={`${styles.tab} ${view === "graph" ? styles.tabActive : ""}`}
         >
           <Icon name="network" size={14} /> 마인드맵 보기
@@ -558,39 +567,58 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
           )
         ) : (
           <Card style={{ padding: 0, overflow: "hidden", position: "relative" }}>
-            <div className={styles.mapToolbar}>
-              <div className={styles.segment} role="group" aria-label="마인드맵 배치">
-                {MAP_LAYOUTS.map(([value, label]) => (
-                  <button
-                    key={value}
-                    onClick={() => setMapLayout(value)}
-                    aria-pressed={mapLayout === value}
-                    className={`${styles.segBtn} ${mapLayout === value ? styles.segBtnActive : ""}`}
-                  >
-                    {label}
-                  </button>
-                ))}
+            {mapQuery.error ? (
+              <div className={styles.state}>
+                <div className={styles.stateBox}>
+                  <InlineState kind="error" title={mapQuery.error} onRetry={mapQuery.refetch} />
+                </div>
               </div>
-              <Button variant="secondary" onClick={() => setMapResetKey((k) => k + 1)} title="옮긴 노드를 처음 배치로">
-                <Icon name="refresh" size={13} /> 자동 정렬
-              </Button>
-            </div>
-            <Mindmap
-              key={`${mapLayout}-${mapResetKey}`}
-              layout={mapLayout}
-              nodes={nodes}
-              edges={edges}
-              width={1000}
-              height={680}
-              selectedId={selectedNode}
-              onSelect={(id) => setSelectedNode((cur) => (id === cur ? null : id))}
-            />
-            {selectedNode && (
-              <CitationPopup
-                node={nodes.find((n) => n.id === selectedNode)}
-                session={detail}
-                onClose={() => setSelectedNode(null)}
-              />
+            ) : !sessionMap ? (
+              <div className={styles.state}>불러오는 중…</div>
+            ) : sessionMap.nodes.length === 0 ? (
+              <div className={styles.state}>
+                <div className={styles.stateBox}>
+                  <InlineState kind="empty" title="아직 마인드맵이 없어요" description="분석 결과에 마인드맵이 없는 세션이에요." />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className={styles.mapToolbar}>
+                  <div className={styles.segment} role="group" aria-label="마인드맵 배치">
+                    {MAP_LAYOUTS.map(([value, label]) => (
+                      <button
+                        key={value}
+                        onClick={() => setMapLayout(value)}
+                        aria-pressed={mapLayout === value}
+                        className={`${styles.segBtn} ${mapLayout === value ? styles.segBtnActive : ""}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <Button variant="secondary" onClick={() => setMapResetKey((k) => k + 1)} title="옮긴 노드를 처음 배치로">
+                    <Icon name="refresh" size={13} /> 자동 정렬
+                  </Button>
+                </div>
+                <Mindmap
+                  key={`${mapLayout}-${mapResetKey}`}
+                  layout={mapLayout}
+                  nodes={sessionMap.nodes}
+                  edges={sessionMap.edges}
+                  treeEdges={sessionMap.treeEdges}
+                  width={MAP_WIDTH}
+                  height={MAP_HEIGHT}
+                  selectedId={selectedNode}
+                  onSelect={(id) => setSelectedNode((cur) => (id === cur ? null : id))}
+                />
+                {selectedNode && (
+                  <CitationPopup
+                    node={sessionMap.nodes.find((n) => n.id === selectedNode)}
+                    session={detail}
+                    onClose={() => setSelectedNode(null)}
+                  />
+                )}
+              </>
             )}
           </Card>
         )}
