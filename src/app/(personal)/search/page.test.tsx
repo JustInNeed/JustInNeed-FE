@@ -117,6 +117,72 @@ describe("/search 페이지", () => {
     expect(screen.queryByRole("link", { name: /^옛 결과/ })).toBeNull();
   });
 
+  it("이미 결과가 있어도 검색어를 바꾸면 응답이 올 때까지 이전 결과를 보여주지 않는다", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    mockSearch({
+      mindmaps: async (url) => {
+        if (url.searchParams.get("q") === "로마") await gate;
+        return ok(SEARCH_PAGE_MINDMAPS);
+      },
+    });
+    renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await screen.findByRole("link", { name: /^파리 미식 지도/ });
+    typeQuery("로마");
+    expect(screen.getByText("불러오는 중…")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^파리 미식 지도/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "마인드맵 (3+)" })).toBeNull();
+    release();
+    expect(await screen.findByRole("link", { name: /^파리 미식 지도/ })).toBeInTheDocument();
+  });
+
+  it("이전 검색어가 늦게 실패해도 새 검색어 결과를 오류로 덮지 않는다", async () => {
+    let releaseOld = () => {};
+    const oldGate = new Promise<void>((resolve) => (releaseOld = resolve));
+    const seen: (string | null)[] = [];
+    mockSearch({
+      mindmaps: async (url) => {
+        const q = url.searchParams.get("q");
+        seen.push(q);
+        if (q !== "파") return ok(SEARCH_PAGE_MINDMAPS);
+        await oldGate;
+        return fail(500, SERVER_ERROR);
+      },
+    });
+    renderPersonal(<SearchPage />);
+    typeQuery("파");
+    await waitFor(() => expect(seen).toEqual(["파"]));
+    typeQuery("파리");
+    expect(await screen.findByRole("link", { name: /^파리 미식 지도/ })).toBeInTheDocument();
+    releaseOld();
+    await settle();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("link", { name: /^파리 미식 지도/ })).toBeInTheDocument();
+  });
+
+  it("다시 시도를 누르면 응답이 올 때까지 오류 대신 불러오는 중을 보여준다", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let calls = 0;
+    mockSearch({
+      mindmaps: async () => {
+        calls += 1;
+        if (calls === 1) return fail(500, SERVER_ERROR);
+        await gate;
+        return ok(SEARCH_PAGE_MINDMAPS);
+      },
+    });
+    const { user } = renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(screen.getByText("불러오는 중…")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).toBeNull();
+    release();
+    expect(await screen.findByRole("link", { name: /^파리 미식 지도/ })).toBeInTheDocument();
+  });
+
   it("결과가 없으면 빈 상태를 보여주고 탭에는 0 을 쓴다", async () => {
     mockSearch({ mindmaps: () => ok(EMPTY_MINDMAPS), profiles: () => ok(EMPTY_PROFILES) });
     renderPersonal(<SearchPage />);
@@ -311,6 +377,29 @@ describe("/search 페이지 — 더 보기", () => {
     expect(await screen.findByRole("link", { name: /^로마 다음/ })).toBeInTheDocument();
     expect(callsTo(urls, "/mindmaps").filter((u) => u.searchParams.get("q") === "로마").map(pageOf)).toEqual([0, 1]);
   });
+
+  it("더 불러오다 늦게 실패해도 새 검색어 화면에 오류를 띄우지 않는다", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    mockSearch({
+      mindmaps: async (url) => {
+        if (pageOf(url) === 0) return ok(SEARCH_PAGE_MINDMAPS);
+        await gate;
+        return fail(500, SERVER_ERROR);
+      },
+    });
+    const { user } = renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await landed();
+    await user.click(more());
+    typeQuery("로마");
+    await settle();
+    await screen.findByRole("link", { name: /^파리 미식 지도/ });
+    release();
+    await settle();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("button", { name: "더 보기" })).toBeEnabled();
+  });
 });
 
 describe("/search 페이지 — 주소의 검색어", () => {
@@ -355,6 +444,17 @@ describe("/search 페이지 — 주소의 검색어", () => {
     await screen.findByRole("link", { name: /^파리 미식 지도/ });
     typeQuery("#");
     await waitFor(() => expect(replaced()).toEqual(["/search"]));
+  });
+
+  it("이 화면에서 남긴 q 도 검색어를 지우면 뺀다", async () => {
+    mockSearch();
+    const { rerender } = renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await waitFor(() => expect(replaced()).toEqual([`/search?${qParam("파리")}`]));
+    setMockSearchParams(qParam("파리"));
+    rerender(<SearchPage />);
+    typeQuery("");
+    await waitFor(() => expect(replaced()).toEqual([`/search?${qParam("파리")}`, "/search"]));
   });
 
   it("바깥에서 주소가 바뀌면 입력과 결과가 따라가고, 주소를 다시 쓰지 않는다", async () => {
