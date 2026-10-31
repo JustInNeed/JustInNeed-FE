@@ -3,7 +3,14 @@ import { http } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
 import SessionsPage from "@/app/(personal)/sessions/page";
 import type { SessionListItem, SessionUpdateRequest } from "@/lib/api";
-import { MANY_TAGS_SESSION, SESSION_LIST, STATUS_SESSIONS, TAG_GROUPS, sessionById } from "@/test/fixtures/sessions";
+import {
+  MANY_TAGS_SESSION,
+  SESSION_LIST,
+  STATUS_SESSIONS,
+  TAG_GROUPS,
+  patchedSession,
+  sessionById,
+} from "@/test/fixtures/sessions";
 import { API, SERVER_ERROR, fail, ok, server } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
@@ -275,7 +282,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
   }
 
   it("별을 누르면 바로 채워지고 즐겨찾기 개수가 늘며 PATCH /sessions/{id} 에 { isFavorite: true } 를 보낸다", async () => {
-    const patches = onPatch((id, body) => ok({ ...sessionById(id), ...body, summary: null, sources: [] }));
+    const patches = onPatch((id, body) => ok(patchedSession(id, body)));
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: FLIGHTS.title });
 
@@ -288,7 +295,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
   });
 
   it("별을 끄면 즐겨찾기 개수가 준다", async () => {
-    onPatch((id, body) => ok({ ...sessionById(id), ...body, summary: null, sources: [] }));
+    onPatch((id, body) => ok(patchedSession(id, body)));
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
 
@@ -298,7 +305,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
   });
 
   it("즐겨찾기를 바꾸면 그룹 보기의 즐겨찾기 표시도 맞추려고 그룹을 다시 불러온다", async () => {
-    onPatch((id, body) => ok({ ...sessionById(id), ...body, summary: null, sources: [] }));
+    onPatch((id, body) => ok(patchedSession(id, body)));
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
 
@@ -308,7 +315,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
   });
 
   it("별 버튼에서 Enter 를 누르면 카드는 열리지 않고 즐겨찾기만 바뀐다", async () => {
-    const patches = onPatch((id, body) => ok({ ...sessionById(id), ...body, summary: null, sources: [] }));
+    const patches = onPatch((id, body) => ok(patchedSession(id, body)));
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: FLIGHTS.title });
 

@@ -49,6 +49,14 @@ describe("세션 마인드맵 만들기 — 노드", () => {
     expect(nodes.slice(1).map((n) => n.group)).toEqual(["city", "city", "logi", "logi", "sub", "sub"]);
   });
 
+  it("루트가 없는 응답도 세션 제목 중심 노드 하나로 그린다", () => {
+    const { nodes } = buildSessionMindmap({ nodes: [node("t", "topic")], edges: [] }, TITLE);
+    expect(nodes.map((n) => [n.label, n.group])).toEqual([
+      [TITLE, "core"],
+      ["t", "logi"],
+    ]);
+  });
+
   it("주제 · 유닛 그룹은 루트 개수와 상관없이 같다", () => {
     const groupsOf = (map: SessionMindmap) =>
       new Set(buildSessionMindmap(map, TITLE).nodes.filter((n) => n.group !== "core" && n.group !== "city").map((n) => n.group));
@@ -132,13 +140,14 @@ describe("세션 마인드맵 만들기 — 연결선", () => {
     expect(buildSessionMindmap(map, TITLE).edges).toEqual([["r", "t"]]);
   });
 
-  it("구분자처럼 보이는 글자가 id 에 있어도 서로 다른 연결선을 합치지 않는다", () => {
-    const ids = ["a", 'b","c', 'a","b', "c"];
+  it.each([",", "|", "-", ":", " ", "#", "/", '","', "\n"])("구분자처럼 보이는 글자 %j 가 id 에 있어도 서로 다른 연결선을 합치지 않는다", (sep) => {
+    // 이어 붙이면 둘 다 a{sep}b{sep}c 가 되는 쌍
+    const [x1, y1, x2, y2] = ["a", `b${sep}c`, `a${sep}b`, "c"];
     const map: SessionMindmap = {
-      nodes: [node("r", "root"), ...ids.map((id) => node(id, "unit"))],
+      nodes: [node("r", "root"), ...[x1, y1, x2, y2].map((id) => node(id, "unit"))],
       edges: [
-        { from: "a", to: 'b","c', type: "related", primary: false },
-        { from: 'a","b', to: "c", type: "related", primary: false },
+        { from: x1, to: y1, type: "related", primary: false },
+        { from: x2, to: y2, type: "related", primary: false },
       ],
     };
     expect(buildSessionMindmap(map, TITLE).edges).toHaveLength(2);

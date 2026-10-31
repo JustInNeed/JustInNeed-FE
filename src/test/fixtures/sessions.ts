@@ -393,3 +393,9 @@ export function applySessionUpdate(detail: SessionDetail, body: SessionUpdateReq
     ...(body.editedMarkdown !== undefined && { summary: { markdown: body.editedMarkdown } }),
   };
 }
+
+/** 목록의 분석 완료 세션에 보낸 PATCH 의 응답 */
+export function patchedSession(id: number, body: SessionUpdateRequest): SessionDetail {
+  const detail = { ...sessionById(id), summary: { markdown: "## 요약" }, sources: [], isOwner: true };
+  return applySessionUpdate(detail, body);
+}
