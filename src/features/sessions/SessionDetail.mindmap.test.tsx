@@ -233,3 +233,131 @@ describe("세션 상세 — 마인드맵 배치", () => {
     expect(nodeLabels()[0]).toBe("로마 여행");
   });
 });
+
+describe("세션 상세 — 인용(Citation) 팝업", () => {
+  const popup = () => document.querySelector<HTMLElement>(".popup");
+
+  it("유닛 노드를 누르면 출처 제목 · 도메인 · 발췌문과 새 탭으로 여는 원문 열기 링크가 보인다", async () => {
+    const { user } = await openMindmap();
+    await user.click(nodeOf("통합권"));
+
+    const p = within(popup()!);
+    expect(p.getByText("Citation")).toBeInTheDocument();
+    expect(p.getByText("콜로세움 통합권 예매 안내")).toBeInTheDocument();
+    expect(p.getByText("coopculture.it")).toBeInTheDocument();
+    expect(p.getByText("CO")).toBeInTheDocument();
+    expect(popup()!.querySelector(".para")).toHaveTextContent(ROME_DETAIL.sources[0].excerpt);
+
+    const link = p.getByRole("button", { name: "원문 열기" }).closest("a")!;
+    expect(link).toHaveAttribute("href", ROME_DETAIL.sources[0].url);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noreferrer");
+  });
+
+  it("URL 문자가 들어간 id 의 노드도 자기 원문을 찾는다", async () => {
+    const { user } = await openMindmap(PARIS_DETAIL, PARIS_MINDMAP);
+    await user.click(nodeOf("목요일"));
+    expect(within(popup()!).getByText("오르세 미술관")).toBeInTheDocument();
+  });
+
+  it("발췌문에 키워드가 있으면 그 부분을 형광펜으로 표시한다", async () => {
+    const { user } = await openMindmap();
+    await user.click(nodeOf("카초 에 페페"));
+    const marks = popup()!.querySelectorAll("mark");
+    expect(marks).toHaveLength(1);
+    expect(marks[0]).toHaveTextContent("카초 에 페페");
+    expect(marks[0].closest("p")).toHaveTextContent(ROME_DETAIL.sources[2].excerpt);
+  });
+
+  it("키워드가 발췌문에 여러 번 나오면 모두 표시하고, 글자는 그대로다", async () => {
+    const excerpt = "통합권은 온라인에서 삽니다. 통합권 하나면 됩니다.";
+    const mindmap: SessionMindmap = {
+      ...ROME_MINDMAP,
+      nodes: ROME_MINDMAP.nodes.map((n) => (n.keyword === "통합권" ? { ...n, citation: { ...n.citation!, excerpt } } : n)),
+    };
+    const { user } = await openMindmap(ROME_DETAIL, mindmap);
+    await user.click(nodeOf("통합권"));
+    expect(popup()!.querySelectorAll("mark")).toHaveLength(2);
+    expect(popup()!.querySelector(".para")).toHaveTextContent(excerpt);
+  });
+
+  it("발췌문에 키워드가 없으면 표시 없이 발췌문을 그대로 보여 준다", async () => {
+    const { user } = await openMindmap();
+    await user.click(nodeOf("사전 예약"));
+    expect(popup()!.querySelector("mark")).toBeNull();
+    expect(within(popup()!).getByText(ROME_DETAIL.sources[1].excerpt)).toBeInTheDocument();
+  });
+
+  it("정규식 특수문자가 있는 키워드도 글자 그대로 찾는다", async () => {
+    const excerpt = "가격은 (a+b)* 입니다. aab 는 아닙니다.";
+    const mindmap: SessionMindmap = {
+      ...ROME_MINDMAP,
+      nodes: ROME_MINDMAP.nodes.map((n) =>
+        n.keyword === "통합권" ? { ...n, keyword: "(a+b)*", citation: { ...n.citation!, excerpt } } : n,
+      ),
+    };
+    const { user } = await openMindmap(ROME_DETAIL, mindmap);
+    await user.click(nodeOf("(a+b)*"));
+    const marks = popup()!.querySelectorAll("mark");
+    expect(marks).toHaveLength(1);
+    expect(marks[0]).toHaveTextContent("(a+b)*");
+  });
+
+  it("출처 제목이 없으면 노드 키워드를 제목으로 쓴다", async () => {
+    const { user } = await openMindmap();
+    await user.click(nodeOf("카초 에 페페"));
+    expect(popup()!.querySelector(".title")).toHaveTextContent("카초 에 페페");
+  });
+
+  it.each(["로마 여행", "콜로세움"])("근거 원문이 없는 노드(%s)는 미리보기가 없다고 안내하고 원문 열기는 누를 수 없다", async (label) => {
+    const { user } = await openMindmap();
+    await user.click(nodeOf(label));
+    const p = within(popup()!);
+    expect(p.getByText(label)).toBeInTheDocument();
+    expect(p.getByText("이 노드에 연결된 본문 미리보기가 없습니다.")).toBeInTheDocument();
+    expect(p.getByRole("button", { name: "원문 열기" })).toBeDisabled();
+    expect(p.queryByRole("link")).not.toBeInTheDocument();
+    expect(popup()!.querySelector("mark")).toBeNull();
+  });
+
+  it("안내 문구에 키워드와 같은 글자가 있어도 표시하지 않는다", async () => {
+    const mindmap: SessionMindmap = {
+      ...ROME_MINDMAP,
+      nodes: ROME_MINDMAP.nodes.map((n) => (n.id === "topic:0" ? { ...n, keyword: "본문" } : n)),
+    };
+    const { user } = await openMindmap(ROME_DETAIL, mindmap);
+    await user.click(nodeOf("본문"));
+    expect(popup()!.querySelector("mark")).toBeNull();
+  });
+
+  it("루트가 여럿일 때 넣은 중심 노드도 미리보기가 없다고 안내한다", async () => {
+    const { user } = await openMindmap(PARIS_DETAIL, PARIS_MINDMAP);
+    await user.click(nodeOf(PARIS_DETAIL.title));
+    expect(within(popup()!).getByText("이 노드에 연결된 본문 미리보기가 없습니다.")).toBeInTheDocument();
+  });
+
+  it("닫기를 누르거나 같은 노드를 다시 누르면 팝업이 닫힌다", async () => {
+    const { user } = await openMindmap();
+    await user.click(nodeOf("통합권"));
+    await user.click(within(popup()!).getByRole("button", { name: "닫기" }));
+    expect(popup()).toBeNull();
+
+    await user.click(nodeOf("통합권"));
+    expect(popup()).toBeInTheDocument();
+    await user.click(nodeOf("통합권"));
+    expect(popup()).toBeNull();
+  });
+
+  it("다른 노드를 누르면 그 노드의 원문으로 바뀐다", async () => {
+    const { user } = await openMindmap();
+    await user.click(nodeOf("통합권"));
+    await user.click(nodeOf("사전 예약"));
+    expect(within(popup()!).getByText("바티칸 박물관 예약")).toBeInTheDocument();
+  });
+
+  it("마인드맵 · 인용 팝업에도 하이라이트 · 인사이트는 없다", async () => {
+    const { user } = await openMindmap();
+    await user.click(nodeOf("통합권"));
+    expect(screen.queryByText(/하이라이트|인사이트/)).not.toBeInTheDocument();
+  });
+});

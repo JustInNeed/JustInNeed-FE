@@ -614,7 +614,6 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                 {selectedNode && (
                   <CitationPopup
                     node={sessionMap.nodes.find((n) => n.id === selectedNode)}
-                    session={detail}
                     onClose={() => setSelectedNode(null)}
                   />
                 )}
