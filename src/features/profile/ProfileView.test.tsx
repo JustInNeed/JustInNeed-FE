@@ -181,12 +181,11 @@ describe("내 프로필", () => {
     expect(screen.getByRole("dialog", { name: "파리 미술관 투어 지도" })).toBeInTheDocument();
   });
 
-  it("설정 버튼을 누르면 설정 화면으로 이동한다", async () => {
-    const { user } = renderPersonal(<ProfileView data={MY_PROFILE_PAGE} />);
+  it("프로필 수정 옆에 설정 버튼은 없다", () => {
+    renderPersonal(<ProfileView data={MY_PROFILE_PAGE} />);
 
-    await user.click(screen.getByRole("button", { name: "설정" }));
-
-    expect(mockRouter.push).toHaveBeenCalledWith("/settings");
+    expect(screen.getByRole("button", { name: "프로필 수정" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "설정" })).not.toBeInTheDocument();
   });
 
   it("프로필 수정을 누르면 수정 화면으로 바뀐다", async () => {
@@ -195,7 +194,6 @@ describe("내 프로필", () => {
     await user.click(screen.getByRole("button", { name: "프로필 수정" }));
 
     expect(screen.getByRole("heading", { level: 1, name: "프로필 수정" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "설정" })).not.toBeInTheDocument();
   });
 });
 
@@ -208,7 +206,7 @@ describe("다른 사용자 프로필", () => {
   const HIDDEN = ["#카페", "#슬로우트래블"];
   const expectNoHiddenTags = () => HIDDEN.forEach((t) => expect(screen.queryByText(t)).not.toBeInTheDocument());
 
-  it("그 사람의 이름 · 핸들 · 소개와 좋아요 · 팔로우 버튼이 보이고 프로필 수정 · 설정은 없다", () => {
+  it("그 사람의 이름 · 핸들 · 소개와 좋아요 · 팔로우 버튼이 보이고 프로필 수정은 없다", () => {
     renderOther();
 
     expect(screen.getByRole("heading", { level: 1, name: "wanderlust" })).toBeInTheDocument();
@@ -217,7 +215,6 @@ describe("다른 사용자 프로필", () => {
     expect(screen.getByRole("button", { name: "좋아요" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "팔로우" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "프로필 수정" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "설정" })).not.toBeInTheDocument();
   });
 
   it("노드 수는 비공개 해시태그의 노드를 뺀 값이고 나도 탐색중 수가 함께 보인다", () => {
