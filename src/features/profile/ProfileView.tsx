@@ -531,7 +531,7 @@ function ProfileScreen({
             hashtags: detail.title ? visibleTags(detail.hashtags) : [],
           }}
           sessions={(isMine ? detail.sessions : (cardSessions.sessions ?? [])).map(withVisibleTags)}
-          sessionsFallback={
+          sessionsStatus={
             isMine || cardSessions.sessions ? undefined : cardSessions.error ? (
               <InlineState kind="error" title="관련 세션을 불러오지 못했어요." description={cardSessions.error} onRetry={cardSessions.retry} />
             ) : (

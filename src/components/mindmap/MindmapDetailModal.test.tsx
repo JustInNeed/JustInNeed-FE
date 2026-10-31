@@ -113,7 +113,7 @@ describe("MindmapDetailModal", () => {
   });
 
   it("세션 목록 대신 보여줄 내용을 넘기면 목록과 개수 없이 그것만 보인다", () => {
-    const { dialog } = renderModal({ sessionsFallback: <p>불러오는 중…</p> });
+    const { dialog } = renderModal({ sessionsStatus: <p>불러오는 중…</p> });
 
     expect(within(dialog).getByText("불러오는 중…")).toBeInTheDocument();
     expect(within(dialog).queryByText(SESSIONS[0].title)).not.toBeInTheDocument();
