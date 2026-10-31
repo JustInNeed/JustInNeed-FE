@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import SessionsPage from "@/app/(personal)/sessions/page";
 import type { SessionListItem, SessionUpdateRequest } from "@/lib/api";
 import { MANY_TAGS_SESSION, SESSION_LIST, STATUS_SESSIONS, TAG_GROUPS, sessionById } from "@/test/fixtures/sessions";
-import { API, fail, ok, server } from "@/test/msw/server";
+import { API, SERVER_ERROR, fail, ok, server } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
 import { renderSessions, serveSessions, sessionsQuery as q } from "./sessionsViewTestUtils";
@@ -86,9 +86,9 @@ describe("세션 목록 — 불러오기", () => {
   });
 
   it("목록을 못 불러오면 서버 메시지와 다시 시도 버튼이 보이고, 다시 시도하면 0페이지부터 다시 받는다", async () => {
-    server.use(http.get(`${API}/sessions`, () => fail(500, "일시적인 오류가 발생했습니다."), { once: true }));
+    server.use(http.get(`${API}/sessions`, () => fail(500, SERVER_ERROR), { once: true }));
     const { user } = renderSessions();
-    expect(await screen.findByRole("alert")).toHaveTextContent("일시적인 오류가 발생했습니다.");
+    expect(await screen.findByRole("alert")).toHaveTextContent(SERVER_ERROR);
 
     await user.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(await screen.findByRole("heading", { level: 3, name: ROME.title })).toBeInTheDocument();
@@ -166,10 +166,10 @@ describe("세션 목록 — 카드", () => {
 });
 
 describe("세션 목록 — 상태별 카드", () => {
-  // 수집 중(종료 전) · 분석 대기 · 분석 중 · 분석 실패 — 뒤의 셋은 종료 시각이 있어도 걸린 시간 대신 상태를 보인다
+  // 수집 중 · 분석 대기(종료 전) · 분석 중 · 분석 실패 — 뒤의 둘은 종료 시각이 있어도 걸린 시간 대신 상태를 보인다
   const LOCKED = [
     { label: "수집 중", session: STATUS_SESSIONS[0], duration: null },
-    { label: "분석 대기", session: STATUS_SESSIONS[1], duration: "42분" },
+    { label: "분석 대기", session: STATUS_SESSIONS[1], duration: null },
     { label: "분석 중", session: STATUS_SESSIONS[2], duration: "41분" },
     { label: "분석 실패", session: STATUS_SESSIONS[3], duration: "35분" },
   ];
@@ -308,7 +308,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
     const gate = new Promise<void>((r) => (release = r));
     onPatch(async () => {
       await gate;
-      return fail(500, "즐겨찾기를 바꾸지 못했어요.");
+      return fail(500, SERVER_ERROR);
     });
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: FLIGHTS.title });
@@ -318,7 +318,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
     expect(screen.getByText("전체 25개 세션 · 12개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
     release();
 
-    expect(await screen.findByText("즐겨찾기를 바꾸지 못했어요.")).toBeInTheDocument();
+    expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
     expect(isFilled(starOf(FLIGHTS.title))).toBe(false);
     expect(screen.getByText("전체 25개 세션 · 11개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
     expect(groupCalls).toBe(1); // 실패하면 그룹은 다시 부르지 않는다
@@ -432,14 +432,14 @@ describe("세션 목록 — 무한 스크롤", () => {
       http.get(`${API}/sessions`, ({ request }) => {
         if (failed > 0 || new URL(request.url).searchParams.get("page") !== "1") return;
         failed += 1;
-        return fail(500, "세션을 불러오지 못했어요.");
+        return fail(500, SERVER_ERROR);
       }),
     );
     const { scroll } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
 
     scroll.toBottom();
-    expect(await screen.findByText("세션을 불러오지 못했어요.")).toBeInTheDocument();
+    expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
     expect(cardTitles()).toHaveLength(10);
     expect(screen.queryByText(END)).not.toBeInTheDocument();
     expect(screen.queryByText("불러오는 중…")).not.toBeInTheDocument();

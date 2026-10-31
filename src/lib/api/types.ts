@@ -88,6 +88,7 @@ export interface Source {
   title: string;
   url: string;
   excerpt: string;
+  visitedAt: string | null; // ISO datetime (KST, 타임존 없음). 모르면 null
 }
 
 export interface SessionSummary {
@@ -99,7 +100,9 @@ export interface SessionSummary {
 /** 상세용 — 요약/출처 포함. */
 export interface SessionDetail extends SessionListItem {
   summary: SessionSummary | null;
-  sources: Source[];
+  sources: Source[]; // 방문 시각 오름차순
+  /** 내 세션이면 true, 다른 사람의 공개 세션이면 false (읽기 전용) */
+  isOwner: boolean;
 }
 
 /** 모든 필드 optional — 보낸 필드만 수정. */

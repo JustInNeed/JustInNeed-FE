@@ -8,6 +8,9 @@ export const server = setupServer();
 /** lib/api/client.ts 의 기본 BASE_URL 과 같다 */
 export const API = "http://localhost:8080";
 
+/** 백엔드 GlobalExceptionHandler 의 500 응답 문구 */
+export const SERVER_ERROR = "서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+
 /** 백엔드 공통 응답 { success, data, message } — 성공 */
 export function ok<T>(data: T, init?: ResponseInit) {
   return HttpResponse.json({ success: true, data, message: null }, init);

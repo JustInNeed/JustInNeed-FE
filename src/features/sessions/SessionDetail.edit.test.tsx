@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ROME_DETAIL } from "@/test/fixtures/sessions";
-import { fail } from "@/test/msw/server";
+import { SERVER_ERROR, fail } from "@/test/msw/server";
 import { mockRouter } from "@/test/router";
 import { gate, renderDetail, type PatchReply } from "./sessionDetailTestUtils";
 
@@ -87,10 +87,10 @@ describe("세션 상세 — 편집 모드", () => {
   });
 
   it("저장에 실패하면 편집 모드에 남아 쓰던 초안을 지킨다", async () => {
-    const { user } = await startEditing(() => fail(500, "일시적인 오류가 발생했습니다."));
+    const { user } = await startEditing(() => fail(500, SERVER_ERROR));
     await changeTitle(user);
     await user.click(button("저장"));
-    expect(await screen.findByText("일시적인 오류가 발생했습니다.")).toBeInTheDocument();
+    expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
     expect(titleInput()).toHaveValue("로마 4박 5일");
     expect(bodyInput()).toHaveValue(ROME_MD);
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
@@ -174,7 +174,7 @@ describe("세션 상세 — 저장 안 하고 나가기 경고", () => {
   });
 
   it("'저장하고 나가기' 가 실패하면 토스트를 띄우고 경고 창과 편집 모드를 그대로 둔다", async () => {
-    const { user } = await startEditing(() => fail(500, "일시적인 오류가 발생했습니다."));
+    const { user } = await startEditing(() => fail(500, SERVER_ERROR));
     await changeTitle(user);
     await user.click(button("취소"));
     await user.click(button("저장하고 나가기"));
@@ -352,7 +352,7 @@ describe("세션 상세 — 30초 자동 저장", () => {
 
   it("자동 저장이 실패하면 토스트로만 알리고 상태 문구는 띄우지 않는다", async () => {
     useFakeClock();
-    const { user } = await startEditing(() => fail(500, "일시적인 오류가 발생했습니다."));
+    const { user } = await startEditing(() => fail(500, SERVER_ERROR));
     await changeTitle(user);
     await tick(30_000);
 
