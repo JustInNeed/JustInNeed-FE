@@ -21,6 +21,20 @@ export {
   getAnalyticsRecommendations,
 } from "./analytics";
 export {
+  getInterestRecommendations,
+  getRecentBookmarkRecommendations,
+  searchCommunityHashtags,
+  searchCommunityProfiles,
+  searchCommunityMindmaps,
+  getTrendingHashtags,
+  setCardLike,
+  setCardExploring,
+  setCardBookmark,
+  getCardSessions,
+  getSimilarPeople,
+  setProfileFollow,
+} from "./community";
+export {
   getExcludedUrls,
   addExcludedUrl,
   updateExcludedUrlSelection,
