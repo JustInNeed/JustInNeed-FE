@@ -1,6 +1,6 @@
 // 화면이 props로 받는 데이터 모양 (홈 · 분석 · 커뮤니티 · 북마크 · 프로필 · 설정).
 // API를 연결하면 응답을 이 모양으로 바꿔 넘기고 (홈: features/home/toHomeData), 테스트 픽스처(src/test/fixtures)도 같은 타입을 쓴다.
-import type { SessionListItem } from "@/lib/api";
+import type { BookmarkSaveTarget, SessionListItem } from "@/lib/api";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
 
 // ---------- 홈 마인드맵 필터 · 검색 ----------
@@ -195,14 +195,6 @@ export interface Integration {
   connected: boolean;
 }
 
-// ---------- 북마크 ----------
-export interface BookmarkedMindmap {
-  postId: string; // CommunityPost id
-  savedAgo: string;
-  /** 저장한 노드 — 원래 마인드맵에서 강조 표시 */
-  savedNodeIds: string[];
-}
-
 // ---------- 커뮤니티 · 북마크 · 검색 화면 데이터 ----------
 /** 작성자의 전체 마인드맵 — 노드 · 연결선과 노드의 원문 URL (전체 마인드맵 보기) */
 export interface FullMindmap {
@@ -212,27 +204,27 @@ export interface FullMindmap {
   nodeUrls: Record<string, string>;
 }
 
-/** post id → 마인드맵 상세 팝업에 보여줄 관련 세션 (이 마인드맵의 출처가 된 세션) */
-export type RelatedSessionsByPost = Record<string, SessionListItem[]>;
+/** 마인드맵 상세 팝업이 쓰는 카드 값 — 북마크 응답에는 없는 저장 수 · 활동 값은 빠진다 */
+export type MindmapDetailPost = Pick<CommunityPost, "id" | "user" | "title" | "snippet" | "hashtags" | "nodes" | "likes">;
 
 /** 북마크 화면의 마인드맵 카드 하나 */
 export interface SavedMindmap {
-  post: CommunityPost;
+  bookmarkId: number;
+  /** 세션 하나에서 저장한 카드면 그 세션. 여러 세션에서 골랐으면 null 이라 관련 세션이 없다 */
+  sessionId: number | null;
+  ownerId: number;
+  post: MindmapDetailPost;
   savedAgo: string;
-  /** 저장한 노드 — 원래 마인드맵에서 강조 표시 */
-  savedNodeIds: string[];
-  /** 작성자의 전체 마인드맵 — 원래 마인드맵에서 보기 */
-  authorMindmap: FullMindmap;
+  /** 카드 전체를 저장했는지 — 되돌릴 때 저장 경로가 다르다 */
+  cardBookmark: boolean;
+  target: BookmarkSaveTarget<"MINI_MINDMAP">;
 }
 
-export interface BookmarkTagBundle {
-  name: string;
+/** 북마크 화면의 해시태그 묶음 하나 */
+export interface SavedBundle {
+  bookmarkId: number;
+  /** 이름 없이 저장했으면 null 이라 태그를 대신 보여준다 */
+  name: string | null;
   tags: string[]; // '#' 포함
-}
-
-export interface BookmarksData {
-  mindmaps: SavedMindmap[];
-  sessions: SessionListItem[];
-  tagBundles: BookmarkTagBundle[];
-  relatedSessions: RelatedSessionsByPost;
+  target: BookmarkSaveTarget<"HASHTAG_BUNDLE">;
 }

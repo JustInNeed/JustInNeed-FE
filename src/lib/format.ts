@@ -36,6 +36,16 @@ export function formatDuration(startedAt: string, endedAt: string | null): strin
   return h > 0 ? `${h}시간 ${m}분` : `${m}분`;
 }
 
+/** 저장한 시각(밀리초) → "방금 전" · "5분 전" · "3시간 전" · "4일 전" */
+export function savedAgo(at: number, now: number): string {
+  const min = Math.floor((now - at) / 60_000);
+  if (min < 1) return "방금 전";
+  if (min < 60) return `${min}분 전`;
+  const hours = Math.floor(min / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  return `${Math.floor(hours / 24)}일 전`;
+}
+
 export const STATUS_LABEL: Record<SessionStatus, string> = {
   COLLECTING: "수집 중",
   READY: "분석 대기",

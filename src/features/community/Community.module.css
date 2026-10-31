@@ -708,30 +708,3 @@
   background: rgba(255, 255, 255, 0.14);
 }
 
-/* SessionCard 를 고치지 않고 카드 하단에 북마크 해제 줄을 얹는다 */
-.bmSession {
-  position: relative;
-}
-.bmSession > div:first-child {
-  height: 100%;
-  padding-bottom: 54px;
-}
-.bmSessionFoot {
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: 10px;
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-  pointer-events: none;
-  transition: transform 0.15s;
-}
-.bmSessionFoot > button {
-  pointer-events: auto;
-  margin: 0 -6px 0 0;
-}
-.bmSession:hover .bmSessionFoot {
-  transform: translateY(-1px);
-}

@@ -20,7 +20,7 @@ export interface SearchViewProps {
 }
 
 /** 전체 개수는 API 에 없어서 불러온 수만 쓰고, 더 있으면 + 를 붙인다 */
-function tabLabel(label: string, tab: SearchTab<unknown>) {
+export function tabLabel(label: string, tab: SearchTab<unknown>) {
   return tab.status === "ready" ? `${label} (${tab.items.length}${tab.hasNext ? "+" : ""})` : label;
 }
 
@@ -106,7 +106,7 @@ export function SearchView({ input, onInputChange, q, mindmaps, profiles }: Sear
   );
 }
 
-function MoreResults({ tab }: { tab: SearchTab<unknown> }) {
+export function MoreResults({ tab }: { tab: SearchTab<unknown> }) {
   if (tab.moreError) return <InlineState kind="error" title={tab.moreError} onRetry={tab.loadMore} />;
   if (!tab.hasNext) return null;
   return (
