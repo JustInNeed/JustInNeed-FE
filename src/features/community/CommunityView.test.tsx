@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { http } from "msw";
 import { describe, expect, it, vi } from "vitest";
 import type { UseApiResult } from "@/lib/hooks/useApi";
+import { mockRouter } from "@/test/router";
 import { API, fail, ok, server } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import {
@@ -11,6 +12,9 @@ import {
   MY_CARD,
   RECENT_BOOKMARKS,
   REACTED_CARD,
+  SEARCH_HASHTAGS,
+  SEARCH_MINDMAPS,
+  SEARCH_PROFILES,
 } from "@/test/fixtures/communityApi";
 import { CommunityView, profilePath, type CommunitySections } from "./CommunityView";
 import { toRecommendation } from "./toCommunityData";
@@ -284,6 +288,228 @@ describe("CommunityView — 카드 반응", () => {
   });
 });
 
+const SEARCH = `${API}/community/search`;
+const searchInput = () => screen.getByRole("textbox", { name: "해시태그 검색" });
+const dropdown = () => document.querySelector<HTMLElement>(".dropdown");
+const panel = async () => within(await waitFor(() => dropdown()!));
+
+/** 세 검색 API 를 받아 어떤 검색어로 불렸는지 기록한다 */
+function mockSearch({
+  hashtags = () => ok(SEARCH_HASHTAGS),
+  profiles = () => ok(SEARCH_PROFILES),
+  mindmaps = () => ok(SEARCH_MINDMAPS),
+}: {
+  hashtags?: (q: string) => Response | Promise<Response>;
+  profiles?: (q: string) => Response | Promise<Response>;
+  mindmaps?: (q: string) => Response | Promise<Response>;
+} = {}) {
+  const urls: URL[] = [];
+  const handle = (fn: (q: string) => Response | Promise<Response>) => ({ request }: { request: Request }) => {
+    const url = new URL(request.url);
+    urls.push(url);
+    return fn(url.searchParams.get("q")!);
+  };
+  server.use(
+    http.get(`${SEARCH}/hashtags`, handle(hashtags)),
+    http.get(`${SEARCH}/profiles`, handle(profiles)),
+    http.get(`${SEARCH}/mindmaps`, handle(mindmaps)),
+  );
+  return urls;
+}
+const settle = () => new Promise((resolve) => setTimeout(resolve, 350));
+
+describe("CommunityView — 검색바", () => {
+  it("검색어를 입력하면 연관 해시태그 · 프로필 추천 · 마인드맵 탐색 드롭다운이 열린다", async () => {
+    const urls = mockSearch();
+    const { user } = renderCommunity();
+    expect(dropdown()).toBeNull();
+    await user.type(searchInput(), "파리");
+    const p = await panel();
+    expect(await p.findByRole("button", { name: /^#파리\s*8$/ })).toBeInTheDocument();
+    expect(p.getByText("프로필 추천")).toBeInTheDocument();
+    expect(p.getByText("foodtrip")).toBeInTheDocument();
+    expect(p.getByText("마인드맵 3개 · #파리 #먹거리 #빵")).toBeInTheDocument();
+    expect(p.getByText("이름 없는 사용자")).toBeInTheDocument();
+    expect(p.getByText("마인드맵 탐색")).toBeInTheDocument();
+    expect(p.getByText("파리 미식 지도")).toBeInTheDocument();
+    expect(p.getByText("foodtrip · 노드 14 · #파리 #먹거리")).toBeInTheDocument();
+    // URL 만 공개한 카드는 제목 자리의 해시태그를 다시 쓰지 않는다
+    expect(p.getByText("#미술관 #로마")).toBeInTheDocument();
+    expect(p.getByText("artwalk · 노드 2")).toBeInTheDocument();
+    expect(urls.map((u) => `${u.pathname}${u.search}`).sort()).toEqual(
+      [
+        `/community/search/hashtags?q=${encodeURIComponent("파리")}&limit=5`,
+        `/community/search/mindmaps?q=${encodeURIComponent("파리")}&page=0&size=4`,
+        `/community/search/profiles?q=${encodeURIComponent("파리")}&page=0&size=4`,
+      ].sort(),
+    );
+  });
+
+  it("입력이 멈출 때까지 기다렸다가 마지막 검색어로 한 번만 찾는다", async () => {
+    const urls = mockSearch();
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파리올림픽");
+    expect(urls).toHaveLength(0);
+    await (await panel()).findByText("프로필 추천");
+    expect(urls.map((u) => u.searchParams.get("q"))).toEqual(["파리올림픽", "파리올림픽", "파리올림픽"]);
+  });
+
+  it("검색어 앞의 # 과 공백은 빼고 찾는다", async () => {
+    const urls = mockSearch();
+    const { user } = renderCommunity();
+    await user.type(searchInput(), " ##파리 ");
+    await (await panel()).findByText("프로필 추천");
+    expect(new Set(urls.map((u) => u.searchParams.get("q")))).toEqual(new Set(["파리"]));
+  });
+
+  it("공백이나 # 만 입력하면 요청을 보내지 않고 드롭다운도 열지 않는다", async () => {
+    const urls = mockSearch();
+    const { user } = renderCommunity();
+    await user.type(searchInput(), " # ");
+    await settle();
+    expect(urls).toHaveLength(0);
+    expect(dropdown()).toBeNull();
+  });
+
+  it("나중에 도착한 옛 검색어 응답은 무시한다", async () => {
+    let releaseOld = () => {};
+    const oldGate = new Promise<void>((resolve) => (releaseOld = resolve));
+    const hit = (tag: string) => ok({ hashtags: [{ tag, count: 1 }] });
+    const seen: string[] = [];
+    mockSearch({
+      hashtags: async (q) => {
+        seen.push(q);
+        if (q === "파") await oldGate;
+        return hit(q === "파" ? "옛결과" : "새결과");
+      },
+      profiles: () => ok({ profiles: [], hasNext: false }),
+      mindmaps: () => ok({ mindmaps: [], hasNext: false }),
+    });
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파");
+    await waitFor(() => expect(seen).toEqual(["파"]));
+    await user.type(searchInput(), "리");
+    const p = await panel();
+    expect(await p.findByRole("button", { name: /^#새결과/ })).toBeInTheDocument();
+    releaseOld();
+    await settle();
+    expect(p.getByRole("button", { name: /^#새결과/ })).toBeInTheDocument();
+    expect(p.queryByRole("button", { name: /^#옛결과/ })).toBeNull();
+  });
+
+  it("검색어를 바꾸면 이전 결과 대신 찾는 중을 보여준다", async () => {
+    mockSearch();
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파리");
+    const p = await panel();
+    await p.findByText("프로필 추천");
+    await user.type(searchInput(), "올");
+    expect(p.getByText("찾는 중…")).toBeInTheDocument();
+    expect(p.queryByText("프로필 추천")).toBeNull();
+  });
+
+  it("일치하는 결과가 없으면 안내 문구를 보여준다", async () => {
+    mockSearch({
+      hashtags: () => ok({ hashtags: [] }),
+      profiles: () => ok({ profiles: [], hasNext: false }),
+      mindmaps: () => ok({ mindmaps: [], hasNext: false }),
+    });
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "남극");
+    expect(await (await panel()).findByText("일치하는 결과가 없어요. 다른 해시태그로 검색해보세요.")).toBeInTheDocument();
+  });
+
+  it("한 그룹만 실패하면 나머지는 보여주고 다시 시도할 수 있다", async () => {
+    let calls = 0;
+    mockSearch({
+      profiles: () => {
+        calls += 1;
+        return calls === 1 ? fail(500, "서버 오류") : ok(SEARCH_PROFILES);
+      },
+    });
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파리");
+    const p = await panel();
+    expect(await p.findByRole("alert")).toHaveTextContent("일부 결과를 불러오지 못했어요.");
+    expect(p.getByText("연관 해시태그")).toBeInTheDocument();
+    expect(p.getByText("마인드맵 탐색")).toBeInTheDocument();
+    expect(p.queryByText("프로필 추천")).toBeNull();
+    await user.click(p.getByRole("button", { name: "다시 시도" }));
+    expect(await p.findByText("프로필 추천")).toBeInTheDocument();
+    expect(p.queryByRole("alert")).toBeNull();
+  });
+
+  it("모두 실패하면 오류를 보여주고 결과 없음 문구는 보여주지 않는다", async () => {
+    const failing = () => fail(500, "서버 오류");
+    mockSearch({ hashtags: failing, profiles: failing, mindmaps: failing });
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파리");
+    const p = await panel();
+    expect(await p.findByRole("alert")).toHaveTextContent("검색 결과를 불러오지 못했어요.");
+    expect(p.queryByText(/일치하는 결과가 없어요/)).toBeNull();
+    // 피드는 그대로
+    expect(within(region(INTEREST)).getAllByRole("heading", { level: 4 })).toHaveLength(3);
+  });
+
+  it("× 를 누르면 검색어가 지워지고 드롭다운이 닫힌다", async () => {
+    mockSearch();
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파리");
+    await (await panel()).findByText("프로필 추천");
+    await user.click(screen.getByRole("button", { name: "검색어 지우기" }));
+    expect(searchInput()).toHaveValue("");
+    expect(dropdown()).toBeNull();
+    expect(screen.queryByRole("button", { name: "검색어 지우기" })).toBeNull();
+  });
+
+  it("글자를 모두 지우면 드롭다운이 닫히고 요청을 보내지 않는다", async () => {
+    const urls = mockSearch();
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파");
+    await user.clear(searchInput());
+    await settle();
+    expect(dropdown()).toBeNull();
+    expect(urls).toHaveLength(0);
+  });
+
+  it("검색 영역 바깥을 누르면 드롭다운이 닫히고, 검색창을 다시 누르면 같은 결과로 열린다", async () => {
+    mockSearch();
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파리");
+    await (await panel()).findByText("프로필 추천");
+    await user.click(screen.getByRole("heading", { name: INTEREST }));
+    expect(dropdown()).toBeNull();
+    expect(searchInput()).toHaveValue("파리");
+    await user.click(searchInput());
+    expect(within(dropdown()!).getByText("foodtrip")).toBeInTheDocument();
+  });
+
+  it("연관 해시태그를 누르면 그 태그(# 없이)로 검색창이 채워진다", async () => {
+    mockSearch();
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파");
+    await user.click(await (await panel()).findByRole("button", { name: /^#파리올림픽/ }));
+    expect(searchInput()).toHaveValue("파리올림픽");
+    expect(dropdown()).not.toBeNull();
+  });
+
+  it("프로필 추천을 누르면 회원 id 로 그 사람 프로필에 이동한다", async () => {
+    mockSearch();
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파리");
+    await user.click(await (await panel()).findByText("foodtrip"));
+    expect(mockRouter.push).toHaveBeenCalledWith("/profile/102");
+  });
+
+  it("마인드맵 탐색 결과를 누르면 작성자 프로필로 이동한다", async () => {
+    mockSearch();
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파리");
+    await user.click(await (await panel()).findByText("#미술관 #로마"));
+    expect(mockRouter.push).toHaveBeenCalledWith("/profile/103");
+  });
+});
+
 describe("CommunityView — 섹션 상태", () => {
   it("불러오는 중이면 그 섹션에만 안내가 보이고 나머지는 그대로다", () => {
     renderCommunity({ interests: loading() });
@@ -312,6 +538,8 @@ describe("CommunityView — 섹션 상태", () => {
     renderCommunity(EMPTY);
     expect(screen.getByRole("status")).toHaveTextContent("아직 볼 수 있는 커뮤니티 소식이 없어요");
     expect(screen.queryByRole("region", { name: INTEREST })).toBeNull();
+    // 추천이 없어도 공개 카드는 검색으로 찾을 수 있다
+    expect(searchInput()).toBeInTheDocument();
   });
 
   it("다른 섹션이 불러오는 중이거나 실패했으면 페이지 빈 상태를 보여주지 않는다", () => {

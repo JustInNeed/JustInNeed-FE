@@ -1,12 +1,15 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PageHeader, InlineState } from "@/components/ui";
+import { Icon, PageHeader, InlineState } from "@/components/ui";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import type { UseApiResult } from "@/lib/hooks/useApi";
 import { FeedCard } from "./FeedCard";
+import { SearchResultsPanel } from "./SearchResultsPanel";
 import type { FeedPost, FeedRecommendation } from "./toCommunityData";
 import { useCardReactions } from "./useCardReactions";
+import { useCommunitySearch } from "./useCommunitySearch";
 import styles from "./Community.module.css";
 
 /** 프로필 주소는 회원 id. 검색 · 북마크 화면은 API 연결 전이라 아직 handle 문자열을 넘긴다 */
@@ -32,7 +35,22 @@ export function CommunityView({ sections }: CommunityViewProps) {
   const router = useRouter();
   const { withReaction, toggleLike, toggleBookmark, toggleExploring } = useCardReactions();
 
+  const openProfile = (userId: number) => router.push(profilePath(userId));
   const openDetail = (_post: FeedPost) => {};
+
+  const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const search = useCommunitySearch(query);
+  const hasResults = search.q.length > 0;
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
 
   const noPosts = (rec: FeedRecommendation) => rec.posts.length === 0;
   const allEmpty = settledEmpty(sections.interests, noPosts) && settledEmpty(sections.recentBookmarks, noPosts);
@@ -78,6 +96,44 @@ export function CommunityView({ sections }: CommunityViewProps) {
     <div className={styles.page}>
       <PageHeader title="커뮤니티" subtitle="다른 사람의 웹서핑 흐름에서 다음 단서를 찾아요" />
       <div className={styles.body}>
+        <div ref={searchRef} className={styles.searchWrap}>
+          <div className={`${styles.searchBox} ${searchOpen && hasResults ? styles.searchBoxOn : ""}`}>
+            <span className={styles.searchIcon}><Icon name="search" size={16} /></span>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSearchOpen(true);
+              }}
+              onFocus={() => setSearchOpen(true)}
+              placeholder="해시태그로 프로필·마인드맵 찾기 (예: #파리)"
+              aria-label="해시태그 검색"
+              className={styles.searchInput}
+            />
+            {query && (
+              <button
+                onClick={() => {
+                  setQuery("");
+                  setSearchOpen(false);
+                }}
+                className={styles.searchClear}
+                aria-label="검색어 지우기"
+              >
+                <Icon name="x" size={12} />
+              </button>
+            )}
+          </div>
+          {searchOpen && hasResults && (
+            <SearchResultsPanel
+              results={search.results}
+              onRetry={search.retry}
+              onOpenProfile={openProfile}
+              onPickTag={(t) => setQuery(t.replace(/^#/, ""))}
+            />
+          )}
+        </div>
+
         {allEmpty ? (
           <div className={styles.pageEmpty}>
             <InlineState
