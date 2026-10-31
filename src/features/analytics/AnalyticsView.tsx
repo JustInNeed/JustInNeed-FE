@@ -1,34 +1,68 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Icon, Card, PageHeader, InlineState, type IconName } from "@/components/ui";
-import type { SessionListItem } from "@/lib/api";
-import type { AnalysisNote, AnalyticsData, BannerTip, ReadingLevel, WeekHourGrid } from "@/lib/viewTypes";
+import type {
+  AnalysisNote,
+  AnalyticsCategories,
+  AnalyticsExploration,
+  AnalyticsReadingBehavior,
+  AnalyticsRecommendations,
+  AnalyticsTimePatterns,
+  AnalyticsWeekSessions,
+  BannerTip,
+  ReadingLevel,
+  SessionListItem,
+  WeekHourGrid,
+} from "@/lib/api";
 import { formatDate, formatDuration, withHash } from "@/lib/format";
+import type { UseApiResult } from "@/lib/hooks/useApi";
+import { SURFING_TIPS } from "./surfingTips";
 import styles from "./AnalyticsView.module.css";
 
+/** 카드마다 따로 불러온 결과. 데이터가 없으면 data 가 null 이다 */
+export interface AnalyticsCards {
+  weekSessions: UseApiResult<AnalyticsWeekSessions>;
+  exploration: UseApiResult<AnalyticsExploration>;
+  readingBehavior: UseApiResult<AnalyticsReadingBehavior>;
+  categories: UseApiResult<AnalyticsCategories>;
+  timePatterns: UseApiResult<AnalyticsTimePatterns>;
+  recommendations: UseApiResult<AnalyticsRecommendations>;
+}
+
 export interface AnalyticsViewProps {
-  /** 분석 데이터. 아직 모인 게 없으면 null → 빈 상태 */
-  data: AnalyticsData | null;
-  loading?: boolean;
-  /** 불러오기 실패 메시지 */
-  error?: string | null;
-  onRetry?: () => void;
+  cards: AnalyticsCards;
+  /** "오늘의 웹 서핑 팁" 후보 */
+  tips?: BannerTip[];
   /** 배너 랜덤 선택에 쓰는 0~1 난수 (테스트에서 고정값 주입) */
   random?: () => number;
 }
 
-export function AnalyticsView({ data, loading = false, error = null, onRetry, random = Math.random }: AnalyticsViewProps) {
+const NO_SESSIONS: SessionListItem[] = [];
+const NO_RECOMMENDATIONS: BannerTip[] = [];
+
+/** 모든 카드에 보여줄 데이터가 없는지 — 팁은 데이터가 아니라 세지 않는다 */
+function hasNoData({ weekSessions, exploration, readingBehavior, categories, timePatterns, recommendations }: AnalyticsCards) {
+  return (
+    !weekSessions.data?.sessions.length &&
+    !exploration.data &&
+    !readingBehavior.data &&
+    !categories.data &&
+    !timePatterns.data &&
+    !recommendations.data?.recommendations.length
+  );
+}
+
+export function AnalyticsView({ cards, tips = SURFING_TIPS, random = Math.random }: AnalyticsViewProps) {
+  const states = Object.values(cards) as UseApiResult<unknown>[];
+  const firstLoad = states.every((card) => card.loading && !card.data);
+  const nothingToShow = states.every((card) => !card.loading && !card.error) && hasNoData(cards);
   return (
     <div className={styles.page}>
       <PageHeader title="분석 및 추천" subtitle="당신의 웹 탐색 패턴을 진단합니다" />
-      {loading && !data ? (
+      {firstLoad ? (
         <div className={styles.state}>불러오는 중…</div>
-      ) : error ? (
-        <div className={styles.stateWrap}>
-          <InlineState kind="error" title={error} onRetry={onRetry} />
-        </div>
-      ) : !data ? (
+      ) : nothingToShow ? (
         <div className={styles.stateWrap}>
           <InlineState
             kind="empty"
@@ -37,25 +71,26 @@ export function AnalyticsView({ data, loading = false, error = null, onRetry, ra
           />
         </div>
       ) : (
-        <AnalyticsBody data={data} random={random} />
+        <AnalyticsBody cards={cards} tips={tips} random={random} />
       )}
     </div>
   );
 }
 
-function AnalyticsBody({ data, random }: { data: AnalyticsData; random: () => number }) {
-  const { exploration, notes } = data;
-  const stats = [
-    { label: "세션 평균 URL", value: `${exploration.avgUrlsPerSession}개` },
-    { label: "평균 페이지 체류", value: formatSeconds(exploration.avgDwellSec) },
-    { label: "평균 세션 길이", value: formatMinutes(exploration.avgSessionMinutes) },
-  ];
+/** 카드 내용 — 불러오는 중 · 실패 · 데이터 없음을 카드마다 따로 보여준다 */
+function CardContent<T>({ card, children }: { card: UseApiResult<T>; children: (data: T) => ReactNode }) {
+  if (card.error) return <InlineState kind="error" title={card.error} onRetry={card.refetch} />;
+  if (card.data) return <>{children(card.data)}</>;
+  return <div className={styles.cardState}>{card.loading ? "불러오는 중…" : "아직 보여줄 데이터가 없어요."}</div>;
+}
+
+function AnalyticsBody({ cards, tips, random }: { cards: AnalyticsCards; tips: BannerTip[]; random: () => number }) {
   return (
     <div className={styles.grid}>
       <RollingBanner
-        sessions={data.weekSessions}
-        tips={data.surfingTips}
-        recs={data.actionRecommendations}
+        sessions={cards.weekSessions.data?.sessions ?? NO_SESSIONS}
+        tips={tips}
+        recs={cards.recommendations.data?.recommendations ?? NO_RECOMMENDATIONS}
         random={random}
       />
 
@@ -64,15 +99,14 @@ function AnalyticsBody({ data, random }: { data: AnalyticsData; random: () => nu
           <h3 className={styles.cardTitle}>탐색 성향</h3>
           <span className={styles.cardSub}>매일 업데이트</span>
         </div>
-        <div>
-          {stats.map((s, i) => (
-            <div key={s.label} className={styles.statRow} style={{ borderBottom: i < stats.length - 1 ? "1px solid var(--line)" : "none" }}>
-              <span className={styles.statLabel}>{s.label}</span>
-              <span className={styles.statValue}>{s.value}</span>
-            </div>
-          ))}
-        </div>
-        <AnalysisRecBox note={notes.exploration} />
+        <CardContent card={cards.exploration}>
+          {(exploration) => (
+            <>
+              <ExplorationStats exploration={exploration} />
+              <AnalysisRecBox note={exploration.note} />
+            </>
+          )}
+        </CardContent>
       </Card>
 
       <Card className={styles.card}>
@@ -80,24 +114,36 @@ function AnalyticsBody({ data, random }: { data: AnalyticsData; random: () => nu
           <h3 className={styles.cardTitle}>읽기 행동 분포</h3>
           <span className={styles.cardSub}>최근 7일 · 세션별 집중도</span>
         </div>
-        <ReadingBehaviorBar shares={data.readingBehavior} />
-        <AnalysisRecBox note={notes.reading} />
+        <CardContent card={cards.readingBehavior}>
+          {({ shares, note }) => (
+            <>
+              <ReadingBehaviorBar shares={shares} />
+              <AnalysisRecBox note={note} />
+            </>
+          )}
+        </CardContent>
       </Card>
 
       <Card className={styles.card}>
         <h3 className={styles.cardTitle} style={{ marginBottom: 16 }}>카테고리별 방문 비율</h3>
-        {data.categoryRatio.map((c) => (
-          <div key={c.name} className={styles.catRow}>
-            <div className={styles.catHead}>
-              <span className={styles.catName}>{c.name}</span>
-              <span className={styles.catMeta}>{c.pct}% · {c.count}회</span>
-            </div>
-            <div className={styles.catTrack}>
-              <div className={styles.catBar} style={{ width: `${c.pct}%` }} />
-            </div>
-          </div>
-        ))}
-        <AnalysisRecBox note={notes.category} />
+        <CardContent card={cards.categories}>
+          {({ categories, note }) => (
+            <>
+              {categories.map((c) => (
+                <div key={c.name} className={styles.catRow}>
+                  <div className={styles.catHead}>
+                    <span className={styles.catName}>{c.name}</span>
+                    <span className={styles.catMeta}>{c.pct}% · {c.count}회</span>
+                  </div>
+                  <div className={styles.catTrack}>
+                    <div className={styles.catBar} style={{ width: `${c.pct}%` }} />
+                  </div>
+                </div>
+              ))}
+              <AnalysisRecBox note={note} />
+            </>
+          )}
+        </CardContent>
       </Card>
 
       <Card className={styles.card}>
@@ -105,12 +151,36 @@ function AnalyticsBody({ data, random }: { data: AnalyticsData; random: () => nu
           <h3 className={styles.cardTitle}>시간대별 탐색 패턴</h3>
           <span className={styles.cardSub}>최근 7일</span>
         </div>
-        <div className={styles.heatmaps}>
-          <HeatBlock data={data.heatmap.surfing} label="웹서핑 다빈도" sub="접속 활동 양" rgb="100,116,139" />
-          <HeatBlock data={data.heatmap.focus} label="집중 시간 (Deep + Reading)" sub="정독 비율" rgb="95,207,62" />
-        </div>
-        <AnalysisRecBox note={notes.timePattern} />
+        <CardContent card={cards.timePatterns}>
+          {({ surfing, focus, note }) => (
+            <>
+              <div className={styles.heatmaps}>
+                <HeatBlock data={surfing} label="웹서핑 다빈도" sub="접속 활동 양" rgb="100,116,139" />
+                <HeatBlock data={focus} label="집중 시간 (Deep + Reading)" sub="정독 비율" rgb="95,207,62" />
+              </div>
+              <AnalysisRecBox note={note} />
+            </>
+          )}
+        </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function ExplorationStats({ exploration }: { exploration: AnalyticsExploration }) {
+  const stats = [
+    { label: "세션 평균 URL", value: `${exploration.avgUrlsPerSession}개` },
+    { label: "평균 페이지 체류", value: formatSeconds(exploration.avgDwellSec) },
+    { label: "평균 세션 길이", value: formatMinutes(exploration.avgSessionMinutes) },
+  ];
+  return (
+    <div>
+      {stats.map((s, i) => (
+        <div key={s.label} className={styles.statRow} style={{ borderBottom: i < stats.length - 1 ? "1px solid var(--line)" : "none" }}>
+          <span className={styles.statLabel}>{s.label}</span>
+          <span className={styles.statValue}>{s.value}</span>
+        </div>
+      ))}
     </div>
   );
 }

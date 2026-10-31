@@ -1,6 +1,25 @@
+"use client";
+
 import { AnalyticsView } from "@/features/analytics/AnalyticsView";
+import {
+  getAnalyticsCategories,
+  getAnalyticsExploration,
+  getAnalyticsReadingBehavior,
+  getAnalyticsRecommendations,
+  getAnalyticsTimePatterns,
+  getAnalyticsWeekSessions,
+} from "@/lib/api";
+import { useApi } from "@/lib/hooks/useApi";
 
 export default function AnalyticsPage() {
-  // 분석 API 가 생기기 전까지는 데이터 없음(빈 상태)으로 보여준다
-  return <AnalyticsView data={null} />;
+  const weekSessions = useApi(getAnalyticsWeekSessions);
+  const exploration = useApi(getAnalyticsExploration);
+  const readingBehavior = useApi(getAnalyticsReadingBehavior);
+  const categories = useApi(getAnalyticsCategories);
+  const timePatterns = useApi(getAnalyticsTimePatterns);
+  const recommendations = useApi(getAnalyticsRecommendations);
+
+  return (
+    <AnalyticsView cards={{ weekSessions, exploration, readingBehavior, categories, timePatterns, recommendations }} />
+  );
 }

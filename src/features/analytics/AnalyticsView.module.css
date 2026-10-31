@@ -258,3 +258,9 @@
   border-radius: 3px;
   border: 1px solid transparent;
 }
+.cardState {
+  padding: 24px 0;
+  font-size: 13px;
+  color: var(--ink-500);
+  text-align: center;
+}
