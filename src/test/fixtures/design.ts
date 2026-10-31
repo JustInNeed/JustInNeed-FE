@@ -121,7 +121,7 @@ export const GRAPH_TAG_GROUPS: { id: number; name: string; tags: string[] }[] = 
 
 export const GRAPH_FILTER_TAGS = ["로마", "파리", "항공권", "예산", "바르셀로나", "프라하"];
 
-// ---------- 세션 (API SessionListItem 형태, 프로필/북마크/검색 화면용) ----------
+// ---------- 세션 (API SessionListItem 형태, 프로필/검색 화면용) ----------
 const s = (
   id: number,
   title: string,

@@ -1,7 +1,8 @@
 // 북마크 API 응답 → 화면 데이터 변환.
-import type { BookmarkBundleItem, BookmarkMindmapItem, BookmarkSaveTarget } from "@/lib/api";
+import type { BookmarkBundleItem, BookmarkMindmapItem, BookmarkOriginalResponse, BookmarkSaveTarget } from "@/lib/api";
+import { toFullMindmap } from "@/features/profile/toProfilePage";
 import { savedAgo, withHash } from "@/lib/format";
-import type { SavedBundle, SavedMindmap } from "@/lib/viewTypes";
+import type { FullMindmap, SavedBundle, SavedMindmap } from "@/lib/viewTypes";
 import { DEFAULT_AVATAR, displayName, URL_ONLY_CARD_TITLE } from "./toCommunityData";
 
 const toTarget = <S extends string>({ saveType, targetType, targetIds, sourceMindmapId }: BookmarkSaveTarget<S>) => ({
@@ -42,3 +43,14 @@ export const toSavedBundle = (item: BookmarkBundleItem): SavedBundle => ({
   tags: item.hashtags.map(withHash),
   target: toTarget(item),
 });
+
+export interface OriginalView {
+  mindmap: FullMindmap;
+  highlightIds: string[];
+}
+
+/** 원래 마인드맵 → 전체 보기 값. 볼 수 없으면 null. toFullMindmap 의 노드 id 가 node:<nodeId> 라 강조 id 도 맞춘다 */
+export function toOriginalView({ sourceAvailable, mindmap, highlightedNodeIds }: BookmarkOriginalResponse): OriginalView | null {
+  if (!sourceAvailable || !mindmap) return null;
+  return { mindmap: toFullMindmap(mindmap), highlightIds: highlightedNodeIds.map((id) => `node:${id}`) };
+}

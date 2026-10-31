@@ -5,6 +5,8 @@ import {
   bookmarkBundle,
   bookmarkMindmap,
   BOOKMARK_NOW,
+  BOOKMARK_ORIGINAL,
+  BOOKMARK_ORIGINAL_GONE,
   CARD_BOOKMARK,
   MIXED_BOOKMARK,
   NAMED_BUNDLE,
@@ -18,7 +20,7 @@ import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
 import type { SavedBundle, SavedMindmap } from "@/lib/viewTypes";
 import { BookmarksView, type BookmarksViewProps } from "./BookmarksView";
-import { toSavedBundle, toSavedMindmap } from "./toBookmarks";
+import { toOriginalView, toSavedBundle, toSavedMindmap } from "./toBookmarks";
 import type { BookmarkTab } from "./useBookmarkTab";
 
 function tabOf<T>(items: T[], overrides: Partial<BookmarkTab<T>> = {}): BookmarkTab<T> {
@@ -184,6 +186,114 @@ describe("BookmarksView — 상세 팝업", () => {
   });
 });
 
+const mockOriginal = (response: () => Response | Promise<Response> = () => ok(BOOKMARK_ORIGINAL)) => {
+  const ids: string[] = [];
+  server.use(
+    http.get(`${API}/community/me/bookmarks/:id/original`, ({ params }) => {
+      ids.push(String(params.id));
+      return response();
+    }),
+  );
+  return ids;
+};
+
+/** 노드가 강조 상태면 바깥 링이 그려진다 */
+const hasRing = (g: Element) => g.querySelector('circle[stroke="#2D6A1B"]') !== null;
+const ORIGINAL_BUTTON = { name: "원래 마인드맵에서 보기" };
+
+describe("BookmarksView — 원래 마인드맵에서 보기", () => {
+  beforeEach(() => {
+    // 전체 마인드맵 보기의 force simulation 은 멈춰 둔다 (노드 배치는 초기 좌표 그대로)
+    vi.spyOn(window, "requestAnimationFrame").mockReturnValue(0);
+    mockSessions();
+  });
+
+  it("팝업을 열어도 원본을 부르지 않고, 누르면 그 북마크의 원본을 불러 저장한 노드만 강조한다", async () => {
+    const ids = mockOriginal();
+    const { user } = renderBookmarks();
+    await user.click(mapCard("동유럽 3주 살이 전체 동선"));
+    await screen.findByText(`· ${CARD_SESSIONS.sessions.length}개`);
+    expect(ids).toEqual([]);
+
+    await user.click(screen.getByRole("button", ORIGINAL_BUTTON));
+    const full = await screen.findByRole("dialog", { name: "wanderlust님의 전체 마인드맵" });
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(ids).toEqual([String(CARD_BOOKMARK.bookmarkId)]);
+    expect(within(full).getByText("저장한 노드 2개만 강조했어요")).toBeInTheDocument();
+
+    const node = (label: string) => within(full).getByText(label).closest("g")!;
+    ["프라하성", "카를교"].forEach((label) => {
+      expect(node(label)).toHaveStyle({ opacity: "1" });
+      expect(hasRing(node(label))).toBe(true);
+    });
+    expect(node("비엔나")).toHaveStyle({ opacity: "0.25" });
+    expect(hasRing(node("비엔나"))).toBe(false);
+  });
+
+  it("기다리는 동안 버튼이 잠기고 불러오는 중으로 바뀐다", async () => {
+    mockOriginal(() => new Promise<never>(() => {}));
+    const { user } = renderBookmarks();
+    await user.click(mapCard("동유럽 3주 살이 전체 동선"));
+    await user.click(screen.getByRole("button", ORIGINAL_BUTTON));
+    const button = within(screen.getByRole("dialog")).getByRole("button", { name: "불러오는 중…" });
+    expect(button).toBeDisabled();
+  });
+
+  it("실패하면 팝업 안에 안내하고 다시 시도하면 전체 보기가 열린다", async () => {
+    let failing = true;
+    const ids = mockOriginal(() => (failing ? fail(500, SERVER_ERROR) : ok(BOOKMARK_ORIGINAL)));
+    const { user } = renderBookmarks();
+    await user.click(mapCard("동유럽 3주 살이 전체 동선"));
+    await user.click(screen.getByRole("button", ORIGINAL_BUTTON));
+    const alert = await within(screen.getByRole("dialog")).findByRole("alert");
+    expect(alert).toHaveTextContent("원래 마인드맵을 불러오지 못했어요.");
+    expect(alert).toHaveTextContent(SERVER_ERROR);
+
+    failing = false;
+    await user.click(within(alert).getByRole("button", { name: "다시 시도" }));
+    expect(await screen.findByRole("dialog", { name: "wanderlust님의 전체 마인드맵" })).toBeInTheDocument();
+    expect(ids).toHaveLength(2);
+  });
+
+  it("원본을 볼 수 없으면 전체 보기 대신 볼 수 없다고 알려 준다", async () => {
+    mockOriginal(() => ok(BOOKMARK_ORIGINAL_GONE));
+    const { user } = renderBookmarks();
+    await user.click(mapCard("동유럽 3주 살이 전체 동선"));
+    await user.click(screen.getByRole("button", ORIGINAL_BUTTON));
+    const dialog = within(screen.getByRole("dialog", { name: "동유럽 3주 살이 전체 동선" }));
+    expect(await dialog.findByText("원래 마인드맵을 볼 수 없어요")).toBeInTheDocument();
+    expect(dialog.queryByRole("button", ORIGINAL_BUTTON)).toBeNull();
+  });
+
+  it("전체 보기를 닫으면 상세 팝업으로 돌아오고, 다시 열어도 또 부르지 않는다", async () => {
+    const ids = mockOriginal();
+    const { user } = renderBookmarks();
+    await user.click(mapCard("동유럽 3주 살이 전체 동선"));
+    await user.click(screen.getByRole("button", ORIGINAL_BUTTON));
+    const full = await screen.findByRole("dialog", { name: "wanderlust님의 전체 마인드맵" });
+    await user.click(within(full).getByRole("button", { name: "닫기" }));
+    expect(screen.getByRole("dialog", { name: "동유럽 3주 살이 전체 동선" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", ORIGINAL_BUTTON));
+    expect(screen.getByRole("dialog", { name: "wanderlust님의 전체 마인드맵" })).toBeInTheDocument();
+    expect(ids).toHaveLength(1);
+  });
+
+  it("다른 카드를 열면 앞 카드의 원본 상태가 남지 않는다", async () => {
+    const ids = mockOriginal(() => ok(BOOKMARK_ORIGINAL_GONE));
+    const { user } = renderBookmarks();
+    await user.click(mapCard("동유럽 3주 살이 전체 동선"));
+    await user.click(screen.getByRole("button", ORIGINAL_BUTTON));
+    await screen.findByText("원래 마인드맵을 볼 수 없어요");
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "닫기" }));
+
+    await user.click(mapCard("파리 미식 지도"));
+    expect(screen.getByRole("button", ORIGINAL_BUTTON)).toBeEnabled();
+    expect(screen.queryByText("원래 마인드맵을 볼 수 없어요")).toBeNull();
+    expect(ids).toHaveLength(1);
+  });
+});
+
 describe("BookmarksView — 빈 · 오류 상태", () => {
   it("빈 탭에서만 빈 안내를 보여준다", async () => {
     const { user } = renderBookmarks({ bundles: tabOf<SavedBundle>([]) });
@@ -261,5 +371,18 @@ describe("toSavedBundle", () => {
   it("태그에 # 를 붙이고 이름이 없으면 null 그대로 둔다", () => {
     const bundle = toSavedBundle(bookmarkBundle({ bookmarkId: 1, name: null, hashtags: ["#이미", "없음"] }));
     expect(bundle).toMatchObject({ bookmarkId: 1, name: null, tags: ["#이미", "#없음"] });
+  });
+});
+
+describe("toOriginalView", () => {
+  it("강조 id 를 전체 마인드맵의 노드 id 모양으로 바꾼다", () => {
+    const view = toOriginalView(BOOKMARK_ORIGINAL)!;
+    expect(view.highlightIds).toEqual(["node:81", "node:82"]);
+    view.highlightIds.forEach((id) => expect(view.mindmap.nodes.some((n) => n.id === id)).toBe(true));
+  });
+
+  it("볼 수 없으면 null 이다 — 그래프가 비어 sourceAvailable 만 false 로 올 때도 같다", () => {
+    expect(toOriginalView(BOOKMARK_ORIGINAL_GONE)).toBeNull();
+    expect(toOriginalView({ ...BOOKMARK_ORIGINAL, sourceAvailable: false })).toBeNull();
   });
 });

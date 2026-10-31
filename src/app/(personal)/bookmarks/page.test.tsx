@@ -5,17 +5,22 @@ import {
   bookmarkMindmap,
   BOOKMARK_BUNDLES_PAGE,
   BOOKMARK_MINDMAPS_PAGE,
+  BOOKMARK_ORIGINAL,
   CARD_BOOKMARK,
   MIXED_BOOKMARK,
   PICKED_BOOKMARK,
   SAME_NAME_BUNDLE,
   UNNAMED_BUNDLE,
 } from "@/test/fixtures/bookmarksApi";
+import { CARD_SESSIONS } from "@/test/fixtures/communityApi";
 import { API, fail, ok, server, SERVER_ERROR } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
+import { mockRouter } from "@/test/router";
 import BookmarksPage from "./page";
 
 const BASE = `${API}/community/me/bookmarks`;
+/** 카드 20장이 넘으면 역할로 찾는 데 오래 걸려 전체 실행 때 기본 5초를 넘긴다 */
+const SLOW_TEST_MS = 20_000;
 const EMPTY_MINDMAPS = { mindmaps: [], hasNext: false };
 const EMPTY_BUNDLES = { bundles: [], hasNext: false };
 
@@ -236,7 +241,42 @@ describe("/bookmarks 페이지 — 북마크 해제", () => {
     await user.click(screen.getByRole("button", { name: "더 보기" }));
     await screen.findByRole("button", { name: "마인드맵 (22)" });
     expect(mapTitles()).toEqual(Array.from({ length: 22 }, (_, i) => `카드 ${i + 1}`));
-  });
+  }, SLOW_TEST_MS);
+
+  it("더 보기를 기다리는 사이에 해제해도 다음 더 보기에서 건너뛰지 않는다", async () => {
+    const rows = titled(22);
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let held = false;
+    const paged = (url: URL) => pagedMindmaps(rows)(url);
+    mockLists({
+      mindmaps: async (url) => {
+        const response = paged(url);
+        if (pageOf(url) === 1 && !held) {
+          held = true;
+          await gate;
+        }
+        return response;
+      },
+    });
+    server.use(
+      http.delete(`${COMMUNITY}/bookmarks/:id`, ({ params }) => {
+        rows.splice(rows.findIndex((r) => String(r.bookmarkId) === params.id), 1);
+        return ok(null);
+      }),
+    );
+    const { user } = renderPersonal(<BookmarksPage />);
+    await screen.findByRole("button", { name: "마인드맵 (10+)" });
+    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await removeCard(user, "카드 0");
+    await undoButton();
+
+    release();
+    await screen.findByRole("button", { name: "마인드맵 (19+)" });
+    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await screen.findByRole("button", { name: "마인드맵 (21)" });
+    expect(mapTitles()).toEqual(Array.from({ length: 21 }, (_, i) => `카드 ${i + 1}`));
+  }, SLOW_TEST_MS);
 
   it("불러온 항목을 다 해제해도 더 보기로 남은 항목을 받는다", async () => {
     const rows = titled(11);
@@ -393,5 +433,32 @@ describe("/bookmarks 페이지 — 되돌리기", () => {
     await user.click(screen.getByRole("button", { name: "더 보기" }));
     await screen.findByRole("button", { name: "마인드맵 (13)" });
     expect(mapTitles()).toEqual(["카드 5", "카드 0", "카드 1", "카드 2", "카드 3", "카드 4", "카드 6", "카드 7", "카드 8", "카드 9", "카드 10", "카드 11", "카드 12"]);
+  });
+});
+
+describe("/bookmarks 페이지 — 상세 팝업 · 원래 마인드맵", () => {
+  it("카드를 눌러 관련 세션을 보고, 원래 마인드맵을 눌러야 원본을 불러온다", async () => {
+    const original: string[] = [];
+    mockLists();
+    server.use(
+      http.get(`${COMMUNITY}/mindmaps/:id/sessions`, () => ok(CARD_SESSIONS)),
+      http.get(`${BASE}/:id/original`, ({ params }) => {
+        original.push(String(params.id));
+        return ok(BOOKMARK_ORIGINAL);
+      }),
+    );
+    const { user } = await renderLoaded();
+    vi.spyOn(window, "requestAnimationFrame").mockReturnValue(0);
+
+    await user.click(mapCard("동유럽 3주 살이 전체 동선"));
+    const dialog = within(screen.getByRole("dialog", { name: "동유럽 3주 살이 전체 동선" }));
+    await user.click(await dialog.findByRole("button", { name: new RegExp(CARD_SESSIONS.sessions[0].title) }));
+    expect(mockRouter.push).toHaveBeenCalledWith(`/sessions/${CARD_SESSIONS.sessions[0].id}`);
+    expect(original).toEqual([]);
+
+    await user.click(dialog.getByRole("button", { name: "원래 마인드맵에서 보기" }));
+    const full = await screen.findByRole("dialog", { name: "wanderlust님의 전체 마인드맵" });
+    expect(within(full).getByText("저장한 노드 2개만 강조했어요")).toBeInTheDocument();
+    expect(original).toEqual([String(CARD_BOOKMARK.bookmarkId)]);
   });
 });
