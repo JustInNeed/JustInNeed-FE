@@ -48,3 +48,6 @@ export const STATUS_LABEL: Record<SessionStatus, string> = {
 export function withHash(tag: string): string {
   return tag.startsWith("#") ? tag : `#${tag}`;
 }
+
+/** 원문 URL 만 공개해 제목이 없는 세션의 제목 자리 문구 */
+export const LINK_ONLY_SESSION_TITLE = "원문 링크만 공개된 세션";

@@ -32,6 +32,90 @@ export interface NicknameAvailabilityResponse {
   available: boolean;
 }
 
+// ---------- 커뮤니티 프로필 (다른 사용자 프로필 화면) ----------
+export type CommunityProfileVisibility = "URL_ONLY" | "CONTENT";
+
+export interface CommunityProfileHashtag {
+  hashtagId: number;
+  name: string; // '#' 없는 원문
+  nodeCount: number;
+}
+
+/** 프로필에 공유한 세션. URL_ONLY 에선 title 키가 없고, CONTENT 에선 title · markdown · sources 가 더 온다 */
+export interface CommunitySharedSession {
+  id: number;
+  title?: string;
+  tags: string[];
+  urls: string[];
+  startedAt: string;
+  endedAt: string | null;
+  pageCount: number;
+  status: SessionStatus;
+}
+
+/** GET /community/profiles/{userId} — 없거나 탈퇴한 회원이면 404 */
+export interface CommunityProfileResponse {
+  userId: number;
+  nickname: string | null;
+  bio: string | null;
+  visibility: CommunityProfileVisibility;
+  totalNodeCount: number;
+  topHashtags: CommunityProfileHashtag[];
+  interests: string[];
+  likeCount: number;
+  likedByMe: boolean;
+  following: boolean;
+  exploringCount: number;
+  pinnedSessions: CommunitySharedSession[];
+}
+
+/** 프로필 마인드맵 카드 (카드 = 공개 세션 1개). URL_ONLY 에선 title · snippet · relatedUrls[].title 이 null */
+export interface CommunityProfileCard {
+  mindmapId: number;
+  owner: { userId: number; nickname: string | null };
+  title: string | null;
+  snippet: string | null;
+  hashtags: string[]; // '#' 없는 원문, 비공개 태그 제외
+  nodeCount: number;
+  likeCount: number;
+  likedByMe: boolean;
+  bookmarkCount: number;
+  bookmarkId: number | null;
+  exploringCount: number;
+  exploringByMe: boolean;
+  lastActivityAt: string;
+  relatedUrls: { title: string | null; url: string }[];
+}
+
+export interface CommunityProfileCardPage {
+  mindmaps: CommunityProfileCard[];
+  hasNext: boolean;
+}
+
+/** 프로필 주인의 전체 마인드맵. 연결선 양 끝은 tag:<hashtagId> · node:<nodeId> */
+export interface CommunityProfileMindmap {
+  mindmapId: number; // 작성자 id
+  ownerId: number;
+  nickname: string | null;
+  title: string | null;
+  hashtags: { hashtagId: number; ownerId: number; name: string }[];
+  nodes: {
+    nodeId: number;
+    label: string; // URL_ONLY 에선 원문 URL 그대로
+    sourceUrl: string | null;
+    content: string | null;
+    visibilityScope: CommunityProfileVisibility;
+  }[];
+  edges: { from: string; to: string }[];
+  topHashtags: CommunityProfileHashtag[];
+}
+
+export interface ProfileLikeResponse {
+  userId: number;
+  liked: boolean;
+  likeCount: number;
+}
+
 // ---------- 분석 ----------
 /** 읽기 행동 4분류 — 화면 표기는 영어 (Deep Reading / Reading / Scanning / Idle) */
 export type ReadingLevel = "DEEP_READING" | "READING" | "SCANNING" | "IDLE";
@@ -345,4 +429,112 @@ export interface HomeResponse {
   weekSessions: HomeWeekSession[];
   /** 최근 순, 최대 300개 */
   sessions: SessionListItem[];
+}
+
+// ---------- 커뮤니티 ----------
+export interface CommunityOwner {
+  userId: number;
+  nickname: string | null; // 닉네임을 정하기 전이면 null
+}
+
+export interface CommunityRelatedUrl {
+  title: string | null; // URL 만 공개한 작성자의 카드는 null
+  url: string;
+}
+
+/** 공개 세션 1개 = 카드 1장 (mindmapId = 세션 id). URL 만 공개한 작성자의 카드는 title · snippet 이 null */
+export interface CommunityCard {
+  mindmapId: number;
+  owner: CommunityOwner;
+  title: string | null;
+  snippet: string | null;
+  hashtags: string[]; // '#' 없이 raw 문자열, 비공개 태그 제외
+  nodeCount: number;
+  likeCount: number;
+  likedByMe: boolean;
+  bookmarkCount: number;
+  bookmarkId: number | null; // 내가 저장했으면 id
+  exploringCount: number;
+  exploringByMe: boolean;
+  lastActivityAt: string; // ISO datetime (타임존 없음)
+  relatedUrls: CommunityRelatedUrl[]; // 최대 10개
+}
+
+export interface CommunityRecommendationResponse {
+  basisHashtags: string[]; // '#' 없이 raw 문자열
+  mindmaps: CommunityCard[];
+}
+
+export interface CommunityMindmapPage {
+  mindmaps: CommunityCard[];
+  hasNext: boolean;
+}
+
+export interface CommunityProfileHit {
+  userId: number;
+  nickname: string | null;
+  hashtags: string[]; // 공개 태그 많은 순 5개
+  mindmapCount: number;
+}
+
+export interface CommunityProfilePage {
+  profiles: CommunityProfileHit[];
+  hasNext: boolean;
+}
+
+export interface CommunityHashtagHit {
+  tag: string; // '#' 없이 raw 문자열
+  count: number;
+}
+
+export interface CommunityHashtagSearchResponse {
+  hashtags: CommunityHashtagHit[];
+}
+
+export type TrendingPeriod = "today" | "week";
+
+export interface TrendingHashtagItem {
+  rank: number;
+  name: string; // '#' 없이 raw 문자열
+  count: number; // 기간 안의 나도 탐색중 + 북마크
+  trend: number; // count - 직전 같은 길이 기간의 값
+}
+
+export interface TrendingHashtagsResponse {
+  period: "TODAY" | "WEEK";
+  hashtags: TrendingHashtagItem[];
+}
+
+export interface CardLikeResponse {
+  likeCount: number;
+  likedByMe: boolean;
+}
+
+export interface CardExploringResponse {
+  exploringCount: number;
+  exploringByMe: boolean;
+}
+
+export interface CardBookmarkResponse {
+  bookmarkCount: number;
+  bookmarkId: number | null; // 해제하면 null
+}
+
+export interface CardSessionsResponse {
+  sessions: SessionListItem[]; // URL 만 공개한 작성자의 세션은 title 이 ""
+}
+
+export interface SimilarPersonItem {
+  userId: number;
+  nickname: string | null;
+  matchedHashtags: string[]; // '#' 없이 raw 문자열
+  following: boolean;
+}
+
+export interface SimilarPeopleResponse {
+  people: SimilarPersonItem[];
+}
+
+export interface FollowResponse {
+  following: boolean;
 }

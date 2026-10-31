@@ -13,6 +13,12 @@ export {
 } from "./sessions";
 export { getHome } from "./home";
 export {
+  getCommunityProfile,
+  getProfileCards,
+  getProfileMindmap,
+  updateProfileLike,
+} from "./profiles";
+export {
   getAnalyticsWeekSessions,
   getAnalyticsExploration,
   getAnalyticsReadingBehavior,
@@ -20,6 +26,20 @@ export {
   getAnalyticsTimePatterns,
   getAnalyticsRecommendations,
 } from "./analytics";
+export {
+  getInterestRecommendations,
+  getRecentBookmarkRecommendations,
+  searchCommunityHashtags,
+  searchCommunityProfiles,
+  searchCommunityMindmaps,
+  getTrendingHashtags,
+  setCardLike,
+  setCardExploring,
+  setCardBookmark,
+  getCardSessions,
+  getSimilarPeople,
+  setProfileFollow,
+} from "./community";
 export {
   getExcludedUrls,
   addExcludedUrl,

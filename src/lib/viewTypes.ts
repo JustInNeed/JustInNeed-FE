@@ -91,8 +91,13 @@ export interface ProfileData {
 
 /** 프로필 마인드맵 탭 카드 — 작성자는 프로필 주인이라 user 는 받지 않는다 */
 export interface ProfileMindmap extends Omit<CommunityPost, "user"> {
-  /** 상세 팝업의 관련 세션 (이 마인드맵의 출처가 된 세션) */
+  /** 상세 팝업의 관련 세션 (이 마인드맵의 출처가 된 세션). 다른 사용자 프로필은 팝업을 열 때 받아 비어 있다 */
   sessions: SessionListItem[];
+  /** 다른 사용자 카드의 작성자 · 내 반응 */
+  ownerId?: number;
+  likedByMe?: boolean;
+  bookmarkId?: number | null;
+  exploringByMe?: boolean;
 }
 
 /** 프로필 화면 데이터 (내 프로필 · 다른 사용자 프로필 공통) */
@@ -106,6 +111,9 @@ export interface ProfilePageData {
   sessions: SessionListItem[];
   /** 다른 사용자 프로필의 "나도 탐색중" 수 */
   exploringCount?: number;
+  /** 다른 사용자 프로필에 내가 누른 좋아요 · 팔로우 */
+  likedByMe?: boolean;
+  following?: boolean;
 }
 
 // ---------- 홈 대시보드 ----------
@@ -196,49 +204,16 @@ export interface BookmarkedMindmap {
 }
 
 // ---------- 커뮤니티 · 북마크 · 검색 화면 데이터 ----------
-/** 작성자의 전체 마인드맵 — 노드 · 연결선과 리프 노드의 원문 URL (전체 마인드맵 보기) */
+/** 작성자의 전체 마인드맵 — 노드 · 연결선과 노드의 원문 URL (전체 마인드맵 보기) */
 export interface FullMindmap {
   nodes: MindmapNode[];
   edges: MindmapEdge[];
-  /** 노드 id → 원문 URL (연결이 1개인 리프 노드만 눌러서 열린다) */
+  /** 노드 id → 원문 URL. 연결 수와 상관없이 누르면 열린다 */
   nodeUrls: Record<string, string>;
 }
 
 /** post id → 마인드맵 상세 팝업에 보여줄 관련 세션 (이 마인드맵의 출처가 된 세션) */
 export type RelatedSessionsByPost = Record<string, SessionListItem[]>;
-
-/** 커뮤니티 추천 섹션 하나 — 추천 근거 해시태그 칩 + 추천 마인드맵 */
-export interface CommunityRecommendation {
-  basisTags: string[]; // '#' 포함
-  posts: CommunityPost[];
-}
-
-/** 관심사가 비슷한 사람 */
-export interface SimilarPerson {
-  name: string;
-  /** 표시용 한 줄 (예: "#파리 #먹거리") */
-  tags: string;
-  /** 이미 팔로우 중이면 true */
-  following?: boolean;
-}
-
-export interface CommunityData {
-  /** 관심 해시태그 기반 추천 */
-  interestBased: CommunityRecommendation;
-  /** 최근 저장한 해시태그 기반 추천 */
-  recentBookmarkBased: CommunityRecommendation;
-  /** post id → 추천 카드에 함께 보여줄 연관 URL (최대 2개 표시) */
-  relatedUrls: Record<string, RelatedUrl[]>;
-  /** 떠오르는 해시태그 — 오늘 / 이번 주 */
-  trending: { today: TrendingHashtag[]; week: TrendingHashtag[] };
-  similarPeople: SimilarPerson[];
-  /** 검색바 드롭다운이 찾는 대상 — 마인드맵(프로필은 작성자에서 모음) · 연관 해시태그 */
-  searchIndex: { posts: CommunityPost[]; tags: TrendingHashtag[] };
-  relatedSessions: RelatedSessionsByPost;
-  /** 내가 이미 좋아요 · 북마크한 post id — post 의 likes · bookmarks 수에 이미 포함돼 있다 */
-  likedPostIds: string[];
-  bookmarkedPostIds: string[];
-}
 
 /** 북마크 화면의 마인드맵 카드 하나 */
 export interface SavedMindmap {

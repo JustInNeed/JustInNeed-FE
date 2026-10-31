@@ -1,13 +1,12 @@
 import { screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderApp } from "@/test/render";
-import { COMMUNITY_FEED } from "@/test/fixtures/design";
-import { COMMUNITY_DATA } from "@/test/fixtures/community";
+import { COMMUNITY_FEED, relatedSessionsFor } from "@/test/fixtures/design";
 import { MindmapDetailModal, type MindmapDetailModalProps } from "./MindmapDetailModal";
 
 // c6 — 유레일 vs 저가항공 (관련 세션 2개: 항공권 비교 · 유레일패스)
 const POST = COMMUNITY_FEED.find((p) => p.id === "c6")!;
-const SESSIONS = COMMUNITY_DATA.relatedSessions.c6;
+const SESSIONS = relatedSessionsFor(POST);
 
 function renderModal(props: Partial<MindmapDetailModalProps> = {}) {
   const onClose = vi.fn();
@@ -44,6 +43,14 @@ describe("MindmapDetailModal", () => {
     expect(d.getByText("39분")).toBeInTheDocument();
     expect(d.getByText("2026-04-23 19:12 · 출처 7개")).toBeInTheDocument();
     expect(d.getByText("#스카이스캐너")).toBeInTheDocument();
+  });
+
+  it("sessionsStatus 를 넘기면 세션 목록과 개수 대신 그 안내를 보여준다", () => {
+    const { dialog } = renderModal({ sessionsStatus: <p>불러오는 중…</p> });
+    const d = within(dialog);
+    expect(d.getByText("불러오는 중…")).toBeInTheDocument();
+    expect(d.queryByText("· 2개")).toBeNull();
+    expect(d.queryByText("유레일패스 vs 개별 구매")).toBeNull();
   });
 
   it("소개글이 비어 있으면 소개 문단을 그리지 않는다", () => {
@@ -104,5 +111,19 @@ describe("MindmapDetailModal", () => {
     const { user, dialog } = renderModal({ actions: <button onClick={onAction}>원래 마인드맵에서 보기</button> });
     await user.click(within(dialog).getByRole("button", { name: "원래 마인드맵에서 보기" }));
     expect(onAction).toHaveBeenCalledOnce();
+  });
+
+  it("제목이 없는 세션 행은 원문 링크만 공개됐다고 보여준다", () => {
+    const { dialog } = renderModal({ sessions: [{ ...SESSIONS[0], title: "" }] });
+
+    expect(within(dialog).getByText("원문 링크만 공개된 세션")).toBeInTheDocument();
+  });
+
+  it("세션 목록 대신 보여줄 내용을 넘기면 목록과 개수 없이 그것만 보인다", () => {
+    const { dialog } = renderModal({ sessionsStatus: <p>불러오는 중…</p> });
+
+    expect(within(dialog).getByText("불러오는 중…")).toBeInTheDocument();
+    expect(within(dialog).queryByText(SESSIONS[0].title)).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(`· ${SESSIONS.length}개`)).not.toBeInTheDocument();
   });
 });
