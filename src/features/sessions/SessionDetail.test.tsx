@@ -66,7 +66,7 @@ describe("세션 상세 — 보기", () => {
     await renderDetail();
     expect(screen.getByRole("heading", { name: "출처 (3)" })).toBeInTheDocument();
     const rows = Array.from(document.querySelectorAll<HTMLElement>(".source"));
-    expect(rows.map((r) => [r.querySelector(".sourceHost")?.textContent, r.querySelector(".sourceMeta")?.textContent])).toEqual([
+    expect(rows.map((r) => [r.querySelector(".sourceHost")?.textContent, r.querySelector(".sourceMeta span")?.textContent])).toEqual([
       ["콜로세움 통합권 예매 안내", "coopculture.it"],
       ["바티칸 박물관 예약", "tickets.museivaticani.va"],
       ["blog.naver.com", "blog.naver.com"],
@@ -79,6 +79,18 @@ describe("세션 상세 — 보기", () => {
       expect(a).toHaveAttribute("target", "_blank");
       expect(a).toHaveAttribute("rel", "noreferrer");
     }
+  });
+
+  it("출처마다 방문 시각이 보이고, 값이 없으면 시각 자리를 비운다", async () => {
+    await renderDetail();
+    const meta = Array.from(document.querySelectorAll<HTMLElement>(".sourceMeta"), (m) =>
+      Array.from(m.children, (c) => c.textContent),
+    );
+    expect(meta).toEqual([
+      ["coopculture.it", "2026-04-26 21:16"],
+      ["tickets.museivaticani.va", "2026-04-26 21:40"],
+      ["blog.naver.com"],
+    ]);
   });
 
   it("하이라이트 · 인사이트 화면은 어디에도 없다", async () => {

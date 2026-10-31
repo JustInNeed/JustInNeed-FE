@@ -598,7 +598,10 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   <div className={styles.favicon}>{hostFromUrl(s.url).slice(0, 2).toUpperCase()}</div>
                   <div className={styles.sourceMain}>
                     <div className={styles.sourceHost}>{s.title || hostFromUrl(s.url)}</div>
-                    <div className={styles.sourceMeta}>{hostFromUrl(s.url)}</div>
+                    <div className={styles.sourceMeta}>
+                      <span>{hostFromUrl(s.url)}</span>
+                      {s.visitedAt && <span>{formatDateTime(s.visitedAt)}</span>}
+                    </div>
                   </div>
                   <a href={s.url} target="_blank" rel="noreferrer">
                     <Button variant="ghost" style={{ width: 24, height: 24 }} aria-label="원문 열기">

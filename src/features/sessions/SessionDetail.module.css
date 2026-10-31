@@ -334,6 +334,7 @@
   font-size: 10px;
   color: var(--ink-500);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 0 6px;
 }
