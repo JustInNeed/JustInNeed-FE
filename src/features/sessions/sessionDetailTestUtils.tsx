@@ -46,7 +46,7 @@ export async function renderDetail(
 ) {
   const api = serveSession(detail, reply, mindmap);
   const view = renderPersonal(<SessionDetail sessionId={detail.id} />);
-  await screen.findByRole("heading", { level: 1, name: detail.title });
+  await screen.findByRole("heading", { level: 1, name: detail.title || "원문 링크만 공개된 세션" });
   return { ...view, ...api };
 }
 

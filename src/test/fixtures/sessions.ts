@@ -280,6 +280,14 @@ export const OLD_EDITED_DETAIL: SessionDetail = {
   ],
 };
 
+/** 작성자가 '원문 URL만 공개'일 때 다른 사용자가 받는 응답 (제목 · 본문 · 발췌 · 방문 시각 없음) */
+export const LINK_ONLY_DETAIL: SessionDetail = {
+  ...FOREIGN_DETAIL,
+  title: "",
+  summary: null,
+  sources: FOREIGN_DETAIL.sources!.map(({ url }) => ({ title: null, url, excerpt: null, visitedAt: null })),
+};
+
 /** 완료 전 · 실패 세션 상세 — 요약 · 출처 없음 */
 const beforeAnalysis = (session: SessionListItem): SessionDetail => ({
   ...session,
@@ -338,9 +346,9 @@ export const ROME_MINDMAP: SessionMindmap = {
     topicNode("topic:0", "콜로세움", 1),
     topicNode("topic:1", "바티칸", 1),
     topicNode("topic:2", "먹거리", 1),
-    unitNode(ROME_UNIT.pass, "통합권", ROME_DETAIL.sources[0]),
-    unitNode(ROME_UNIT.ticket, "사전 예약", ROME_DETAIL.sources[1]),
-    unitNode(ROME_UNIT.food, "카초 에 페페", ROME_DETAIL.sources[2]),
+    unitNode(ROME_UNIT.pass, "통합권", ROME_DETAIL.sources[0] as SessionMindmapCitation),
+    unitNode(ROME_UNIT.ticket, "사전 예약", ROME_DETAIL.sources[1] as SessionMindmapCitation),
+    unitNode(ROME_UNIT.food, "카초 에 페페", ROME_DETAIL.sources[2] as SessionMindmapCitation),
   ],
   edges: [
     child("root:1", "topic:0"),
@@ -365,8 +373,8 @@ export const PARIS_MINDMAP: SessionMindmap = {
     rootNode("root:2", "오르세", 1),
     topicNode("topic:0", "모나리자", 1),
     topicNode("topic:1", "야간 개장", 1),
-    unitNode(PARIS_UNIT.mona, "화요일", PARIS_DETAIL.sources[0]),
-    unitNode(PARIS_UNIT.night, "목요일", PARIS_DETAIL.sources[1]),
+    unitNode(PARIS_UNIT.mona, "화요일", PARIS_DETAIL.sources[0] as SessionMindmapCitation),
+    unitNode(PARIS_UNIT.night, "목요일", PARIS_DETAIL.sources[1] as SessionMindmapCitation),
   ],
   edges: [
     child("root:1", "topic:0"),

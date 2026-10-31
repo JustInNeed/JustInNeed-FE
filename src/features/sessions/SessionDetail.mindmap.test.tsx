@@ -246,7 +246,7 @@ describe("세션 상세 — 인용(Citation) 팝업", () => {
     expect(p.getByText("콜로세움 통합권 예매 안내")).toBeInTheDocument();
     expect(p.getByText("coopculture.it")).toBeInTheDocument();
     expect(p.getByText("CO")).toBeInTheDocument();
-    expect(popup()!.querySelector(".para")).toHaveTextContent(ROME_DETAIL.sources[0].excerpt);
+    expect(popup()!.querySelector(".para")).toHaveTextContent(ROME_DETAIL.sources[0].excerpt!);
 
     const link = p.getByRole("button", { name: "원문 열기" }).closest("a")!;
     expect(link).toHaveAttribute("href", ROME_DETAIL.sources[0].url);
@@ -266,7 +266,7 @@ describe("세션 상세 — 인용(Citation) 팝업", () => {
     const marks = popup()!.querySelectorAll("mark");
     expect(marks).toHaveLength(1);
     expect(marks[0]).toHaveTextContent("카초 에 페페");
-    expect(marks[0].closest("p")).toHaveTextContent(ROME_DETAIL.sources[2].excerpt);
+    expect(marks[0].closest("p")).toHaveTextContent(ROME_DETAIL.sources[2].excerpt!);
   });
 
   it("키워드가 발췌문에 여러 번 나오면 모두 표시하고, 글자는 그대로다", async () => {
@@ -285,7 +285,7 @@ describe("세션 상세 — 인용(Citation) 팝업", () => {
     const { user } = await openMindmap();
     await user.click(nodeOf("사전 예약"));
     expect(popup()!.querySelector("mark")).toBeNull();
-    expect(within(popup()!).getByText(ROME_DETAIL.sources[1].excerpt)).toBeInTheDocument();
+    expect(within(popup()!).getByText(ROME_DETAIL.sources[1].excerpt!)).toBeInTheDocument();
   });
 
   it("정규식 특수문자가 있는 키워드도 글자 그대로 찾는다", async () => {

@@ -218,6 +218,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     );
   }
 
+  // 작성자가 원문 URL만 공개하면 다른 사용자에게 제목 · 본문 · 마인드맵이 오지 않는다 (COM-1-1)
+  const linkOnly = !detail.isOwner && !detail.summary;
+
   // 낙관적 업데이트 + 서버 동기화. 실패하면 되돌리고 false
   const persist = async (body: SessionUpdateRequest, optimistic: Partial<SessionDetailType>): Promise<boolean> => {
     const prev = detail;
@@ -370,7 +373,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   className={styles.titleInput}
                 />
               ) : (
-                <h1 className={styles.title}>{detail.title}</h1>
+                <h1 className={styles.title}>{linkOnly ? "원문 링크만 공개된 세션" : detail.title}</h1>
               )}
               {!editing && detail.isOwner && (
                 <button
@@ -514,6 +517,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
         </div>
       </div>
 
+      {!linkOnly && (
       <div className={styles.tabs}>
         <button
           onClick={() => setView("text")}
@@ -531,6 +535,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
           <Icon name="network" size={14} /> 마인드맵 보기
         </button>
       </div>
+      )}
 
       <div className={styles.content}>
         {view === "text" ? (
@@ -561,7 +566,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   <Markdown>{detail.summary.markdown}</Markdown>
                 </div>
               ) : (
-                <p className={styles.bodyMuted}>요약 본문이 없습니다.</p>
+                <p className={styles.bodyMuted}>{linkOnly ? "작성자가 원문 링크만 공개했어요." : "요약 본문이 없습니다."}</p>
               )}
             </Card>
           )

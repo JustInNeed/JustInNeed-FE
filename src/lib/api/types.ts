@@ -85,9 +85,10 @@ export interface SessionPage {
 }
 
 export interface Source {
-  title: string;
+  /** 작성자가 원문 URL만 공개했으면 다른 사용자에게 title · excerpt · visitedAt 은 null */
+  title: string | null;
   url: string;
-  excerpt: string;
+  excerpt: string | null;
   visitedAt: string | null; // ISO datetime (KST, 타임존 없음). 모르면 null
 }
 
