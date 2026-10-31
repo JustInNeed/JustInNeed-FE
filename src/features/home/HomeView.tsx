@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Card, PageHeader, StatCard, HashChip, InlineState } from "@/components/ui";
-import { Mindmap } from "@/components/mindmap/Mindmap";
+import { Mindmap, type MindmapHandle } from "@/components/mindmap/Mindmap";
 import type { DayActivity, HomeData, HomeStats, TimelineSlot, WeekSession } from "@/lib/viewTypes";
 import { GraphFilterPopover } from "./GraphFilterPopover";
 import { GraphSearch } from "./GraphSearch";
@@ -45,6 +45,9 @@ export function HomeView({ data, loading = false, error = null, onRetry }: HomeV
   );
 }
 
+const GRAPH_INITIAL_ZOOM = 1.1;
+const GRAPH_ZOOM_STEP = 1.2;
+
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? String(n) : undefined);
 const trend = (n: number) => (n > 0 ? `↑ ${n}%` : n < 0 ? `↓ ${-n}%` : undefined);
 
@@ -61,6 +64,7 @@ function HomeDashboard({ data }: { data: HomeData }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const toolsRef = useRef<HTMLDivElement>(null);
+  const mindmapRef = useRef<MindmapHandle>(null);
 
   const dimmedIds = useMemo(() => dimmedNodeIds(graph, filter), [graph, filter]);
   const matchIds = useMemo(() => {
@@ -153,11 +157,29 @@ function HomeDashboard({ data }: { data: HomeData }) {
                 />
               )}
             </div>
+            <div className={styles.zoomTools}>
+              <button
+                className={styles.iconBtn}
+                aria-label="확대"
+                onClick={() => mindmapRef.current?.zoomBy(GRAPH_ZOOM_STEP)}
+              >
+                <Icon name="plus" size={14} />
+              </button>
+              <button
+                className={styles.iconBtn}
+                aria-label="축소"
+                onClick={() => mindmapRef.current?.zoomBy(1 / GRAPH_ZOOM_STEP)}
+              >
+                <Icon name="minus" size={14} />
+              </button>
+            </div>
             <Mindmap
+              ref={mindmapRef}
               nodes={graph.nodes}
               edges={graph.edges}
               width={1100}
               height={700}
+              initialZoom={GRAPH_INITIAL_ZOOM}
               selectedId={selected}
               onSelect={(id) => setSelected((cur) => (cur === id ? null : id))}
               hoveredId={hovered}

@@ -1,12 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
 import { treeLayout } from "./treeLayout";
+
+const MIN_ZOOM = 0.4;
+const MAX_ZOOM = 2.5;
+const clampZoom = (k: number) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, k));
 
 interface SimNode extends MindmapNode {
   vx: number;
   vy: number;
+}
+
+/** 바깥 버튼으로 줌을 조작할 때 쓰는 핸들 */
+export interface MindmapHandle {
+  /** 캔버스 중심 기준으로 현재 배율에 factor 를 곱한다 */
+  zoomBy: (factor: number) => void;
 }
 
 export interface MindmapProps {
@@ -29,6 +39,9 @@ export interface MindmapProps {
   layout?: "radial" | "tree";
   /** 계층형 깊이를 정하는 부모 → 자식 연결선. 없으면 edges 전체 */
   treeEdges?: MindmapEdge[];
+  /** 처음 배율 (캔버스 중심 기준). 마운트 시점 기준 */
+  initialZoom?: number;
+  ref?: Ref<MindmapHandle>;
 }
 
 export function Mindmap({
@@ -46,13 +59,19 @@ export function Mindmap({
   showHint = true,
   layout = "radial",
   treeEdges,
+  initialZoom = 1,
+  ref,
 }: MindmapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [nodes, setNodes] = useState<SimNode[]>(() => {
     const ns = initialNodes.map((n) => ({ ...n, vx: 0, vy: 0 }));
     return layout === "tree" ? treeLayout(ns, treeEdges ?? edges, width, height) : ns;
   });
-  const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
+  const [transform, setTransform] = useState({
+    x: (width / 2) * (1 - initialZoom),
+    y: (height / 2) * (1 - initialZoom),
+    k: initialZoom,
+  });
   const [drag, setDrag] = useState<{ id: string } | null>(null);
   const [pan, setPan] = useState<{ sx: number; sy: number; ox: number; oy: number } | null>(null);
   const animRef = useRef<number>(0);
@@ -162,7 +181,7 @@ export function Mindmap({
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
       setTransform((t) => {
-        const k = Math.max(0.4, Math.min(2.5, t.k * (1 + delta)));
+        const k = clampZoom(t.k * (1 + delta));
         const nx = mx - (mx - t.x) * (k / t.k);
         const ny = my - (my - t.y) * (k / t.k);
         return { x: nx, y: ny, k };
@@ -171,6 +190,17 @@ export function Mindmap({
     svg.addEventListener("wheel", onWheel, { passive: false });
     return () => svg.removeEventListener("wheel", onWheel);
   }, []);
+
+  useImperativeHandle(ref, () => ({
+    zoomBy: (factor) => {
+      const cx = width / 2;
+      const cy = height / 2;
+      setTransform((t) => {
+        const k = clampZoom(t.k * factor);
+        return { x: cx - (cx - t.x) * (k / t.k), y: cy - (cy - t.y) * (k / t.k), k };
+      });
+    },
+  }), [width, height]);
 
   const onMouseDown = (e: React.MouseEvent) => {
     const target = e.target as Element;

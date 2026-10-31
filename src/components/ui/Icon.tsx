@@ -11,6 +11,7 @@ export type IconName =
   | "heart"
   | "user"
   | "plus"
+  | "minus"
   | "chevronRight"
   | "chevronDown"
   | "chevronUp"
@@ -105,6 +106,7 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
+  minus: <path d="M5 12h14" />,
   chevronRight: <path d="m9 6 6 6-6 6" />,
   chevronDown: <path d="m6 9 6 6 6-6" />,
   chevronUp: <path d="m6 15 6-6 6 6" />,
