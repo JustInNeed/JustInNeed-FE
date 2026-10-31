@@ -87,10 +87,34 @@ describe("dimmedNodeIds", () => {
     expect(dimmedNodeIds(graph, { period: "today", groupIds: [2], tags: ["바르셀로나"] }).has("eu")).toBe(false);
   });
 
+  it("30일이 지난 노드(seen: all)는 기간 '전체'에서만 보인다", () => {
+    const nodeMeta = { ...graph.nodeMeta, rome: { seen: "all" as const, tags: ["로마"] } };
+    const dimmedIn = (period: GraphFilter["period"]) => dimmedNodeIds({ ...graph, nodeMeta }, filter({ period })).has("rome");
+    expect(dimmedIn("today")).toBe(true);
+    expect(dimmedIn("week")).toBe(true);
+    expect(dimmedIn("month")).toBe(true);
+    expect(dimmedIn("all")).toBe(false);
+  });
+
   it("메타가 없는 노드는 필터에 걸리지 않는다", () => {
     const extra: MindmapNode = { id: "new", label: "새 노드", x: 0, y: 0, size: 8, group: "sub" };
     const dimmed = dimmedNodeIds({ ...graph, nodes: [...graph.nodes, extra] }, filter({ period: "today", tags: ["로마"] }));
     expect(dimmed.has("new")).toBe(false);
+  });
+});
+
+describe("해시태그 대소문자", () => {
+  const nodeMeta = { rome: { seen: "today" as const, tags: ["FetchJoin"] } };
+  const nodes = [node("rome")];
+
+  it("같은 태그의 다른 표기도 해시태그 필터에 걸린다", () => {
+    expect(dimmedNodeIds({ ...graph, nodes, nodeMeta }, filter({ tags: ["fetchJOIN"] })).has("rome")).toBe(false);
+  });
+
+  it("그룹 태그도 표기가 달라도 같은 태그로 본다", () => {
+    const tagGroups = [{ id: 1, name: "백엔드", tags: ["FETCHJOIN"] }];
+    expect(dimmedNodeIds({ nodes, nodeMeta, tagGroups }, filter({ groupIds: [1] })).has("rome")).toBe(false);
+    expect(groupNodeCount({ nodes, nodeMeta }, tagGroups[0])).toBe(1);
   });
 });
 
@@ -147,6 +171,30 @@ describe("relatedSession", () => {
     const a = session(1, ["파리"]);
     const b = session(2, ["파리"]);
     expect(relatedSession(node("paris"), graph.nodeMeta, [a, b])?.id).toBe(1);
+  });
+
+  describe("노드에 sessionId 가 있으면", () => {
+    const withSession = (id: string, sessionId: number) => ({
+      ...graph.nodeMeta,
+      [id]: { ...graph.nodeMeta[id], sessionId },
+    });
+
+    it("해시태그 점수와 상관없이 그 세션을 고른다", () => {
+      // 태그로만 보면 9001 이 맞는 노드
+      expect(relatedSession(node("rome"), withSession("rome", 9006), sessions)?.id).toBe(9006);
+    });
+
+    it("겹치는 태그가 없는 노드도 그 세션을 고른다", () => {
+      expect(relatedSession(node("packing"), withSession("packing", 9004), sessions)?.id).toBe(9004);
+    });
+
+    it("목록에 없는 세션이면 해시태그 기준으로 찾는다", () => {
+      expect(relatedSession(node("rome"), withSession("rome", 1234), sessions)?.id).toBe(9001);
+    });
+
+    it("목록에 없고 겹치는 태그도 없으면 undefined", () => {
+      expect(relatedSession(node("packing"), withSession("packing", 1234), sessions)).toBeUndefined();
+    });
   });
 
   it("겹치는 태그가 없으면 undefined", () => {
