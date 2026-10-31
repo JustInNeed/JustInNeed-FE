@@ -6,7 +6,8 @@ import styles from "./SettingsView.module.css";
 
 export interface ExclusionListProps {
   excluded: ExcludedUrl[];
-  setExcluded: (updater: (list: ExcludedUrl[]) => ExcludedUrl[]) => void;
+  onToggle: (item: ExcludedUrl) => void;
+  onRemove: (item: ExcludedUrl) => void;
 }
 
 const domainOf = (u: string) => {
@@ -20,10 +21,7 @@ const isRootDomain = (u: string) => {
 };
 
 /** 도메인별로 묶어 보여주는 수집 제외 목록. on 항목이 있는 그룹이 위, 그룹 안에서는 상위 도메인 → on → off 순. */
-export function ExclusionList({ excluded, setExcluded }: ExclusionListProps) {
-  const toggle = (url: string) => setExcluded((list) => list.map((it) => (it.url === url ? { ...it, on: !it.on } : it)));
-  const remove = (url: string) => setExcluded((list) => list.filter((it) => it.url !== url));
-
+export function ExclusionList({ excluded, onToggle, onRemove }: ExclusionListProps) {
   const groups: { domain: string; items: ExcludedUrl[] }[] = [];
   const byDomain = new Map<string, { domain: string; items: ExcludedUrl[] }>();
   excluded.forEach((it) => {
@@ -59,22 +57,22 @@ export function ExclusionList({ excluded, setExcluded }: ExclusionListProps) {
                 <span className={styles.exGroupCount}>{g.items.length}</span>
               </div>
             )}
-            {g.items.map(({ url, on, isDefault }, i) => (
+            {g.items.map((item, i) => (
               <label
-                key={url}
+                key={item.id}
                 className={styles.exRow}
-                style={{ opacity: on ? 1 : 0.55, borderTop: grouped ? "1px solid var(--line)" : i === 0 ? "none" : "1px solid var(--line)" }}
+                style={{ opacity: item.on ? 1 : 0.55, borderTop: grouped ? "1px solid var(--line)" : i === 0 ? "none" : "1px solid var(--line)" }}
               >
-                <input type="checkbox" checked={on} onChange={() => toggle(url)} style={{ accentColor: "var(--green-500)" }} />
-                <div className={styles.exUrl} style={{ color: on ? "var(--ink-900)" : "var(--ink-400)" }}>{url}</div>
-                {isDefault ? (
+                <input type="checkbox" checked={item.on} onChange={() => onToggle(item)} style={{ accentColor: "var(--green-500)" }} />
+                <div className={styles.exUrl} style={{ color: item.on ? "var(--ink-900)" : "var(--ink-400)" }}>{item.url}</div>
+                {item.isDefault ? (
                   <span className={styles.exDefault}>기본</span>
                 ) : (
                   <Button
                     variant="ghost"
                     onClick={(e) => {
                       e.preventDefault();
-                      remove(url);
+                      onRemove(item);
                     }}
                     aria-label="삭제"
                     style={{ color: "var(--ink-400)" }}

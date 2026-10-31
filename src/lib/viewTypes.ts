@@ -226,6 +226,7 @@ export interface AnalyticsData {
 
 // ---------- 설정 ----------
 export interface ExcludedUrl {
+  id: number;
   url: string;
   on: boolean;
   isDefault: boolean;
