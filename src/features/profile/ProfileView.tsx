@@ -22,6 +22,7 @@ import { useToast } from "@/lib/app/ToastContext";
 import { withHash } from "@/lib/format";
 import type { ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
 import { ProfileEdit, type ProfileDraft } from "./ProfileEdit";
+import { titleFromTags } from "./toProfilePage";
 import { useCardSessions, useOwnerMindmap } from "./useProfileRemote";
 import styles from "./Profile.module.css";
 
@@ -192,10 +193,14 @@ function ProfileScreen({
   // 프로필의 나도 탐색중은 카드 숫자의 합이라 카드에서 바뀐 만큼 함께 움직인다
   const exploringShift = mindmaps.reduce((sum, p, i) => sum + p.exploring - data.mindmaps[i].exploring, 0);
 
+  // URL 만 공개한 카드 · 세션은 제목이 없어 제목 자리에 해시태그를 보여주고, 태그 줄엔 같은 태그를 또 찍지 않는다
+  const withTitle = (s: SessionListItem) => (s.title ? s : { ...s, title: titleFromTags(s.tags), tags: [] });
+
   const pinnedSessions = profile.pinnedSessionIds
     .map((id) => data.sessions.find((s) => s.id === id))
     .filter((s): s is SessionListItem => !!s)
-    .map(withVisibleTags);
+    .map(withVisibleTags)
+    .map(withTitle);
 
   const toggleSelect = (tag: string) => {
     const next = selected.includes(tag) ? selected.filter((x) => x !== tag) : [...selected, tag];
@@ -444,8 +449,8 @@ function ProfileScreen({
                     seed={p.id}
                     nodes={p.nodes}
                     height={220}
-                    title={p.title}
-                    tags={visibleTags(p.hashtags).slice(0, 2)}
+                    title={p.title || titleFromTags(visibleTags(p.hashtags))}
+                    tags={p.title ? visibleTags(p.hashtags).slice(0, 2) : undefined}
                     topLeft={isMine ? <span title="핀고정됨"><Icon name="pin" size={11} stroke={2} /></span> : undefined}
                     topRight={`노드 ${p.nodes}`}
                     onClick={() => setDetailId(p.id)}
@@ -519,7 +524,12 @@ function ProfileScreen({
       {detail && !(fullView && fullMindmap) && (
         <MindmapDetailModal
           // 작성자는 이 프로필 주인, 해시태그 · 관련 세션 태그는 비공개를 뺀 값
-          post={{ ...detail, user: owner, hashtags: visibleTags(detail.hashtags) }}
+          post={{
+            ...detail,
+            user: owner,
+            title: detail.title || titleFromTags(visibleTags(detail.hashtags)),
+            hashtags: detail.title ? visibleTags(detail.hashtags) : [],
+          }}
           sessions={(isMine ? detail.sessions : (cardSessions.sessions ?? [])).map(withVisibleTags)}
           sessionsFallback={
             isMine || cardSessions.sessions ? undefined : cardSessions.error ? (

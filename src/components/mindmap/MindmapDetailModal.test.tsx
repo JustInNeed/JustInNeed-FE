@@ -105,4 +105,18 @@ describe("MindmapDetailModal", () => {
     await user.click(within(dialog).getByRole("button", { name: "원래 마인드맵에서 보기" }));
     expect(onAction).toHaveBeenCalledOnce();
   });
+
+  it("제목이 없는 세션 행은 원문 링크만 공개됐다고 보여준다", () => {
+    const { dialog } = renderModal({ sessions: [{ ...SESSIONS[0], title: "" }] });
+
+    expect(within(dialog).getByText("원문 링크만 공개된 세션")).toBeInTheDocument();
+  });
+
+  it("세션 목록 대신 보여줄 내용을 넘기면 목록과 개수 없이 그것만 보인다", () => {
+    const { dialog } = renderModal({ sessionsFallback: <p>불러오는 중…</p> });
+
+    expect(within(dialog).getByText("불러오는 중…")).toBeInTheDocument();
+    expect(within(dialog).queryByText(SESSIONS[0].title)).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(`· ${SESSIONS.length}개`)).not.toBeInTheDocument();
+  });
 });

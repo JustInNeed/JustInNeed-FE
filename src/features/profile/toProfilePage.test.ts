@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CommunityProfileMindmap } from "@/lib/api";
 import { API_CONTENT_SESSION, API_MINDMAP, API_PROFILE, apiCard } from "@/test/fixtures/profile";
-import { LINK_ONLY_SESSION_TITLE, titleFromTags, toFullMindmap, toProfileMindmap, toProfilePage } from "./toProfilePage";
+import { titleFromTags, toFullMindmap, toProfileMindmap, toProfilePage } from "./toProfilePage";
 
 describe("toProfilePage", () => {
   it("프로필 응답을 화면 데이터로 옮기고 해시태그에 # 를 붙인다", () => {
@@ -89,7 +89,7 @@ describe("toProfileMindmap", () => {
 describe("titleFromTags", () => {
   it("해시태그를 이어 붙이고, 없으면 안내 문구를 쓴다", () => {
     expect(titleFromTags(["놀이", "#사료"])).toBe("#놀이 #사료");
-    expect(titleFromTags([])).toBe(LINK_ONLY_SESSION_TITLE);
+    expect(titleFromTags([])).toBe("원문 링크만 공개된 세션");
   });
 });
 

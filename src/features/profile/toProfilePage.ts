@@ -8,15 +8,12 @@ import type {
   CommunitySharedSession,
   SessionListItem,
 } from "@/lib/api";
-import { formatDate, hostFromUrl, withHash } from "@/lib/format";
+import { formatDate, hostFromUrl, LINK_ONLY_SESSION_TITLE, withHash } from "@/lib/format";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
 import type { FullMindmap, ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
 
 const DEFAULT_AVATAR = "🌱";
 const FALLBACK_NAME = "이름 없는 사용자";
-
-/** 제목이 없고(URL 만 공개) 해시태그로도 대신할 수 없을 때의 제목 */
-export const LINK_ONLY_SESSION_TITLE = "원문 링크만 공개된 세션";
 
 // 전체 마인드맵 캔버스 중심 (MindmapFullView 의 Mindmap 기본 크기 1200 × 760).
 // Mindmap 이 중심에서 320 바깥의 노드를 밀어 넣으므로 그 안쪽 원에 놓는다
@@ -31,7 +28,7 @@ const NODE_SIZE = 9;
 
 const isWebUrl = (value: string) => /^https?:\/\//i.test(value);
 
-/** 제목 자리에 대신 보여줄 해시태그 묶음 */
+/** URL 만 공개해 제목이 없을 때 제목 자리에 보여줄 해시태그 묶음. 해시태그도 없으면 안내 문구 */
 export function titleFromTags(tags: string[]): string {
   return tags.map(withHash).join(" ") || LINK_ONLY_SESSION_TITLE;
 }
