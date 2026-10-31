@@ -7,10 +7,8 @@ import type {
   BookmarkedMindmap,
   CommunityPost,
   GraphPeriod,
-  RelatedUrl,
   TimelineSite,
   TimelineSlot,
-  TrendingHashtag,
   WeekSession,
   WeekSessionVisit,
 } from "@/lib/viewTypes";
@@ -173,51 +171,6 @@ export function relatedSessionsFor(post: CommunityPost): SessionListItem[] {
   return (matched.length ? matched : MOCK_SESSIONS).slice(0, 3);
 }
 
-export const COMMUNITY_RELATED_URLS: Record<string, RelatedUrl[]> = {
-  c1: [
-    { title: "ÖBB 나이트젯 야간열차 노선", url: "https://www.nightjet.com/en" },
-    { title: "체코 철도 승차권 예약", url: "https://www.cd.cz/en/" },
-  ],
-  c2: [
-    { title: "미슐랭 가이드 파리 빕그루망", url: "https://guide.michelin.com/en/ile-de-france/paris/restaurants/bib-gourmand" },
-    { title: "마레 지구 산책 코스", url: "https://www.parisinfo.com/" },
-  ],
-  c3: [
-    { title: "유럽 도시별 물가 비교", url: "https://www.numbeo.com/cost-of-living/" },
-    { title: "무료 워킹투어 모음", url: "https://www.freetour.com/" },
-  ],
-  c4: [
-    { title: "우피치 미술관 관람 예약", url: "https://www.uffizi.it/en" },
-    { title: "프라도 미술관 관람 안내", url: "https://www.museodelprado.es/en" },
-  ],
-  c5: [{ title: "알베로벨로 여행 정보", url: "https://www.italia.it/en/puglia/things-to-do/alberobello" }],
-  c6: [
-    { title: "유레일 패스 가격 비교", url: "https://www.eurail.com/en" },
-    { title: "라이언에어 노선 검색", url: "https://www.ryanair.com/" },
-  ],
-};
-
-export const TRENDING_HASHTAGS: TrendingHashtag[] = [
-  { tag: "#쉥겐비자", count: 1284, trend: 18 },
-  { tag: "#유레일패스", count: 982, trend: 12 },
-  { tag: "#파리", count: 854, trend: 8 },
-  { tag: "#오로라", count: 612, trend: 42 },
-  { tag: "#포르투", count: 488, trend: 28 },
-  { tag: "#야간열차", count: 401, trend: 15 },
-  { tag: "#아이슬란드", count: 388, trend: -4 },
-  { tag: "#알프스", count: 322, trend: 6 },
-];
-export const TRENDING_HASHTAGS_WEEK: TrendingHashtag[] = [
-  { tag: "#유레일패스", count: 6420, trend: 9 },
-  { tag: "#쉥겐비자", count: 5873, trend: 14 },
-  { tag: "#파리", count: 5210, trend: 3 },
-  { tag: "#바르셀로나", count: 3986, trend: 21 },
-  { tag: "#야간열차", count: 2754, trend: 11 },
-  { tag: "#프라하", count: 2402, trend: 7 },
-  { tag: "#오로라", count: 2133, trend: 36 },
-  { tag: "#스위스패스", count: 1690, trend: -3 },
-];
-
 // ---------- 프로필 → profile.ts ----------
 
 // ---------- 홈 대시보드 ----------
@@ -322,10 +275,4 @@ export const BOOKMARK_TAG_BUNDLES = [
   { name: "미술관 모음", tags: ["#루브르", "#오르세", "#프라도", "#리이크스"] },
   { name: "예산 짜기", tags: ["#호스텔", "#슈퍼마켓", "#무료투어"] },
   { name: "항공권 비교", tags: ["#스카이스캐너", "#카타르항공", "#오픈조"] },
-];
-
-export const SIMILAR_PEOPLE = [
-  { name: "foodtrip", tags: "#파리 #먹거리" },
-  { name: "artwalk", tags: "#미술관 #파리" },
-  { name: "rail.kr", tags: "#유레일 #예산" },
 ];

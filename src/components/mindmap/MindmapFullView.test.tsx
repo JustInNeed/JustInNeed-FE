@@ -31,18 +31,38 @@ describe("MindmapFullView", () => {
     expect(within(dialog).getByText("노드 28개")).toBeInTheDocument();
   });
 
-  it("연결이 1개인 리프 노드를 누르면 원문 URL 을 새 탭으로 연다", async () => {
+  it("URL 이 있는 노드를 누르면 원문을 새 탭으로 연다", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     const { user, node } = renderFullView();
     await user.click(node("예산"));
     expect(open).toHaveBeenCalledWith("https://wise.com/kr/currency-converter/eur-to-krw-rate", "_blank", "noopener,noreferrer");
   });
 
-  it("URL 이 있어도 연결이 여러 개인 노드는 원문을 열지 않고 선택만 된다", async () => {
+  it("연결이 여러 개인 노드도 URL 이 있으면 원문을 연다", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     const { user, node } = renderFullView({
       mindmap: { ...AUTHOR_MINDMAP, nodeUrls: { ...AUTHOR_MINDMAP.nodeUrls, paris: "https://www.parisinfo.com/" } },
     });
+    await user.click(node("파리"));
+    expect(open).toHaveBeenCalledWith("https://www.parisinfo.com/", "_blank", "noopener,noreferrer");
+  });
+
+  it("연결이 하나도 없는 노드도 URL 이 있으면 원문을 연다", async () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    const { user, node } = renderFullView({
+      mindmap: {
+        nodes: [{ id: "node:1", label: "nightjet.com", x: 600, y: 380, size: 9, group: "sub" }],
+        edges: [],
+        nodeUrls: { "node:1": "https://www.nightjet.com/en" },
+      },
+    });
+    await user.click(node("nightjet.com"));
+    expect(open).toHaveBeenCalledWith("https://www.nightjet.com/en", "_blank", "noopener,noreferrer");
+  });
+
+  it("URL 이 없는 노드는 원문을 열지 않고 선택만 된다", async () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    const { user, node } = renderFullView();
     await user.click(node("파리"));
     expect(open).not.toHaveBeenCalled();
     await user.unhover(node("파리"));
@@ -57,10 +77,22 @@ describe("MindmapFullView", () => {
     expect(open).not.toHaveBeenCalled();
   });
 
-  it("리프 노드에 올리면 어느 사이트 원문이 열리는지 안내한다", async () => {
+  it("URL 이 있는 노드에 올리면 어느 사이트 원문이 열리는지 안내한다", async () => {
     const { user, dialog, node } = renderFullView();
     await user.hover(node("예산"));
     expect(within(dialog).getByText(/예산 · wise\.com 원문 열기/)).toBeInTheDocument();
+  });
+
+  it("라벨이 사이트 주소인 노드는 안내에 같은 주소를 두 번 쓰지 않는다", async () => {
+    const { user, dialog, node } = renderFullView({
+      mindmap: {
+        nodes: [{ id: "node:1", label: "nightjet.com", x: 600, y: 380, size: 9, group: "sub" }],
+        edges: [],
+        nodeUrls: { "node:1": "https://www.nightjet.com/en" },
+      },
+    });
+    await user.hover(node("nightjet.com"));
+    expect(within(dialog).getByText(/^nightjet\.com 원문 열기$/)).toBeInTheDocument();
   });
 
   it("강조할 노드를 넘기면 그 노드만 색칠하고 나머지는 흐리게 보인다", () => {
