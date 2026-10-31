@@ -11,8 +11,9 @@ import type { SessionListItem } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import { useToast } from "@/lib/app/ToastContext";
 import { withHash } from "@/lib/format";
-import type { ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
+import type { ProfilePageData } from "@/lib/viewTypes";
 import { ProfileEdit, type ProfileDraft } from "./ProfileEdit";
+import { useCardSessions, useOwnerMindmap } from "./useProfileRemote";
 import styles from "./Profile.module.css";
 
 // 다른 사용자 해시태그 북마크 저장 방식
@@ -40,18 +41,43 @@ const EMPTY_PAGE: ProfilePageData = {
   sessions: [],
 };
 
+/** 다른 사용자 마인드맵 탭 — 프로필과 따로 받아 실패해도 프로필은 보인다 */
+export interface ProfileMindmapsSection {
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  hasNext: boolean;
+  onLoadMore: () => void;
+}
+
 export interface ProfileViewProps {
-  /** 없으면 내 프로필 */
-  handle?: string;
-  /** 프로필 API 가 생기기 전까지는 null — 내 프로필은 닉네임만 채운 빈 프로필, 다른 사용자는 빈 상태 */
+  /** 다른 사용자 id. 없으면 내 프로필 */
+  userId?: number;
+  /** 내 프로필 API 가 생기기 전까지는 null — 닉네임만 채운 빈 프로필 */
   data: ProfilePageData | null;
   loading?: boolean;
   /** 불러오기 실패 메시지 */
   error?: string | null;
   onRetry?: () => void;
+  /** 없거나 탈퇴한 사용자 · 잘못된 주소 */
+  notFound?: boolean;
+  mindmapsSection?: ProfileMindmapsSection;
 }
 
-export function ProfileView({ handle, data, loading = false, error = null, onRetry }: ProfileViewProps) {
+export function ProfileView({ userId, data, loading = false, error = null, onRetry, notFound = false, mindmapsSection }: ProfileViewProps) {
+  const router = useRouter();
+  if (notFound) {
+    return (
+      <ProfileState>
+        <div className={styles.notFound}>
+          <InlineState kind="empty" title="프로필을 찾을 수 없어요" description="탈퇴했거나 주소가 잘못됐어요." />
+          <Button variant="secondary" onClick={() => router.push("/community")}>
+            커뮤니티로
+          </Button>
+        </div>
+      </ProfileState>
+    );
+  }
   if (loading) return <ProfileState><div className={styles.state}>불러오는 중…</div></ProfileState>;
   if (error) {
     return (
@@ -60,15 +86,9 @@ export function ProfileView({ handle, data, loading = false, error = null, onRet
       </ProfileState>
     );
   }
-  if (!handle) return <ProfileScreen data={data ?? EMPTY_PAGE} />;
-  if (!data) {
-    return (
-      <ProfileState>
-        <InlineState kind="empty" title="아직 볼 수 있는 프로필 정보가 없어요." description={`${withAt(handle)} 님이 공유한 내용이 생기면 여기에 보여요.`} />
-      </ProfileState>
-    );
-  }
-  return <ProfileScreen handle={handle} data={data} />;
+  if (userId === undefined) return <ProfileScreen data={data ?? EMPTY_PAGE} />;
+  if (!data) return null;
+  return <ProfileScreen userId={userId} data={data} mindmapsSection={mindmapsSection} />;
 }
 
 function ProfileState({ children }: { children: ReactNode }) {
@@ -79,11 +99,19 @@ function ProfileState({ children }: { children: ReactNode }) {
   );
 }
 
-function ProfileScreen({ handle, data }: { handle?: string; data: ProfilePageData }) {
+function ProfileScreen({
+  userId,
+  data,
+  mindmapsSection,
+}: {
+  userId?: number;
+  data: ProfilePageData;
+  mindmapsSection?: ProfileMindmapsSection;
+}) {
   const router = useRouter();
   const toast = useToast();
   const { member } = usePersonal();
-  const isMine = !handle;
+  const isMine = userId === undefined;
   // 내 프로필은 수정 화면에서 저장한 값을 덮어 보여줌 (프로필 저장 API 생기면 교체). 닉네임은 회원 정보 기준
   const [saved, setSaved] = useState<ProfileDraft | null>(null);
   const myName = member.nickname ?? data.profile.name;
@@ -97,11 +125,22 @@ function ProfileScreen({ handle, data }: { handle?: string; data: ProfilePageDat
   const [selected, setSelected] = useState<string[]>([]);
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
   const bookmarkRef = useRef<HTMLDivElement>(null);
-  // 마인드맵 카드 → 상세 팝업 → 크게 보기 (리프 노드는 원문 URL로). 크게 보기를 닫으면 팝업으로 돌아간다
-  const [detail, setDetail] = useState<ProfileMindmap | null>(null);
+  // 마인드맵 카드 → 상세 팝업 → 크게 보기 (URL 이 있는 노드는 원문으로). 크게 보기를 닫으면 팝업으로 돌아간다
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [fullView, setFullView] = useState(false);
-  const closeDetail = useCallback(() => setDetail(null), []);
+  const closeDetail = useCallback(() => {
+    setDetailId(null);
+    setFullView(false);
+  }, []);
   const closeFullView = useCallback(() => setFullView(false), []);
+  // 다른 사용자의 관련 세션 · 전체 마인드맵은 처음 열 때 받는다
+  const cardSessions = useCardSessions(detailId, !isMine);
+  const ownerMindmap = useOwnerMindmap(userId);
+  const fullMindmap = isMine ? data.fullMindmap : ownerMindmap.mindmap;
+  const openFullView = () => {
+    setFullView(true);
+    ownerMindmap.open();
+  };
 
   useEffect(() => {
     if (!bookmarkOpen) return;
@@ -137,6 +176,7 @@ function ProfileScreen({ handle, data }: { handle?: string; data: ProfilePageDat
   const shownTopTags = profile.topTags.filter((t) => !hidden.has(t.tag));
   const nodeCount = profile.nodes - hiddenTags.reduce((n, t) => n + t.count, 0);
   const owner = { name: profile.name, avatar: profile.avatar, handle: profile.handle };
+  const detail = data.mindmaps.find((p) => p.id === detailId);
 
   const pinnedSessions = profile.pinnedSessionIds
     .map((id) => data.sessions.find((s) => s.id === id))
@@ -197,7 +237,7 @@ function ProfileScreen({ handle, data }: { handle?: string; data: ProfilePageDat
           <div className={styles.avatar}>{profile.avatar}</div>
           <div className={styles.headMain}>
             <h1 className={styles.name}>{profile.name}</h1>
-            <div className={styles.handle}>{profile.handle}</div>
+            {profile.handle && <div className={styles.handle}>{profile.handle}</div>}
           </div>
           <div className={styles.actions}>
             {isMine ? (
@@ -278,41 +318,62 @@ function ProfileScreen({ handle, data }: { handle?: string; data: ProfilePageDat
         {tab === "mindmap" &&
           (data.mindmaps.length === 0 ? (
             <div className={styles.sessionEmpty}>
-              <InlineState kind="empty" title="공유한 마인드맵이 없어요." />
+              {mindmapsSection?.error ? (
+                <InlineState kind="error" title="마인드맵을 불러오지 못했어요." description={mindmapsSection.error} onRetry={mindmapsSection.onRetry} />
+              ) : mindmapsSection?.loading ? (
+                <div className={styles.state}>불러오는 중…</div>
+              ) : (
+                <InlineState kind="empty" title="공유한 마인드맵이 없어요." />
+              )}
             </div>
           ) : (
-            <div className={styles.mapGrid}>
-              {data.mindmaps.map((p) => (
-                <MindmapCard
-                  key={p.id}
-                  seed={p.id}
-                  nodes={p.nodes}
-                  height={220}
-                  title={p.title}
-                  tags={visibleTags(p.hashtags).slice(0, 2)}
-                  topLeft={isMine ? <span title="핀고정됨"><Icon name="pin" size={11} stroke={2} /></span> : undefined}
-                  topRight={`노드 ${p.nodes}`}
-                  onClick={() => setDetail(p)}
-                  footer={
-                    <>
-                      <span>♡ {p.likes}</span>
-                      <span>◇ {p.bookmarks}</span>
-                      {!isMine && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleExplore(p.id);
-                          }}
-                          className={`${styles.exploreBtn} ${exploring.has(p.id) ? styles.exploreBtnOn : ""}`}
-                        >
-                          {exploring.has(p.id) ? "✓ 탐색중" : "+ 나도 탐색"}
-                        </button>
-                      )}
-                    </>
-                  }
-                />
-              ))}
-            </div>
+            <>
+              <div className={styles.mapGrid}>
+                {data.mindmaps.map((p) => (
+                  <MindmapCard
+                    key={p.id}
+                    seed={p.id}
+                    nodes={p.nodes}
+                    height={220}
+                    title={p.title}
+                    tags={visibleTags(p.hashtags).slice(0, 2)}
+                    topLeft={isMine ? <span title="핀고정됨"><Icon name="pin" size={11} stroke={2} /></span> : undefined}
+                    topRight={`노드 ${p.nodes}`}
+                    onClick={() => setDetailId(p.id)}
+                    footer={
+                      <>
+                        <span>♡ {p.likes}</span>
+                        <span>◇ {p.bookmarks}</span>
+                        {!isMine && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleExplore(p.id);
+                            }}
+                            className={`${styles.exploreBtn} ${exploring.has(p.id) ? styles.exploreBtnOn : ""}`}
+                          >
+                            {exploring.has(p.id) ? "✓ 탐색중" : "+ 나도 탐색"}
+                          </button>
+                        )}
+                      </>
+                    }
+                  />
+                ))}
+              </div>
+              {mindmapsSection && (
+                <div className={styles.mapMore}>
+                  {mindmapsSection.error ? (
+                    <InlineState kind="error" title="마인드맵을 더 불러오지 못했어요." description={mindmapsSection.error} onRetry={mindmapsSection.onRetry} />
+                  ) : mindmapsSection.loading ? (
+                    <span className={styles.mapMoreLoading}>불러오는 중…</span>
+                  ) : (
+                    mindmapsSection.hasNext && (
+                      <Button variant="secondary" onClick={mindmapsSection.onLoadMore}>더 보기</Button>
+                    )
+                  )}
+                </div>
+              )}
+            </>
           ))}
 
         {tab === "sessions" &&
@@ -333,31 +394,38 @@ function ProfileScreen({ handle, data }: { handle?: string; data: ProfilePageDat
           ))}
       </div>
 
-      {detail && !fullView && (
+      {detail && !(fullView && fullMindmap) && (
         <MindmapDetailModal
           // 작성자는 이 프로필 주인, 해시태그 · 관련 세션 태그는 비공개를 뺀 값
           post={{ ...detail, user: owner, hashtags: visibleTags(detail.hashtags) }}
-          sessions={detail.sessions.map(withVisibleTags)}
+          sessions={(isMine ? detail.sessions : (cardSessions.sessions ?? [])).map(withVisibleTags)}
+          sessionsFallback={
+            isMine || cardSessions.sessions ? undefined : cardSessions.error ? (
+              <InlineState kind="error" title="관련 세션을 불러오지 못했어요." description={cardSessions.error} onRetry={cardSessions.retry} />
+            ) : (
+              <div className={styles.stateInline}>불러오는 중…</div>
+            )
+          }
           onClose={closeDetail}
           // 이미 이 사람 프로필이라 작성자 이름을 누르면 팝업만 닫힌다
           onOpenProfile={() => {}}
           actions={
-            <Button variant="primary" onClick={() => setFullView(true)}>
-              <Icon name="network" size={13} />
-              마인드맵 크게 보기
-            </Button>
+            !isMine && fullView && ownerMindmap.error ? (
+              <InlineState kind="error" title="전체 마인드맵을 불러오지 못했어요." description={ownerMindmap.error} onRetry={ownerMindmap.retry} />
+            ) : (
+              <Button variant="primary" disabled={fullView} onClick={openFullView}>
+                <Icon name="network" size={13} />
+                {fullView ? "불러오는 중…" : "마인드맵 크게 보기"}
+              </Button>
+            )
           }
         />
       )}
-      {detail && fullView && (
-        <MindmapFullView title={`${profile.name}님의 전체 마인드맵`} mindmap={data.fullMindmap} onClose={closeFullView} />
+      {detail && fullView && fullMindmap && (
+        <MindmapFullView title={`${profile.name}님의 전체 마인드맵`} mindmap={fullMindmap} onClose={closeFullView} />
       )}
     </div>
   );
-}
-
-function withAt(handle: string) {
-  return handle.startsWith("@") ? handle : `@${handle}`;
 }
 
 function Stat({ n, l, accent }: { n: number; l: string; accent?: boolean }) {

@@ -124,12 +124,12 @@ export const OTHER_PROFILE: ProfileData = {
 };
 
 export const OTHER_MINDMAPS: ProfileMindmap[] = [
-  mindmap("o1", "동유럽 3주 살이 전체 동선", ["#프라하", "#동유럽", "#야간열차"], 64, 284, 91, [otherSession(9102), otherSession(9107)]),
-  mindmap("o2", "비엔나 카페 투어", ["#카페", "#비엔나", "#자허토르테"], 41, 120, 40, [otherSession(9104)]),
-  mindmap("o3", "프라하 천천히 걷기", ["#슬로우트래블", "#프라하"], 33, 98, 27, [otherSession(9107)]),
-  mindmap("o4", "야간열차 노선 정리", ["#야간열차", "#나이트젯"], 29, 77, 30, [otherSession(9102)]),
-  mindmap("o5", "부다페스트 온천 비교", ["#부다페스트", "#온천"], 22, 54, 11, [otherSession(9102)]),
-  mindmap("o6", "체코 소도시 당일치기", ["#체코", "#소도시"], 18, 31, 8, [otherSession(9105)]),
+  mindmap("101", "동유럽 3주 살이 전체 동선", ["#프라하", "#동유럽", "#야간열차"], 64, 284, 91, [otherSession(9102), otherSession(9107)]),
+  mindmap("102", "비엔나 카페 투어", ["#카페", "#비엔나", "#자허토르테"], 41, 120, 40, [otherSession(9104)]),
+  mindmap("103", "프라하 천천히 걷기", ["#슬로우트래블", "#프라하"], 33, 98, 27, [otherSession(9107)]),
+  mindmap("104", "야간열차 노선 정리", ["#야간열차", "#나이트젯"], 29, 77, 30, [otherSession(9102)]),
+  mindmap("105", "부다페스트 온천 비교", ["#부다페스트", "#온천"], 22, 54, 11, [otherSession(9102)]),
+  mindmap("106", "체코 소도시 당일치기", ["#체코", "#소도시"], 18, 31, 8, [otherSession(9105)]),
 ];
 
 export const OTHER_FULL_MINDMAP: FullMindmap = {

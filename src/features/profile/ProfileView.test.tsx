@@ -1,8 +1,10 @@
 import { screen, within } from "@testing-library/react";
+import { http } from "msw";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProfilePageData } from "@/lib/viewTypes";
 import {
+  API_MINDMAP,
   MY_MINDMAPS,
   MY_PROFILE,
   MY_PROFILE_PAGE,
@@ -10,6 +12,7 @@ import {
   OTHER_PROFILE,
   OTHER_PROFILE_PAGE,
 } from "@/test/fixtures/profile";
+import { API, SERVER_ERROR, fail, ok, server } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
 import { ProfileView } from "./ProfileView";
@@ -35,6 +38,17 @@ function sessionCardTitles() {
 }
 
 const titleOf = (id: number) => MY_PROFILE_PAGE.sessions.find((s) => s.id === id)!.title;
+
+/** 다른 사용자 카드의 관련 세션 · 전체 마인드맵 응답 */
+function serveDetail() {
+  server.use(
+    http.get(`${API}/community/mindmaps/:id/sessions`, ({ params }) => {
+      const card = OTHER_MINDMAPS.find((m) => m.id === params.id)!;
+      return ok({ sessions: card.sessions });
+    }),
+    http.get(`${API}/community/profiles/7/mindmap`, () => ok(API_MINDMAP)),
+  );
+}
 
 describe("내 프로필", () => {
   it("이름 · 핸들은 프로필 데이터가 아니라 로그인 회원 닉네임으로 보이고 소개 · 통계가 보인다", () => {
@@ -198,8 +212,10 @@ describe("내 프로필", () => {
 });
 
 describe("다른 사용자 프로필", () => {
+  beforeEach(serveDetail);
+
   const renderOther = (data: ProfilePageData = OTHER_PROFILE_PAGE) =>
-    renderPersonal(<ProfileView handle="wanderlust" data={data} />);
+    renderPersonal(<ProfileView userId={7} data={data} />);
   const otherTitle = (id: number) => OTHER_PROFILE_PAGE.sessions.find((s) => s.id === id)!.title;
   const cardOf = (title: string) => screen.getByText(title).closest<HTMLElement>('[role="button"]')!;
   const cardTags = (title: string) => within(cardOf(title)).queryAllByText(/^#/).map((el) => el.textContent);
@@ -247,7 +263,7 @@ describe("다른 사용자 프로필", () => {
     await user.click(screen.getByRole("button", { name: "마인드맵" }));
     await user.click(screen.getByText("비엔나 카페 투어"));
     const dialog = screen.getByRole("dialog", { name: "비엔나 카페 투어" });
-    expect(within(dialog).getByText(otherTitle(9104))).toBeInTheDocument();
+    expect(await within(dialog).findByText(otherTitle(9104))).toBeInTheDocument();
     expect(within(dialog).queryByText("#카페")).not.toBeInTheDocument();
     expect(within(dialog).getAllByText("#자허토르테")).toHaveLength(2); // 팝업 태그 + 관련 세션 태그
   });
@@ -304,11 +320,72 @@ describe("다른 사용자 프로필", () => {
     await user.click(screen.getByText("동유럽 3주 살이 전체 동선"));
     const dialog = screen.getByRole("dialog", { name: "동유럽 3주 살이 전체 동선" });
     expect(within(dialog).getByRole("button", { name: "🌿 wanderlust" })).toBeInTheDocument();
-    expect(within(dialog).getByText("· 2개")).toBeInTheDocument();
+    expect(await within(dialog).findByText("· 2개")).toBeInTheDocument();
 
     await user.click(within(dialog).getByRole("button", { name: "마인드맵 크게 보기" }));
-    const full = screen.getByRole("dialog", { name: "wanderlust님의 전체 마인드맵" });
-    expect(within(full).getByText(`노드 ${OTHER_PROFILE_PAGE.fullMindmap.nodes.length}개`)).toBeInTheDocument();
+    const full = await screen.findByRole("dialog", { name: "wanderlust님의 전체 마인드맵" });
+    expect(within(full).getByText(`노드 ${API_MINDMAP.hashtags.length + API_MINDMAP.nodes.length}개`)).toBeInTheDocument();
+  });
+
+  it("관련 세션은 팝업을 열 때 받고, 같은 카드를 다시 열면 또 받지 않는다", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${API}/community/mindmaps/:id/sessions`, () => {
+        calls += 1;
+        return ok({ sessions: OTHER_MINDMAPS[0].sessions });
+      }),
+    );
+    const { user } = renderOther();
+    expect(calls).toBe(0);
+
+    await user.click(screen.getByText("동유럽 3주 살이 전체 동선"));
+    expect(await screen.findByText("· 2개")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByText("동유럽 3주 살이 전체 동선"));
+
+    expect(await screen.findByText("· 2개")).toBeInTheDocument();
+    expect(calls).toBe(1);
+  });
+
+  it("관련 세션을 못 받으면 팝업은 그대로이고 그 자리에서 다시 시도할 수 있다", async () => {
+    server.use(http.get(`${API}/community/mindmaps/:id/sessions`, () => fail(500, SERVER_ERROR)));
+    const { user } = renderOther();
+
+    await user.click(screen.getByText("동유럽 3주 살이 전체 동선"));
+    const dialog = screen.getByRole("dialog", { name: "동유럽 3주 살이 전체 동선" });
+    const alert = await within(dialog).findByRole("alert");
+    expect(alert).toHaveTextContent("관련 세션을 불러오지 못했어요.");
+    expect(within(dialog).getByRole("button", { name: "마인드맵 크게 보기" })).toBeEnabled();
+
+    serveDetail();
+    await user.click(within(alert).getByRole("button", { name: "다시 시도" }));
+
+    expect(await within(dialog).findByText("· 2개")).toBeInTheDocument();
+  });
+
+  it("전체 마인드맵은 크게 보기를 누를 때 받고, 실패하면 팝업에서 다시 시도한다", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${API}/community/profiles/7/mindmap`, () => {
+        calls += 1;
+        return fail(500, SERVER_ERROR);
+      }),
+    );
+    const { user } = renderOther();
+    await user.click(screen.getByText("동유럽 3주 살이 전체 동선"));
+    const dialog = screen.getByRole("dialog", { name: "동유럽 3주 살이 전체 동선" });
+    await within(dialog).findByText("· 2개");
+    expect(calls).toBe(0);
+
+    await user.click(within(dialog).getByRole("button", { name: "마인드맵 크게 보기" }));
+    const alert = await within(dialog).findByRole("alert");
+    expect(alert).toHaveTextContent("전체 마인드맵을 불러오지 못했어요.");
+    expect(within(dialog).getByText(otherTitle(9102))).toBeInTheDocument();
+
+    serveDetail();
+    await user.click(within(alert).getByRole("button", { name: "다시 시도" }));
+
+    expect(await screen.findByRole("dialog", { name: "wanderlust님의 전체 마인드맵" })).toBeInTheDocument();
   });
 
   it("공유 세션은 핀고정 순서대로 보이고 카드를 누르면 세션 상세로 이동한다", async () => {
@@ -426,20 +503,21 @@ describe("프로필 데이터가 없거나 불러오는 중 · 실패", () => {
     expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
   });
 
-  it("다른 사용자 데이터가 없으면 그 사용자 핸들과 함께 빈 상태가 보인다", () => {
-    renderPersonal(<ProfileView handle="wanderlust" data={null} />);
+  it("없는 프로필이면 찾을 수 없다는 안내와 커뮤니티로 가는 버튼이 보인다", async () => {
+    const { user } = renderPersonal(<ProfileView notFound data={null} />);
 
-    const empty = screen.getByRole("status");
-    expect(empty).toHaveTextContent("아직 볼 수 있는 프로필 정보가 없어요.");
-    expect(empty).toHaveTextContent("@wanderlust 님이 공유한 내용이 생기면 여기에 보여요.");
+    expect(screen.getByRole("status")).toHaveTextContent("프로필을 찾을 수 없어요");
     expect(screen.queryByRole("button", { name: /좋아요/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "커뮤니티로" }));
+    expect(mockRouter.push).toHaveBeenCalledWith("/community");
   });
 
   it.each([
     ["내 프로필", undefined],
-    ["다른 사용자 프로필", "wanderlust"],
-  ])("%s을 불러오는 중이면 불러오는 중… 만 보인다", (_, handle) => {
-    renderPersonal(<ProfileView handle={handle} data={null} loading />);
+    ["다른 사용자 프로필", 7],
+  ])("%s을 불러오는 중이면 불러오는 중… 만 보인다", (_, userId) => {
+    renderPersonal(<ProfileView userId={userId} data={null} loading />);
 
     expect(screen.getByText("불러오는 중…")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
@@ -448,11 +526,11 @@ describe("프로필 데이터가 없거나 불러오는 중 · 실패", () => {
 
   it.each([
     ["내 프로필", undefined],
-    ["다른 사용자 프로필", "wanderlust"],
-  ])("%s을 불러오지 못하면 오류와 다시 시도가 보이고 누르면 onRetry 가 불린다", async (_, handle) => {
+    ["다른 사용자 프로필", 7],
+  ])("%s을 불러오지 못하면 오류와 다시 시도가 보이고 누르면 onRetry 가 불린다", async (_, userId) => {
     const onRetry = vi.fn();
     const { user } = renderPersonal(
-      <ProfileView handle={handle} data={MY_PROFILE_PAGE} error="서버에 연결할 수 없습니다." onRetry={onRetry} />,
+      <ProfileView userId={userId} data={MY_PROFILE_PAGE} error="서버에 연결할 수 없습니다." onRetry={onRetry} />,
     );
 
     const alert = screen.getByRole("alert");
