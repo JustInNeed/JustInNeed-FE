@@ -15,9 +15,12 @@ import {
   SEARCH_HASHTAGS,
   SEARCH_MINDMAPS,
   SEARCH_PROFILES,
+  SIMILAR_PEOPLE,
+  TRENDING_TODAY,
+  TRENDING_WEEK,
 } from "@/test/fixtures/communityApi";
 import { CommunityView, profilePath, type CommunitySections } from "./CommunityView";
-import { toRecommendation } from "./toCommunityData";
+import { toRecommendation, toSimilarPersonRow, toTrendingHashtag } from "./toCommunityData";
 
 const ready = <T,>(data: T): UseApiResult<T> => ({ data, loading: false, error: null, refetch: vi.fn() });
 const loading = <T,>(): UseApiResult<T> => ({ data: null, loading: true, error: null, refetch: vi.fn() });
@@ -26,10 +29,16 @@ const failed = <T,>(error: string, refetch = vi.fn()): UseApiResult<T> => ({ dat
 const SECTIONS: CommunitySections = {
   interests: ready(toRecommendation(INTERESTS)),
   recentBookmarks: ready(toRecommendation(RECENT_BOOKMARKS)),
+  trendingToday: ready(TRENDING_TODAY.hashtags.map(toTrendingHashtag)),
+  trendingWeek: ready(TRENDING_WEEK.hashtags.map(toTrendingHashtag)),
+  similarPeople: ready(SIMILAR_PEOPLE.people.map(toSimilarPersonRow)),
 };
 const EMPTY: CommunitySections = {
   interests: ready(toRecommendation(EMPTY_RECOMMENDATION)),
   recentBookmarks: ready(toRecommendation(EMPTY_RECOMMENDATION)),
+  trendingToday: ready([]),
+  trendingWeek: ready([]),
+  similarPeople: ready([]),
 };
 
 function renderCommunity(sections: Partial<CommunitySections> = {}) {
@@ -510,6 +519,101 @@ describe("CommunityView — 검색바", () => {
   });
 });
 
+const trendCard = () => screen.getByRole("heading", { name: /떠오르는 해시태그/ }).closest<HTMLElement>(".card")!;
+const peopleCard = () => screen.getByRole("heading", { name: "관심사가 비슷한 사람" }).closest<HTMLElement>(".card")!;
+const personRow = (name: string) => within(peopleCard()).getByText(name).closest<HTMLElement>(".personRow")!;
+
+describe("CommunityView — 떠오르는 해시태그", () => {
+  it("오늘의 해시태그를 개수 · 증감과 함께 보여주고, 증감이 0 이면 화살표를 그리지 않는다", () => {
+    renderCommunity();
+    const card = within(trendCard());
+    expect(card.getByRole("heading", { name: "오늘의 떠오르는 해시태그" })).toBeInTheDocument();
+    expect(card.getByRole("button", { name: "오늘" })).toHaveClass("miniTabOn");
+    expect(card.getByRole("button", { name: /#쉥겐비자/ })).toHaveTextContent("#쉥겐비자12↑8");
+    expect(card.getByRole("button", { name: /#아이슬란드/ })).toHaveTextContent("#아이슬란드3↓4");
+    expect(card.getByRole("button", { name: /#오로라/ }).textContent).toBe("#오로라7");
+  });
+
+  it("이번 주 탭을 누르면 이번 주 목록과 제목으로 바뀌고, 오늘을 누르면 돌아온다", async () => {
+    const { user } = renderCommunity();
+    await user.click(within(trendCard()).getByRole("button", { name: "이번 주" }));
+    const card = within(trendCard());
+    expect(card.getByRole("heading", { name: "이번 주 떠오르는 해시태그" })).toBeInTheDocument();
+    expect(card.getByRole("button", { name: /#바르셀로나/ })).toHaveTextContent("#바르셀로나39↑21");
+    expect(card.queryByRole("button", { name: /#쉥겐비자/ })).toBeNull();
+    await user.click(card.getByRole("button", { name: "오늘" }));
+    expect(within(trendCard()).getByRole("button", { name: /#쉥겐비자/ })).toBeInTheDocument();
+  });
+
+  it("해시태그를 누르면 그 태그로 검색창이 채워지고 드롭다운이 열린다", async () => {
+    mockSearch();
+    const { user } = renderCommunity();
+    await user.click(within(trendCard()).getByRole("button", { name: /#오로라/ }));
+    expect(searchInput()).toHaveValue("오로라");
+    expect(await (await panel()).findByText("연관 해시태그")).toBeInTheDocument();
+  });
+
+  it("이번 주만 실패하면 그 탭에서만 오류를 보여주고 오늘 탭은 그대로다", async () => {
+    const refetch = vi.fn();
+    const { user } = renderCommunity({ trendingWeek: failed("이번 주를 불러오지 못했어요.", refetch) });
+    expect(within(trendCard()).queryByRole("alert")).toBeNull();
+    await user.click(within(trendCard()).getByRole("button", { name: "이번 주" }));
+    expect(within(trendCard()).getByRole("alert")).toHaveTextContent("이번 주를 불러오지 못했어요.");
+    await user.click(within(trendCard()).getByRole("button", { name: "다시 시도" }));
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it("불러오는 중 · 비어 있음을 그 카드 안에 보여준다", () => {
+    const { unmount } = renderCommunity({ trendingToday: loading() });
+    expect(within(trendCard()).getByText("불러오는 중…")).toBeInTheDocument();
+    unmount();
+    renderCommunity({ trendingToday: ready([]) });
+    expect(within(trendCard()).getByText("아직 떠오르는 해시태그가 없어요.")).toBeInTheDocument();
+  });
+});
+
+describe("CommunityView — 비슷한 사람", () => {
+  it("이름 · 겹치는 태그 · 팔로우 상태를 보여주고 닉네임이 없으면 대체 이름을 쓴다", () => {
+    renderCommunity();
+    expect(within(personRow("foodtrip")).getByText("#파리 #먹거리")).toBeInTheDocument();
+    expect(within(personRow("foodtrip")).getByRole("button", { name: "팔로우" })).toHaveAttribute("aria-pressed", "false");
+    expect(within(personRow("artwalk")).getByRole("button", { name: "팔로잉" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(personRow("이름 없는 사용자")).getByText("#예산")).toBeInTheDocument();
+  });
+
+  it("팔로우를 누르면 먼저 바뀌고 서버에 저장한다", async () => {
+    const bodies = onPatch("/community/profiles/102/follow", () => ok({ following: true }));
+    const { user } = renderCommunity();
+    const row = within(personRow("foodtrip"));
+    await user.click(row.getByRole("button", { name: "팔로우" }));
+    expect(row.getByRole("button", { name: "팔로잉" })).toBeInTheDocument();
+    await waitFor(() => expect(bodies).toEqual([{ following: true }]));
+    // 다른 사람은 그대로
+    expect(within(personRow("이름 없는 사용자")).getByRole("button", { name: "팔로우" })).toBeInTheDocument();
+  });
+
+  it("언팔로우에 실패하면 되돌리고 서버 문구를 토스트로 보여준다", async () => {
+    const bodies = onPatch("/community/profiles/103/follow", () => fail(404, "회원을 찾을 수 없습니다."));
+    const { user } = renderCommunity();
+    await user.click(within(personRow("artwalk")).getByRole("button", { name: "팔로잉" }));
+    expect(await screen.findByText("회원을 찾을 수 없습니다.")).toBeInTheDocument();
+    expect(within(personRow("artwalk")).getByRole("button", { name: "팔로잉" })).toBeInTheDocument();
+    expect(bodies).toEqual([{ following: false }]);
+  });
+
+  it("실패 · 불러오는 중 · 빈 상태를 그 카드 안에 보여주고 피드는 그대로다", () => {
+    const { unmount } = renderCommunity({ similarPeople: failed("사람을 불러오지 못했어요.") });
+    expect(within(peopleCard()).getByRole("alert")).toHaveTextContent("사람을 불러오지 못했어요.");
+    expect(within(region(INTEREST)).getAllByRole("heading", { level: 4 })).toHaveLength(3);
+    unmount();
+    const second = renderCommunity({ similarPeople: loading() });
+    expect(within(peopleCard()).getByText("불러오는 중…")).toBeInTheDocument();
+    second.unmount();
+    renderCommunity({ similarPeople: ready([]) });
+    expect(within(peopleCard()).getByText("아직 비슷한 사람을 찾지 못했어요.")).toBeInTheDocument();
+  });
+});
+
 describe("CommunityView — 섹션 상태", () => {
   it("불러오는 중이면 그 섹션에만 안내가 보이고 나머지는 그대로다", () => {
     renderCommunity({ interests: loading() });
@@ -541,6 +645,14 @@ describe("CommunityView — 섹션 상태", () => {
     // 추천이 없어도 공개 카드는 검색으로 찾을 수 있다
     expect(searchInput()).toBeInTheDocument();
   });
+
+  it.each(["trendingToday", "trendingWeek", "similarPeople"] as const)(
+    "추천이 비어도 %s 에 내용이 있으면 페이지 빈 상태를 보여주지 않는다",
+    (key) => {
+      renderCommunity({ ...EMPTY, [key]: SECTIONS[key] });
+      expect(screen.queryByText("아직 볼 수 있는 커뮤니티 소식이 없어요")).toBeNull();
+    },
+  );
 
   it("다른 섹션이 불러오는 중이거나 실패했으면 페이지 빈 상태를 보여주지 않는다", () => {
     const { unmount } = renderCommunity({ ...EMPTY, recentBookmarks: loading() });
