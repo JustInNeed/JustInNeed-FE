@@ -21,6 +21,28 @@ const filterButton = () => screen.getByRole("button", { name: "필터" });
 const filterDialog = () => screen.getByRole("dialog", { name: "그래프 필터" });
 const popover = () => screen.getByText("선택됨").parentElement!;
 
+describe("그래프 줌", () => {
+  const zoomOf = () => /scale\(([\d.]+)\)/.exec(node("파리").parentElement!.getAttribute("transform")!)![1];
+
+  it("기본 배율 1.1 로 시작하고 + · - 버튼이 배율을 바꾼다", async () => {
+    const { user } = setup();
+    expect(Number(zoomOf())).toBeCloseTo(1.1);
+
+    await user.click(screen.getByRole("button", { name: "확대" }));
+    expect(Number(zoomOf())).toBeCloseTo(1.32);
+
+    await user.click(screen.getByRole("button", { name: "축소" }));
+    await user.click(screen.getByRole("button", { name: "축소" }));
+    expect(Number(zoomOf())).toBeCloseTo(1.1 / 1.2);
+  });
+
+  it("버튼을 계속 눌러도 배율이 2.5 를 넘지 않는다", async () => {
+    const { user } = setup();
+    for (let i = 0; i < 8; i++) await user.click(screen.getByRole("button", { name: "확대" }));
+    expect(Number(zoomOf())).toBe(2.5);
+  });
+});
+
 describe("그래프 필터", () => {
   it("필터를 누르면 기간 · 해시태그 그룹(노드 수) · 해시태그를 고르는 팝오버가 열린다", async () => {
     const { user } = setup();

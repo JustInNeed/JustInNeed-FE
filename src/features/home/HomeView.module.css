@@ -45,6 +45,14 @@
   gap: 6px;
   z-index: 10;
 }
+.zoomTools {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
 .iconBtn {
   display: inline-flex;
   align-items: center;
@@ -67,8 +75,8 @@
 }
 .popover {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 56px; /* 우측 상단 줌 버튼 아래 */
+  right: 14px;
   width: 240px;
   background: var(--surface);
   border: 1px solid var(--line);
