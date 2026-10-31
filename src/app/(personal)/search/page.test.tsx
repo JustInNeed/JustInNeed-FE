@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { SEARCH_PAGE_MINDMAPS, SEARCH_PAGE_PROFILES } from "@/test/fixtures/communityApi";
 import { API, fail, ok, server, SERVER_ERROR } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
+import { mockRouter, setMockSearchParams } from "@/test/router";
 import SearchPage from "./page";
 
 const SEARCH = `${API}/community/search`;
@@ -309,5 +310,95 @@ describe("/search 페이지 — 더 보기", () => {
     await user.click(more());
     expect(await screen.findByRole("link", { name: /^로마 다음/ })).toBeInTheDocument();
     expect(callsTo(urls, "/mindmaps").filter((u) => u.searchParams.get("q") === "로마").map(pageOf)).toEqual([0, 1]);
+  });
+});
+
+describe("/search 페이지 — 주소의 검색어", () => {
+  const qParam = (q: string) => new URLSearchParams({ q }).toString();
+  const replaced = () => mockRouter.replace.mock.calls.map(([path]) => path as string);
+
+  it("q 가 있는 주소로 들어오면 입력 없이 그 검색어로 찾고, 주소는 건드리지 않는다", async () => {
+    setMockSearchParams(qParam("#파리"));
+    const urls = mockSearch();
+    renderPersonal(<SearchPage />);
+    expect(input()).toHaveValue("#파리");
+    expect(await screen.findByRole("link", { name: /^파리 미식 지도/ })).toBeInTheDocument();
+    expect(new Set(urls.map((u) => u.searchParams.get("q")))).toEqual(new Set(["파리"]));
+    await settle();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it("# 만 있는 주소로 들어오면 요청 없이 안내를 보여준다", async () => {
+    setMockSearchParams(qParam("#"));
+    const urls = mockSearch();
+    renderPersonal(<SearchPage />);
+    await settle();
+    expect(urls).toHaveLength(0);
+    expect(screen.getByRole("status")).toHaveTextContent("검색어를 입력해 주세요");
+  });
+
+  it("입력이 멈추면 정리한 검색어를 주소에 한 번만 남기고, 화면 위치는 그대로 둔다", async () => {
+    mockSearch();
+    renderPersonal(<SearchPage />);
+    ["파", "파리", " #파리 "].forEach(typeQuery);
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledOnce());
+    expect(mockRouter.replace).toHaveBeenCalledWith(`/search?${qParam("파리")}`, { scroll: false });
+    expect(mockRouter.push).not.toHaveBeenCalled();
+    expect(input()).toHaveValue(" #파리 ");
+  });
+
+  it("검색어를 지우면 주소에서도 q 를 뺀다", async () => {
+    setMockSearchParams(qParam("파리"));
+    mockSearch();
+    renderPersonal(<SearchPage />);
+    await screen.findByRole("link", { name: /^파리 미식 지도/ });
+    typeQuery("#");
+    await waitFor(() => expect(replaced()).toEqual(["/search"]));
+  });
+
+  it("바깥에서 주소가 바뀌면 입력과 결과가 따라가고, 주소를 다시 쓰지 않는다", async () => {
+    setMockSearchParams(qParam("파리"));
+    const urls = mockSearch();
+    const { rerender } = renderPersonal(<SearchPage />);
+    await screen.findByRole("link", { name: /^파리 미식 지도/ });
+    setMockSearchParams(qParam("로마"));
+    rerender(<SearchPage />);
+    await waitFor(() => expect(input()).toHaveValue("로마"));
+    await waitFor(() => expect(urls.filter((u) => u.searchParams.get("q") === "로마")).toHaveLength(2));
+    await settle();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it("사이드바로 q 없는 주소가 되면 입력을 비우고 안내로 돌아간다", async () => {
+    setMockSearchParams(qParam("파리"));
+    mockSearch();
+    const { rerender } = renderPersonal(<SearchPage />);
+    await screen.findByRole("link", { name: /^파리 미식 지도/ });
+    setMockSearchParams("");
+    rerender(<SearchPage />);
+    await waitFor(() => expect(input()).toHaveValue(""));
+    expect(screen.getByRole("status")).toHaveTextContent("검색어를 입력해 주세요");
+    await settle();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it("내가 바꾼 주소가 늦게 도착해도 그 사이 더 친 글자를 덮어쓰지 않는다", async () => {
+    mockSearch();
+    const { rerender } = renderPersonal(<SearchPage />);
+    typeQuery("파");
+    await waitFor(() => expect(replaced()).toHaveLength(1));
+    typeQuery("파리");
+    await waitFor(() => expect(replaced()).toHaveLength(2));
+    typeQuery("파리올");
+    setMockSearchParams(qParam("파"));
+    rerender(<SearchPage />);
+    await settle();
+    expect(input()).toHaveValue("파리올");
+    setMockSearchParams(qParam("파리"));
+    rerender(<SearchPage />);
+    await settle();
+    expect(input()).toHaveValue("파리올");
+    expect(replaced().at(-1)).toBe(`/search?${qParam("파리올")}`);
   });
 });
