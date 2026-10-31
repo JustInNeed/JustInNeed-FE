@@ -1,10 +1,15 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { http } from "msw";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   bookmarkMindmap,
   BOOKMARK_BUNDLES_PAGE,
   BOOKMARK_MINDMAPS_PAGE,
+  CARD_BOOKMARK,
+  MIXED_BOOKMARK,
+  PICKED_BOOKMARK,
+  SAME_NAME_BUNDLE,
+  UNNAMED_BUNDLE,
 } from "@/test/fixtures/bookmarksApi";
 import { API, fail, ok, server, SERVER_ERROR } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
@@ -110,5 +115,283 @@ describe("/bookmarks 페이지 — 목록", () => {
     failing = false;
     await user.click(within(alert).getByRole("button", { name: "다시 시도" }));
     await waitFor(() => expect(mapTitles()).toHaveLength(12));
+  });
+});
+
+const COMMUNITY = `${API}/community`;
+
+/** 북마크 저장 · 해제 API 를 받아 호출을 기록한다 */
+function mockWrites({
+  remove = () => ok(null),
+  post = () => ok({ code: 201, bookmarkId: 500, targetIds: [], saveType: "MINI_MINDMAP", name: null }, { status: 201 }),
+  patch = () => ok({ bookmarkCount: 3, bookmarkId: 600 }),
+}: { remove?: () => Response | Promise<Response>; post?: () => Response | Promise<Response>; patch?: () => Response | Promise<Response> } = {}) {
+  const calls = {
+    deleted: [] as string[],
+    posted: [] as unknown[],
+    patched: [] as { sessionId: string; body: unknown }[],
+  };
+  server.use(
+    http.delete(`${COMMUNITY}/bookmarks/:id`, ({ params }) => {
+      calls.deleted.push(String(params.id));
+      return remove();
+    }),
+    http.post(`${COMMUNITY}/bookmarks`, async ({ request }) => {
+      calls.posted.push(await request.json());
+      return post();
+    }),
+    http.patch(`${COMMUNITY}/mindmaps/:id/bookmark`, async ({ params, request }) => {
+      calls.patched.push({ sessionId: String(params.id), body: await request.json() });
+      return patch();
+    }),
+  );
+  return calls;
+}
+
+const mapCard = (title: string) => screen.getByText(title).closest<HTMLElement>(".card")!;
+const removeCard = async (user: ReturnType<typeof renderPersonal>["user"], title: string) =>
+  user.click(within(mapCard(title)).getByRole("button", { name: "북마크 해제" }));
+const bundleTitles = () => Array.from(document.querySelectorAll(".bundleTitle"), (el) => el.textContent);
+const undoButton = () => screen.findByRole("button", { name: "되돌리기" });
+
+async function renderLoaded() {
+  const rendered = renderPersonal(<BookmarksPage />);
+  await screen.findByRole("button", { name: "마인드맵 (3)" });
+  await screen.findByRole("button", { name: "해시태그 묶음 (3)" });
+  return rendered;
+}
+
+describe("/bookmarks 페이지 — 북마크 해제", () => {
+  it("해제하면 응답을 기다리지 않고 바로 빠지고, 지운 뒤 되돌리기가 있는 안내가 뜬다", async () => {
+    let finish = () => {};
+    const gate = new Promise<void>((resolve) => (finish = resolve));
+    mockLists();
+    const calls = mockWrites({ remove: () => gate.then(() => ok(null)) });
+    const { user } = await renderLoaded();
+
+    await removeCard(user, "파리 미식 지도");
+    expect(screen.queryByText("파리 미식 지도")).toBeNull();
+    expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (2)");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(calls.deleted).toEqual([String(PICKED_BOOKMARK.bookmarkId)]));
+    // 지우는 중에는 되돌릴 수 없다 — 다시 저장이 먼저 끝나면 지우기가 그 행을 없앤다
+    expect(screen.queryByRole("button", { name: "되돌리기" })).toBeNull();
+
+    finish();
+    expect(await undoButton()).toBeInTheDocument();
+    expect(screen.getByText("북마크를 해제했어요.")).toBeInTheDocument();
+  });
+
+  it("해제에 실패하면 받은 자리로 돌아오고 서버 문구를 알려 주며 되돌리기는 없다", async () => {
+    mockLists();
+    mockWrites({ remove: () => fail(500, SERVER_ERROR) });
+    const { user } = await renderLoaded();
+    await removeCard(user, "파리 미식 지도");
+    expect(await screen.findByRole("alert")).toHaveTextContent(SERVER_ERROR);
+    expect(mapTitles()).toEqual(["동유럽 3주 살이 전체 동선", "파리 미식 지도", "#화장실 #놀이"]);
+    expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (3)");
+    expect(screen.queryByRole("button", { name: "되돌리기" })).toBeNull();
+  });
+
+  it("마지막 항목까지 해제하면 빈 안내가 보인다", async () => {
+    mockLists({ mindmaps: () => ok({ mindmaps: [CARD_BOOKMARK], hasNext: false }) });
+    mockWrites();
+    const { user } = renderPersonal(<BookmarksPage />);
+    await screen.findByText("동유럽 3주 살이 전체 동선");
+    await removeCard(user, "동유럽 3주 살이 전체 동선");
+    expect(await screen.findByText("아직 북마크한 항목이 없어요")).toBeInTheDocument();
+    expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (0)");
+  });
+
+  it("이름이 같은 묶음은 누른 것만 bookmarkId 로 지운다", async () => {
+    mockLists();
+    const calls = mockWrites();
+    const { user } = await renderLoaded();
+    await user.click(tab(/^해시태그 묶음/));
+    const second = document.querySelectorAll<HTMLElement>(".bundleCard")[1];
+    await user.click(within(second).getByRole("button", { name: "북마크 해제" }));
+    expect(bundleTitles()).toEqual(["미술관 모음", "#호스텔 #무료투어"]);
+    await waitFor(() => expect(calls.deleted).toEqual([String(SAME_NAME_BUNDLE.bookmarkId)]));
+  });
+
+  it("앞에서 해제한 뒤 더 보기를 눌러도 당겨진 항목을 건너뛰지 않는다", async () => {
+    const rows = titled(23);
+    mockLists({ mindmaps: (url) => pagedMindmaps(rows)(url) });
+    const calls = mockWrites({
+      remove: () => {
+        rows.splice(rows.findIndex((r) => r.title === "카드 0"), 1);
+        return ok(null);
+      },
+    });
+    const { user } = renderPersonal(<BookmarksPage />);
+    await screen.findByRole("button", { name: "마인드맵 (10+)" });
+    await removeCard(user, "카드 0");
+    await undoButton();
+    expect(calls.deleted).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await screen.findByRole("button", { name: "마인드맵 (20+)" });
+    expect(mapTitles()).toEqual(Array.from({ length: 20 }, (_, i) => `카드 ${i + 1}`));
+
+    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await screen.findByRole("button", { name: "마인드맵 (22)" });
+    expect(mapTitles()).toEqual(Array.from({ length: 22 }, (_, i) => `카드 ${i + 1}`));
+  });
+
+  it("불러온 항목을 다 해제해도 더 보기로 남은 항목을 받는다", async () => {
+    const rows = titled(11);
+    mockLists({ mindmaps: (url) => pagedMindmaps(rows)(url) });
+    server.use(
+      http.delete(`${COMMUNITY}/bookmarks/:id`, ({ params }) => {
+        rows.splice(rows.findIndex((r) => String(r.bookmarkId) === params.id), 1);
+        return ok(null);
+      }),
+    );
+    const { user } = renderPersonal(<BookmarksPage />);
+    await screen.findByRole("button", { name: "마인드맵 (10+)" });
+    for (let i = 0; i < 10; i++) await removeCard(user, `카드 ${i}`);
+    await waitFor(() => expect(rows).toHaveLength(1));
+    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await waitFor(() => expect(mapTitles()).toEqual(["카드 10"]));
+  });
+});
+
+describe("/bookmarks 페이지 — 되돌리기", () => {
+  it("카드 저장은 카드 API 로 sessionId 에 다시 저장하고 맨 위에 새 id 로 돌아온다", async () => {
+    mockLists();
+    const calls = mockWrites();
+    const { user } = await renderLoaded();
+
+    await removeCard(user, "동유럽 3주 살이 전체 동선");
+    await user.click(await undoButton());
+
+    await waitFor(() => expect(calls.patched).toEqual([{ sessionId: String(CARD_BOOKMARK.sessionId), body: { bookmarked: true } }]));
+    expect(calls.posted).toEqual([]);
+    await waitFor(() => expect(mapTitles()[0]).toBe("동유럽 3주 살이 전체 동선"));
+    expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (3)");
+    expect(within(mapCard("동유럽 3주 살이 전체 동선")).getByText("by wanderlust · 저장 방금 전")).toBeInTheDocument();
+    expect(screen.queryByText("북마크를 해제했어요.")).toBeNull();
+
+    // 돌아온 항목을 다시 해제하면 새 id 로 지운다
+    await removeCard(user, "동유럽 3주 살이 전체 동선");
+    await waitFor(() => expect(calls.deleted).toEqual([String(CARD_BOOKMARK.bookmarkId), "600"]));
+  });
+
+  it("해제한 자리가 아니라 목록 맨 위로 돌아온다", async () => {
+    mockLists();
+    mockWrites();
+    const { user } = await renderLoaded();
+    await removeCard(user, "#화장실 #놀이");
+    await user.click(await undoButton());
+    await waitFor(() => expect(mapTitles()).toEqual(["#화장실 #놀이", "동유럽 3주 살이 전체 동선", "파리 미식 지도"]));
+  });
+
+  it("세션이 하나여도 노드를 골라 저장했으면 카드 API 가 아니라 저장 API 로 되돌린다", async () => {
+    mockLists();
+    const calls = mockWrites();
+    const { user } = await renderLoaded();
+    await removeCard(user, "파리 미식 지도");
+    await user.click(await undoButton());
+    await waitFor(() =>
+      expect(calls.posted).toEqual([
+        { saveType: "MINI_MINDMAP", targetType: "NODE", targetIds: [90], sourceMindmapId: 102, name: null },
+      ]),
+    );
+    expect(calls.patched).toEqual([]);
+    await waitFor(() => expect(mapTitles()[0]).toBe("파리 미식 지도"));
+  });
+
+  it("여러 세션에서 고른 저장은 저장 API 로 되돌린다", async () => {
+    mockLists();
+    const calls = mockWrites();
+    const { user } = await renderLoaded();
+    await removeCard(user, "#화장실 #놀이");
+    await user.click(await undoButton());
+    await waitFor(() => expect(calls.posted).toHaveLength(1));
+    expect(calls.posted[0]).toMatchObject({ targetIds: MIXED_BOOKMARK.targetIds, name: null });
+    expect(calls.patched).toEqual([]);
+  });
+
+  it("묶음은 이름과 함께 다시 저장하고 맨 위로 돌아온다", async () => {
+    mockLists();
+    const calls = mockWrites({ post: () => ok({ code: 201, bookmarkId: 700 }, { status: 201 }) });
+    const { user } = await renderLoaded();
+    await user.click(tab(/^해시태그 묶음/));
+    const last = document.querySelectorAll<HTMLElement>(".bundleCard")[1];
+    await user.click(within(last).getByRole("button", { name: "북마크 해제" }));
+    await user.click(await undoButton());
+    await waitFor(() =>
+      expect(calls.posted).toEqual([
+        {
+          saveType: "HASHTAG_BUNDLE",
+          targetType: "HASHTAG",
+          targetIds: SAME_NAME_BUNDLE.targetIds,
+          sourceMindmapId: SAME_NAME_BUNDLE.sourceMindmapId,
+          name: SAME_NAME_BUNDLE.name,
+        },
+      ]),
+    );
+    await waitFor(() => expect(document.querySelectorAll(".bundleCard")).toHaveLength(3));
+    const first = document.querySelector<HTMLElement>(".bundleCard")!;
+    expect(within(first).getByRole("button", { name: "#프라도" })).toBeInTheDocument();
+    await user.click(within(first).getByRole("button", { name: "북마크 해제" }));
+    await waitFor(() => expect(calls.deleted).toEqual([String(SAME_NAME_BUNDLE.bookmarkId), "700"]));
+  });
+
+  it("이름 없는 묶음은 name 을 null 로 다시 저장한다", async () => {
+    mockLists();
+    const calls = mockWrites();
+    const { user } = await renderLoaded();
+    await user.click(tab(/^해시태그 묶음/));
+    const third = document.querySelectorAll<HTMLElement>(".bundleCard")[2];
+    await user.click(within(third).getByRole("button", { name: "북마크 해제" }));
+    await user.click(await undoButton());
+    await waitFor(() => expect(calls.posted).toHaveLength(1));
+    expect(calls.posted[0]).toMatchObject({ targetIds: UNNAMED_BUNDLE.targetIds, name: null });
+  });
+
+  it("되돌리기에 실패하면 서버 문구를 알려 주고 항목은 돌아오지 않는다", async () => {
+    mockLists();
+    mockWrites({ patch: () => fail(404, "찾을 수 없습니다.") });
+    const { user } = await renderLoaded();
+    await removeCard(user, "동유럽 3주 살이 전체 동선");
+    await user.click(await undoButton());
+    expect(await screen.findByRole("alert")).toHaveTextContent("찾을 수 없습니다.");
+    expect(mapTitles()).toEqual(["파리 미식 지도", "#화장실 #놀이"]);
+    expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (2)");
+  });
+
+  it("카드 저장 응답에 id 가 없으면 실패로 알려 준다", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockLists();
+    mockWrites({ patch: () => ok({ bookmarkCount: 0, bookmarkId: null }) });
+    const { user } = await renderLoaded();
+    await removeCard(user, "동유럽 3주 살이 전체 동선");
+    await user.click(await undoButton());
+    expect(await screen.findByRole("alert")).toHaveTextContent("되돌리지 못했어요.");
+  });
+
+  it("되돌린 뒤 더 보기를 눌러도 중복 없이 이어 받는다", async () => {
+    const rows = titled(13);
+    mockLists({ mindmaps: (url) => pagedMindmaps(rows)(url) });
+    server.use(
+      http.delete(`${COMMUNITY}/bookmarks/:id`, ({ params }) => {
+        rows.splice(rows.findIndex((r) => String(r.bookmarkId) === params.id), 1);
+        return ok(null);
+      }),
+      http.patch(`${COMMUNITY}/mindmaps/:id/bookmark`, () => {
+        rows.unshift(bookmarkMindmap({ bookmarkId: 900, title: "카드 5" }));
+        return ok({ bookmarkCount: 1, bookmarkId: 900 });
+      }),
+    );
+    const { user } = renderPersonal(<BookmarksPage />);
+    await screen.findByRole("button", { name: "마인드맵 (10+)" });
+    await removeCard(user, "카드 5");
+    await user.click(await undoButton());
+    await waitFor(() => expect(mapTitles()[0]).toBe("카드 5"));
+
+    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await screen.findByRole("button", { name: "마인드맵 (13)" });
+    expect(mapTitles()).toEqual(["카드 5", "카드 0", "카드 1", "카드 2", "카드 3", "카드 4", "카드 6", "카드 7", "카드 8", "카드 9", "카드 10", "카드 11", "카드 12"]);
   });
 });

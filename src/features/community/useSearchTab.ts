@@ -101,22 +101,25 @@ export function useSearchTab<T>(
     const request = {};
     moreRequest.current = request;
     setLoaded((prev) => prev && { ...prev, loadingMore: true, moreError: null });
-    // 앞에서 항목이 빠지면 뒤 항목이 앞 페이지로 당겨져서, 그 페이지부터 다시 받아야 건너뛰지 않는다. 겹친 항목은 uniqueBy 가 거른다
+    // 앞에서 항목이 빠지면 뒤 항목이 앞 페이지로 당겨진다. 다음 항목이 두 페이지에 걸치면 둘 다 받아야 건너뛰지 않는다.
+    // 겹친 항목은 uniqueBy 가 거른다
     const { shift } = current;
-    const nextPage = Math.floor(((current.page + 1) * pageSize + shift) / pageSize);
-    fetchPage(current.q, nextPage).then(
-      ({ items, hasNext }) => {
+    const offset = (current.page + 1) * pageSize + shift;
+    const firstPage = Math.floor(offset / pageSize);
+    const lastPage = Math.ceil(offset / pageSize);
+    Promise.all(firstPage === lastPage ? [fetchPage(current.q, firstPage)] : [fetchPage(current.q, firstPage), fetchPage(current.q, lastPage)]).then(
+      (pages) => {
         if (moreRequest.current !== request) return;
         moreRequest.current = null;
         setLoaded(
           (prev) =>
             prev && {
               ...prev,
-              page: nextPage,
+              page: lastPage,
               // 응답을 기다리는 사이에 밀린 칸은 다음 "더 보기" 로 넘긴다
               shift: prev.shift - shift,
-              items: uniqueBy([...prev.items, ...items], idOf),
-              hasNext,
+              items: uniqueBy([...prev.items, ...pages.flatMap((p) => p.items)], idOf),
+              hasNext: pages[pages.length - 1].hasNext,
               loadingMore: false,
             },
         );
