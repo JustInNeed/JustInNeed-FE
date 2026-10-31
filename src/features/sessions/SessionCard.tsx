@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Icon, HashChip } from "@/components/ui";
 import type { SessionListItem } from "@/lib/api";
 import { formatDate, formatDuration, STATUS_LABEL, withHash } from "@/lib/format";
@@ -7,9 +8,11 @@ export interface SessionCardProps {
   session: SessionListItem;
   onClick?: () => void;
   onToggleFavorite?: (id: number) => void;
+  /** 제목 옆 표시 (예: 내 프로필의 핀 · 비공개). 없으면 그리지 않는다 */
+  marks?: ReactNode;
 }
 
-export function SessionCard({ session, onClick, onToggleFavorite }: SessionCardProps) {
+export function SessionCard({ session, onClick, onToggleFavorite, marks }: SessionCardProps) {
   // 분석 완료 전(수집 중 · 분석 대기 · 분석 중) 세션은 볼 요약이 없어 상태만 보이고 상세로 열지 않는다.
   // 분석 실패 세션은 재분석 버튼이 상세에 있어 열 수 있다
   const completed = session.status === "COMPLETED";
@@ -33,6 +36,7 @@ export function SessionCard({ session, onClick, onToggleFavorite }: SessionCardP
     >
       <div className={styles.top}>
         <h3 className={styles.title}>{session.title}</h3>
+        {marks && <span className={styles.marks}>{marks}</span>}
         {onToggleFavorite && (
           <button
             className={styles.favBtn}

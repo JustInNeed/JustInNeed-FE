@@ -5,22 +5,24 @@ import { Icon, Card, PageHeader, Button, Field, FieldMessage, Toggle, InlineStat
 import type { SessionListItem } from "@/lib/api";
 import { formatDuration, withHash } from "@/lib/format";
 import { MAX_HASHTAGS, validateHashtag } from "@/lib/hashtag";
-import { ApiError, updateNickname } from "@/lib/api";
+import { ApiError, SessionExpiredError, updateMyProfile, updateNickname } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import { useToast } from "@/lib/app/ToastContext";
 import { NICKNAME_FORMAT_ERROR, NICKNAME_HINT, NICKNAME_MAX_LENGTH, isValidNickname } from "@/lib/nickname";
-import type { NodeVisibility, ProfileData } from "@/lib/viewTypes";
+import type { NodeVisibility, ProfileData, ProfileHashtagSetting } from "@/lib/viewTypes";
+import { ProfileList } from "./ProfileList";
+import { toMyProfileUpdate } from "./toProfilePage";
+import { useMySessions } from "./useProfileRemote";
 import styles from "./Profile.module.css";
-
-/** 저장 시 프로필 화면에 반영할 값 (닉네임은 회원 정보로 따로 저장) */
-export type ProfileDraft = Pick<ProfileData, "bio" | "interests" | "topTags" | "visibility" | "pinnedSessionIds">;
 
 export interface ProfileEditProps {
   profile: ProfileData;
-  /** 핀고정할 수 있는 내 세션 */
-  sessions: SessionListItem[];
+  /** 내 해시태그 전체 */
+  hashtags: ProfileHashtagSetting[];
+  /** 지금 핀고정한 세션 (profile.pinnedSessionIds). 후보는 여기서 공개 세션만 따로 받는다 */
+  pinnedSessions: SessionListItem[];
   onCancel: () => void;
-  onSave: (draft: ProfileDraft) => void;
+  onSaved: () => void;
 }
 
 const VISIBILITY_OPTIONS: { v: NodeVisibility; l: string; d: string }[] = [
@@ -28,7 +30,7 @@ const VISIBILITY_OPTIONS: { v: NodeVisibility; l: string; d: string }[] = [
   { v: "full", l: "내용까지 공개", d: "내용이 리프 노드로 노출됩니다" },
 ];
 
-export function ProfileEdit({ profile, sessions, onCancel, onSave }: ProfileEditProps) {
+export function ProfileEdit({ profile, hashtags: initialHashtags, pinnedSessions, onCancel, onSaved }: ProfileEditProps) {
   const { member, updateMember } = usePersonal();
   const toast = useToast();
   // 닉네임은 프로필 데이터가 아니라 로그인한 회원 닉네임으로 시작 — 바뀌었으면 저장 때 회원 API 로 변경
@@ -40,15 +42,16 @@ export function ProfileEdit({ profile, sessions, onCancel, onSave }: ProfileEdit
   const [newTag, setNewTag] = useState("");
   const [tagError, setTagError] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<NodeVisibility>(profile.visibility);
-  const [topTags, setTopTags] = useState(profile.topTags);
+  const [hashtags, setHashtags] = useState(initialHashtags);
   const [pinned, setPinned] = useState<number[]>(profile.pinnedSessionIds);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [unpinTarget, setUnpinTarget] = useState<number | null>(null);
+  const { items: candidates, section: candidatesSection } = useMySessions(true);
   const nameInvalid = !isValidNickname(name);
   const nameErrorText = nameInvalid ? NICKNAME_FORMAT_ERROR : nameError;
 
-  // 해제는 확인 후 반영 — 세션은 지우지 않고 공유 목록에서만 빠짐 (비공개)
+  // 해제는 확인 후 반영 — 맨 앞 고정만 풀리고 세션은 공개 상태로 남는다
   const togglePin = (id: number) => {
     if (pinned.includes(id)) setUnpinTarget(id);
     else setPinned((ps) => [...ps, id]);
@@ -72,6 +75,8 @@ export function ProfileEdit({ profile, sessions, onCancel, onSave }: ProfileEdit
     endDrag();
   };
 
+  // 고정을 푼 세션이 아직 안 받은 후보 페이지에 있어도 목록에서 사라지지 않게 함께 찾는다
+  const sessions = [...pinnedSessions, ...candidates.filter((c) => !pinnedSessions.some((s) => s.id === c.id))];
   const unpinned = sessions.filter((s) => !pinned.includes(s.id));
 
   const pinRow = (s: SessionListItem, isPinned: boolean) => (
@@ -93,19 +98,21 @@ export function ProfileEdit({ profile, sessions, onCancel, onSave }: ProfileEdit
 
   const save = async () => {
     if (nameInvalid || saving) return;
-    if (name !== (member.nickname ?? "")) {
-      setSaving(true);
-      try {
-        updateMember(await updateNickname(name));
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 409) setNameError(e.message);
-        else toast.error(e instanceof ApiError ? e.message : "저장에 실패했습니다. 다시 시도해 주세요.");
-        return;
-      } finally {
-        setSaving(false);
-      }
+    setSaving(true);
+    try {
+      // 닉네임이 먼저 — 프로필 저장이 실패해도 저장된 닉네임은 회원 정보에 남아 다시 저장할 때 또 보내지 않는다
+      if (name !== (member.nickname ?? "")) updateMember(await updateNickname(name));
+      await updateMyProfile(toMyProfileUpdate({ bio, interests, hashtags, visibility, pinnedSessionIds: pinned }));
+    } catch (e) {
+      if (e instanceof SessionExpiredError) return; // 이미 로그인 화면으로 이동
+      if (e instanceof ApiError && e.status === 409) setNameError(e.message);
+      else toast.error(e instanceof ApiError ? e.message : "저장에 실패했습니다. 다시 시도해 주세요.");
+      return;
+    } finally {
+      setSaving(false);
     }
-    onSave({ bio, interests, topTags, visibility, pinnedSessionIds: pinned });
+    toast.success("프로필을 저장했어요.");
+    onSaved();
   };
 
   const tagsFull = interests.length >= MAX_HASHTAGS;
@@ -221,13 +228,13 @@ export function ProfileEdit({ profile, sessions, onCancel, onSave }: ProfileEdit
         <Card className={styles.editCard}>
           <h3 className={styles.editTitle} style={{ marginBottom: 6 }}>해시태그 공개 설정</h3>
           <p className={styles.editDesc}>비공개 해시태그와 그 노드는 다른 사용자에게 보이지 않아요.</p>
-          {topTags.map((t) => (
-            <div key={t.tag} className={styles.tagPublicRow}>
+          {hashtags.map((t) => (
+            <div key={t.id} className={styles.tagPublicRow}>
               <Toggle
                 label={t.tag}
                 desc={`노드 ${t.count}개 · ${t.isPublic ? "공개" : "비공개"}`}
                 on={t.isPublic}
-                onChange={(v) => setTopTags((ts) => ts.map((x) => (x.tag === t.tag ? { ...x, isPublic: v } : x)))}
+                onChange={(v) => setHashtags((ts) => ts.map((x) => (x.id === t.id ? { ...x, isPublic: v } : x)))}
               />
             </div>
           ))}
@@ -238,44 +245,50 @@ export function ProfileEdit({ profile, sessions, onCancel, onSave }: ProfileEdit
             핀고정 세션
             {pinned.length > 1 && <span className={styles.dragHint}>드래그로 순서 변경</span>}
           </h3>
-          <p className={styles.editDesc}>핀고정한 세션이 이 순서대로 프로필에 공유돼요.</p>
-          {sessions.length === 0 && <InlineState kind="empty" title="핀고정할 세션이 없어요." />}
-          {pinned.map((id, i) => {
-            const s = sessions.find((x) => x.id === id);
-            if (!s) return null;
-            return (
-              <label
-                key={id}
-                draggable
-                onDragStart={(e) => {
-                  setDragIdx(i);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (dragIdx !== null && dragIdx !== i) setDragOverIdx(i);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  onPinDrop(i);
-                }}
-                onDragEnd={endDrag}
-                className={[
-                  styles.pinRow,
-                  dragIdx === i ? styles.pinRowDragging : "",
-                  dragOverIdx === i && dragIdx !== i ? styles.pinRowOver : "",
-                ].filter(Boolean).join(" ")}
-                title="드래그로 순서 변경"
-              >
-                {pinRow(s, true)}
+          <p className={styles.editDesc}>공개 세션 중 고정한 세션이 맨 앞에 보여요.</p>
+          <ProfileList
+            section={candidatesSection}
+            label="세션"
+            isEmpty={sessions.length === 0}
+            empty={<InlineState kind="empty" title="공개한 세션이 없어요." description="세션 상세에서 공개하면 여기서 고정할 수 있어요." />}
+          >
+            {pinned.map((id, i) => {
+              const s = sessions.find((x) => x.id === id);
+              if (!s) return null;
+              return (
+                <label
+                  key={id}
+                  draggable
+                  onDragStart={(e) => {
+                    setDragIdx(i);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (dragIdx !== null && dragIdx !== i) setDragOverIdx(i);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    onPinDrop(i);
+                  }}
+                  onDragEnd={endDrag}
+                  className={[
+                    styles.pinRow,
+                    dragIdx === i ? styles.pinRowDragging : "",
+                    dragOverIdx === i && dragIdx !== i ? styles.pinRowOver : "",
+                  ].filter(Boolean).join(" ")}
+                  title="드래그로 순서 변경"
+                >
+                  {pinRow(s, true)}
+                </label>
+              );
+            })}
+            {unpinned.map((s) => (
+              <label key={s.id} className={styles.pinRow}>
+                {pinRow(s, false)}
               </label>
-            );
-          })}
-          {unpinned.map((s) => (
-            <label key={s.id} className={styles.pinRow}>
-              {pinRow(s, false)}
-            </label>
-          ))}
+            ))}
+          </ProfileList>
         </Card>
       </div>
 
@@ -297,9 +310,9 @@ function UnpinConfirmModal({ onCancel, onConfirm }: { onCancel: () => void; onCo
     >
       <div role="dialog" aria-modal="true" aria-labelledby="unpin-confirm-title" className={styles.confirmModal}>
         <h2 id="unpin-confirm-title" className={styles.confirmTitle}>
-          핀고정을 해제할까요?
+          고정을 해제할까요?
         </h2>
-        <p className={styles.confirmBody}>공유 세션 목록에서 빠지고 비공개로 바뀌어요. 세션 내용은 삭제되지 않아요.</p>
+        <p className={styles.confirmBody}>맨 앞 고정만 풀려요. 세션은 공개 상태로 남아요.</p>
         <div className={styles.confirmActions}>
           <Button variant="secondary" onClick={onCancel} autoFocus>
             취소

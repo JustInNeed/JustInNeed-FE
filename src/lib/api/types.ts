@@ -110,6 +110,67 @@ export interface CommunityProfileMindmap {
   topHashtags: CommunityProfileHashtag[];
 }
 
+// ---------- 내 프로필 ----------
+/** 내 세션 · 노드에서 모은 해시태그 — 비공개도 함께 온다 */
+export interface MyProfileHashtag {
+  hashtagId: number;
+  hashtag: string; // '#' 없는 원문
+  nodeCount: number;
+  isPublic: boolean;
+}
+
+export interface MyProfileInterest {
+  interestId: number;
+  hashtag: string; // '#' 없는 원문
+}
+
+/** 내 세션 — 공개 · 비공개가 모두 온다 (isPublic). 핀은 공개 세션 중 맨 앞 고정이고 공개 여부와는 별개 */
+export interface MySession extends SessionListItem {
+  isPinned: boolean;
+}
+
+/** GET /community/me/profile */
+export interface MyProfileResponse {
+  userId: number;
+  nickname: string | null;
+  bio: string | null;
+  visibility: CommunityProfileVisibility;
+  totalNodeCount: number; // 비공개 세션 포함
+  sharedSessionCount: number; // 공개 세션 수
+  likeCount: number;
+  topHashtags: MyProfileHashtag[]; // 상위 5개, 비공개 포함
+  hashtags: MyProfileHashtag[]; // 전체 — 프로필 수정의 공개 설정
+  interests: MyProfileInterest[];
+  pinnedSessions: MySession[];
+}
+
+/** 핀고정이 먼저, 그다음 최신순 */
+export interface MySessionPage {
+  sessions: MySession[];
+  hasNext: boolean;
+}
+
+/** 내 프로필 마인드맵 카드 — title · snippet 이 항상 온다 */
+export interface MyProfileCard extends CommunityProfileCard {
+  isPublic: boolean;
+  isPinned: boolean;
+}
+
+/** 핀고정이 먼저, 그다음 최신순 */
+export interface MyProfileCardPage {
+  mindmaps: MyProfileCard[];
+  hasNext: boolean;
+}
+
+/** PUT /community/me/profile — 전부 저장되거나 전부 거절된다 (400) */
+export interface UpdateMyProfileRequest {
+  bio: string;
+  visibility: CommunityProfileVisibility;
+  interests: string[]; // '#' 없는 원문
+  hiddenHashtagIds: number[];
+  pinnedSessionIds: number[]; // 표시 순서
+}
+
 export interface ProfileLikeResponse {
   userId: number;
   liked: boolean;

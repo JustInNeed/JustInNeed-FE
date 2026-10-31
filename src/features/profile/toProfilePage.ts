@@ -1,16 +1,20 @@
 // 커뮤니티 프로필 API 응답 → 프로필 화면 데이터(ProfilePageData). 표시용 모양만 바꾸고 순서는 응답 그대로 둔다.
 // - 해시태그는 raw 로 오므로 화면에 찍히는 곳에 '#' 를 붙인다 (세션 tags 는 SessionListItem 규칙대로 raw)
-// - 마인드맵 카드 · 전체 마인드맵은 따로 받아 나중에 채운다
+// - 마인드맵 카드는 따로 받아 나중에 채운다
 import type {
   CommunityProfileCard,
   CommunityProfileMindmap,
   CommunityProfileResponse,
   CommunitySharedSession,
+  MyProfileCard,
+  MyProfileHashtag,
+  MyProfileResponse,
   SessionListItem,
+  UpdateMyProfileRequest,
 } from "@/lib/api";
 import { formatDate, hostFromUrl, LINK_ONLY_SESSION_TITLE, withHash } from "@/lib/format";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
-import type { FullMindmap, ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
+import type { FullMindmap, ProfileDraft, ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
 
 const DEFAULT_AVATAR = "🌱";
 const FALLBACK_NAME = "이름 없는 사용자";
@@ -60,7 +64,7 @@ function toSession(session: CommunitySharedSession): SessionListItem {
   };
 }
 
-/** GET /community/profiles/{userId} → 카드 · 전체 마인드맵을 뺀 프로필 화면 데이터 */
+/** GET /community/profiles/{userId} → 카드를 뺀 프로필 화면 데이터 */
 export function toProfilePage(res: CommunityProfileResponse): ProfilePageData {
   return {
     profile: {
@@ -76,11 +80,45 @@ export function toProfilePage(res: CommunityProfileResponse): ProfilePageData {
       pinnedSessionIds: res.pinnedSessions.map((s) => s.id),
     },
     mindmaps: [],
-    fullMindmap: { nodes: [], edges: [], nodeUrls: {} },
     sessions: res.pinnedSessions.map(toSession),
     exploringCount: res.exploringCount,
     likedByMe: res.likedByMe,
     following: res.following,
+  };
+}
+
+const toHashtagSetting = (t: MyProfileHashtag) => ({ id: t.hashtagId, tag: withHash(t.hashtag), count: t.nodeCount, isPublic: t.isPublic });
+
+/** GET /community/me/profile → 카드를 뺀 프로필 화면 데이터. 세션 탭 목록은 따로 받는다 */
+export function toMyProfilePage(res: MyProfileResponse): ProfilePageData {
+  return {
+    profile: {
+      name: res.nickname ?? FALLBACK_NAME,
+      handle: res.nickname ? `@${res.nickname}` : "",
+      avatar: DEFAULT_AVATAR,
+      bio: res.bio ?? "",
+      nodes: res.totalNodeCount,
+      likes: res.likeCount,
+      interests: res.interests.map((i) => withHash(i.hashtag)),
+      topTags: res.topHashtags.map(({ hashtag, nodeCount, isPublic }) => ({ tag: withHash(hashtag), count: nodeCount, isPublic })),
+      visibility: res.visibility === "CONTENT" ? "full" : "url",
+      pinnedSessionIds: res.pinnedSessions.map((s) => s.id),
+    },
+    mindmaps: [],
+    sessions: res.pinnedSessions,
+    hashtags: res.hashtags.map(toHashtagSetting),
+    sharedSessionCount: res.sharedSessionCount,
+  };
+}
+
+/** 프로필 수정 값 → PUT /community/me/profile 본문. 관심 해시태그는 '#' 없이, 끈 해시태그는 id 로 보낸다 */
+export function toMyProfileUpdate(draft: ProfileDraft): UpdateMyProfileRequest {
+  return {
+    bio: draft.bio,
+    visibility: draft.visibility === "full" ? "CONTENT" : "URL_ONLY",
+    interests: draft.interests.map((t) => t.replace(/^#/, "")),
+    hiddenHashtagIds: draft.hashtags.filter((t) => !t.isPublic).map((t) => t.id),
+    pinnedSessionIds: draft.pinnedSessionIds,
   };
 }
 
@@ -100,8 +138,11 @@ export function toProfileMindmap(card: CommunityProfileCard): ProfileMindmap {
     exploring: card.exploringCount,
     exploringByMe: card.exploringByMe,
     when: formatDate(card.lastActivityAt),
-    sessions: [],
   };
+}
+
+export function toMyProfileMindmap(card: MyProfileCard): ProfileMindmap {
+  return { ...toProfileMindmap(card), isPublic: card.isPublic, isPinned: card.isPinned };
 }
 
 const onCircle = (radius: number, index: number, total: number) => {

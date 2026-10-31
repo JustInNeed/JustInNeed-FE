@@ -75,6 +75,11 @@ export interface ProfileHashtag {
   isPublic: boolean;
 }
 
+/** 프로필 수정의 공개 설정 행 — 저장할 때 id 로 보낸다 */
+export interface ProfileHashtagSetting extends ProfileHashtag {
+  id: number;
+}
+
 export interface ProfileData {
   name: string;
   handle: string;
@@ -85,19 +90,25 @@ export interface ProfileData {
   interests: string[];
   topTags: ProfileHashtag[];
   visibility: NodeVisibility;
-  /** 핀고정(공유)한 세션 id — 프로필 세션 탭 표시 순서 */
+  /** 핀고정한 세션 id — 공개 세션 중 맨 앞에 보이는 순서. 공개 여부는 바꾸지 않는다 */
   pinnedSessionIds: number[];
 }
 
+/** 프로필 수정에서 저장하는 값 (닉네임은 회원 정보로 따로 저장) */
+export type ProfileDraft = Pick<ProfileData, "bio" | "interests" | "visibility" | "pinnedSessionIds"> & {
+  hashtags: ProfileHashtagSetting[];
+};
+
 /** 프로필 마인드맵 탭 카드 — 작성자는 프로필 주인이라 user 는 받지 않는다 */
 export interface ProfileMindmap extends Omit<CommunityPost, "user"> {
-  /** 상세 팝업의 관련 세션 (이 마인드맵의 출처가 된 세션). 다른 사용자 프로필은 팝업을 열 때 받아 비어 있다 */
-  sessions: SessionListItem[];
   /** 다른 사용자 카드의 작성자 · 내 반응 */
   ownerId?: number;
   likedByMe?: boolean;
   bookmarkId?: number | null;
   exploringByMe?: boolean;
+  /** 내 프로필 카드의 공개 · 핀 상태 */
+  isPublic?: boolean;
+  isPinned?: boolean;
 }
 
 /** 프로필 화면 데이터 (내 프로필 · 다른 사용자 프로필 공통) */
@@ -105,10 +116,11 @@ export interface ProfilePageData {
   profile: ProfileData;
   /** 마인드맵 탭 카드 (표시 순서) */
   mindmaps: ProfileMindmap[];
-  /** 프로필 주인의 전체 마인드맵 — 상세 팝업의 "마인드맵 크게 보기" */
-  fullMindmap: FullMindmap;
-  /** 프로필 주인의 세션. 세션 탭은 profile.pinnedSessionIds 순서로 골라 보여주고, 프로필 수정에선 핀고정 후보 목록 */
+  /** profile.pinnedSessionIds 의 세션. 다른 사용자는 세션 탭에, 내 프로필은 프로필 수정의 고정 목록에 쓴다 */
   sessions: SessionListItem[];
+  /** 내 프로필 — 내 해시태그 전체 (프로필 수정의 공개 설정) · 공개 세션 수 */
+  hashtags?: ProfileHashtagSetting[];
+  sharedSessionCount?: number;
   /** 다른 사용자 프로필의 "나도 탐색중" 수 */
   exploringCount?: number;
   /** 다른 사용자 프로필에 내가 누른 좋아요 · 팔로우 */

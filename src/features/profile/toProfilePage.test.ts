@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { CommunityProfileMindmap } from "@/lib/api";
-import { API_CONTENT_SESSION, API_MINDMAP, API_PROFILE, apiCard } from "@/test/fixtures/profile";
-import { titleFromTags, toFullMindmap, toProfileMindmap, toProfilePage } from "./toProfilePage";
+import { API_CONTENT_SESSION, API_MINDMAP, API_MY_PROFILE, API_PROFILE, MY_PROFILE, apiCard, apiMyCard } from "@/test/fixtures/profile";
+import {
+  titleFromTags,
+  toFullMindmap,
+  toMyProfileMindmap,
+  toMyProfilePage,
+  toMyProfileUpdate,
+  toProfileMindmap,
+  toProfilePage,
+} from "./toProfilePage";
 
 describe("toProfilePage", () => {
   it("프로필 응답을 화면 데이터로 옮기고 해시태그에 # 를 붙인다", () => {
@@ -58,6 +66,66 @@ describe("toProfilePage", () => {
   });
 });
 
+describe("toMyProfilePage", () => {
+  it("내 프로필 응답을 화면 데이터로 옮긴다 — 해시태그는 hashtag 필드, 비공개도 그대로", () => {
+    const page = toMyProfilePage(API_MY_PROFILE);
+
+    expect(page.profile).toEqual(MY_PROFILE);
+    expect(page).toMatchObject({ mindmaps: [], sharedSessionCount: 5, sessions: API_MY_PROFILE.pinnedSessions });
+  });
+
+  it("해시태그 전체는 id · '#' 포함 이름 · 노드 수 · 공개 여부로 옮긴다", () => {
+    const { hashtags } = toMyProfilePage(API_MY_PROFILE);
+
+    expect(hashtags).toHaveLength(7);
+    expect(hashtags?.at(-1)).toEqual({ id: 7, tag: "#비자", count: 4, isPublic: false });
+  });
+
+  it("닉네임 · 소개가 null 이면 대체 이름과 빈 소개로, CONTENT 는 내용까지 공개로 보여준다", () => {
+    const { profile } = toMyProfilePage({ ...API_MY_PROFILE, nickname: null, bio: null, visibility: "CONTENT" });
+
+    expect(profile).toMatchObject({ name: "이름 없는 사용자", handle: "", bio: "", visibility: "full" });
+  });
+});
+
+describe("toMyProfileUpdate", () => {
+  const draft = {
+    bio: "소개",
+    interests: ["#여행", "#HCI"],
+    visibility: "url" as const,
+    hashtags: [
+      { id: 1, tag: "#파리", count: 2, isPublic: true },
+      { id: 2, tag: "#예산", count: 1, isPublic: false },
+      { id: 3, tag: "#비자", count: 1, isPublic: false },
+    ],
+    pinnedSessionIds: [9, 3, 5],
+  };
+
+  it("관심 해시태그는 '#' 없이, 끈 해시태그는 id 로, 고정은 순서대로 보낸다", () => {
+    expect(toMyProfileUpdate(draft)).toEqual({
+      bio: "소개",
+      visibility: "URL_ONLY",
+      interests: ["여행", "HCI"],
+      hiddenHashtagIds: [2, 3],
+      pinnedSessionIds: [9, 3, 5],
+    });
+  });
+
+  it("내용까지 공개는 CONTENT 로 보낸다", () => {
+    expect(toMyProfileUpdate({ ...draft, visibility: "full" }).visibility).toBe("CONTENT");
+  });
+});
+
+describe("toMyProfileMindmap", () => {
+  it("공개 · 핀 상태를 함께 옮긴다", () => {
+    expect(toMyProfileMindmap(apiMyCard({ isPublic: false, isPinned: true }))).toMatchObject({
+      title: "로마 3박 4일 동선",
+      isPublic: false,
+      isPinned: true,
+    });
+  });
+});
+
 describe("toProfileMindmap", () => {
   it("URL_ONLY 카드는 제목 · 소개글이 비고 숫자와 내 반응은 그대로 옮긴다", () => {
     expect(toProfileMindmap(apiCard({ likedByMe: true, bookmarkId: 5, exploringByMe: true }))).toEqual({
@@ -74,7 +142,6 @@ describe("toProfileMindmap", () => {
       exploring: 3,
       exploringByMe: true,
       when: "2026-10-31",
-      sessions: [],
     });
   });
 

@@ -17,6 +17,12 @@ export {
   getProfileCards,
   getProfileMindmap,
   updateProfileLike,
+  getMyProfile,
+  getMySessions,
+  getMyCards,
+  getMyCardSessions,
+  getMyMindmap,
+  updateMyProfile,
 } from "./profiles";
 export {
   getAnalyticsWeekSessions,
