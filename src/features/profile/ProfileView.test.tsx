@@ -552,6 +552,31 @@ describe("다른 사용자 프로필", () => {
     expect(await screen.findByRole("dialog", { name: "wanderlust님의 전체 마인드맵" })).toBeInTheDocument();
   });
 
+  it("전체 마인드맵을 못 받고 팝업을 닫았다가 다시 열면 크게 보기로 다시 받는다", async () => {
+    let broken = true;
+    let calls = 0;
+    server.use(
+      http.get(`${API}/community/profiles/7/mindmap`, () => {
+        calls += 1;
+        return broken ? fail(500, SERVER_ERROR) : ok(API_MINDMAP);
+      }),
+    );
+    const { user } = renderOther();
+    await user.click(screen.getByText("동유럽 3주 살이 전체 동선"));
+    await user.click(screen.getByRole("button", { name: "마인드맵 크게 보기" }));
+    await screen.findByText("전체 마인드맵을 불러오지 못했어요.");
+
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByText("동유럽 3주 살이 전체 동선"));
+    expect(screen.queryByText("전체 마인드맵을 불러오지 못했어요.")).not.toBeInTheDocument();
+
+    broken = false;
+    await user.click(screen.getByRole("button", { name: "마인드맵 크게 보기" }));
+
+    expect(await screen.findByRole("dialog", { name: "wanderlust님의 전체 마인드맵" })).toBeInTheDocument();
+    expect(calls).toBe(2);
+  });
+
   it("공유 세션은 핀고정 순서대로 보이고 카드를 누르면 세션 상세로 이동한다", async () => {
     const { user } = renderOther();
 

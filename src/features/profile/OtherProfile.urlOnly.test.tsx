@@ -107,6 +107,8 @@ describe("URL 만 공개한 사용자의 프로필", () => {
       "#놀이 #사료",
       "원문 링크만 공개된 세션",
     ]);
+    // 제목 자리에 쓴 해시태그를 태그 줄에 또 찍지 않는다
+    expect(document.querySelector(".sessionGrid .tags")?.children).toHaveLength(0);
 
     await user.click(screen.getByRole("button", { name: /#놀이 #사료/ }));
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/31");

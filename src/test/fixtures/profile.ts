@@ -152,13 +152,6 @@ export const OTHER_PROFILE_PAGE: ProfilePageData = {
   exploringCount: 12,
 };
 
-/** 프로필 이동(핸들 변경) 확인용 두 번째 사용자 (@foodtrip) */
-export const ANOTHER_PROFILE_PAGE: ProfilePageData = {
-  ...OTHER_PROFILE_PAGE,
-  profile: { ...OTHER_PROFILE, name: "foodtrip", handle: "@foodtrip", avatar: "🥖", likes: 412 },
-  exploringCount: 34,
-};
-
 // ---------- 커뮤니티 프로필 API 응답 (실제 응답 모양) ----------
 // API_PROFILE: URL_ONLY(기본값) 사용자. 공유 세션에 title 키가 없고 카드 title · snippet 이 null 이다.
 

@@ -54,10 +54,12 @@ describe("/profile/[id] 페이지", () => {
   it.each(["wanderlust", "0", "-1", "1.5", "99999999999999999999", encodeURIComponent("여행자")])(
     "숫자 id 가 아닌 주소 %s 는 요청 없이 찾을 수 없다고 보여준다",
     async (id) => {
-      // 등록하지 않은 요청이 나가면 테스트가 실패한다
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+
       renderPersonal(await page(id));
 
       expect(screen.getByRole("status")).toHaveTextContent("프로필을 찾을 수 없어요");
+      expect(fetchSpy).not.toHaveBeenCalled();
     },
   );
 
@@ -91,11 +93,13 @@ describe("/profile/[id] 페이지", () => {
   });
 
   it("내 id 면 요청 없이 /profile 로 바꿔 보낸다", async () => {
-    // 등록하지 않은 요청이 나가면 테스트가 실패한다
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
     renderPersonal(await page(String(MEMBER.id)));
 
     await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/profile"));
     expect(screen.getByText("불러오는 중…")).toBeInTheDocument();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("다른 사람 id 면 /profile 로 보내지 않는다", async () => {
