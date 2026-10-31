@@ -1,8 +1,9 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { http } from "msw";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProfilePageData } from "@/lib/viewTypes";
+import { MEMBER } from "@/test/fixtures/member";
 import {
   API_MINDMAP,
   MY_MINDMAPS,
@@ -268,28 +269,205 @@ describe("다른 사용자 프로필", () => {
     expect(within(dialog).getAllByText("#자허토르테")).toHaveLength(2); // 팝업 태그 + 관련 세션 태그
   });
 
-  it("좋아요를 누르면 좋아요 수가 1 늘고 다시 누르면 원래대로 돌아온다", async () => {
-    const { user } = renderOther();
-    const like = screen.getByRole("button", { name: "좋아요" });
+  describe("좋아요 · 팔로우", () => {
+    /** PATCH 본문을 모으며 응답을 돌려준다 */
+    const servePatch = <T,>(path: string, respond: (body: T) => Response) => {
+      const bodies: T[] = [];
+      server.use(
+        http.patch(`${API}${path}`, async ({ request }) => {
+          const body = (await request.json()) as T;
+          bodies.push(body);
+          return respond(body);
+        }),
+      );
+      return bodies;
+    };
+    const serveLike = (likeCount: number) =>
+      servePatch<{ liked: boolean }>("/community/profiles/7/like", ({ liked }) => ok({ code: 200, userId: 7, liked, likeCount }));
+    const serveFollow = () =>
+      servePatch<{ following: boolean }>("/community/profiles/7/follow", ({ following }) => ok({ following }));
 
-    await user.click(like);
-    expect(stat("좋아요")).toBe("285");
-    expect(like).toHaveClass("active");
+    it("처음 상태는 응답의 내 좋아요 · 팔로우를 따르고 좋아요 수를 또 더하지 않는다", () => {
+      renderOther({ ...OTHER_PROFILE_PAGE, likedByMe: true, following: true });
 
-    await user.click(like);
-    expect(stat("좋아요")).toBe("284");
-    expect(like).not.toHaveClass("active");
-  });
+      expect(screen.getByRole("button", { name: "좋아요" })).toHaveClass("active");
+      expect(screen.getByRole("button", { name: "팔로잉" })).toBeInTheDocument();
+      expect(stat("좋아요")).toBe("284");
+    });
 
-  it("팔로우를 누르면 팔로잉으로 바뀌고 다시 누르면 팔로우로 돌아온다", async () => {
-    const { user } = renderOther();
+    it("좋아요를 누르면 바로 바뀌고 서버가 준 수로 맞춘다", async () => {
+      const bodies = serveLike(300);
+      const { user } = renderOther();
+      const like = screen.getByRole("button", { name: "좋아요" });
 
-    await user.click(screen.getByRole("button", { name: "팔로우" }));
-    expect(screen.getByRole("button", { name: "팔로잉" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "팔로우" })).not.toBeInTheDocument();
+      await user.click(like);
 
-    await user.click(screen.getByRole("button", { name: "팔로잉" }));
-    expect(screen.getByRole("button", { name: "팔로우" })).toBeInTheDocument();
+      await waitFor(() => expect(stat("좋아요")).toBe("300"));
+      expect(like).toHaveClass("active");
+      expect(bodies).toEqual([{ liked: true }]);
+    });
+
+    it("좋아요를 취소하면 liked false 를 보낸다", async () => {
+      const bodies = serveLike(283);
+      const { user } = renderOther({ ...OTHER_PROFILE_PAGE, likedByMe: true });
+
+      await user.click(screen.getByRole("button", { name: "좋아요" }));
+
+      await waitFor(() => expect(stat("좋아요")).toBe("283"));
+      expect(screen.getByRole("button", { name: "좋아요" })).not.toHaveClass("active");
+      expect(bodies).toEqual([{ liked: false }]);
+    });
+
+    it("좋아요가 실패하면 되돌리고 서버 메시지를 토스트로 보여준다", async () => {
+      server.use(http.patch(`${API}/community/profiles/7/like`, () => fail(500, SERVER_ERROR)));
+      const { user } = renderOther();
+      const like = screen.getByRole("button", { name: "좋아요" });
+
+      await user.click(like);
+
+      expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
+      expect(stat("좋아요")).toBe("284");
+      expect(like).not.toHaveClass("active");
+    });
+
+    it("응답을 기다리는 동안 다시 눌러도 요청은 하나만 간다", async () => {
+      let release = () => {};
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      let calls = 0;
+      server.use(
+        http.patch(`${API}/community/profiles/7/like`, async () => {
+          calls += 1;
+          await gate;
+          return ok({ code: 200, userId: 7, liked: true, likeCount: 285 });
+        }),
+      );
+      const { user } = renderOther();
+      const like = screen.getByRole("button", { name: "좋아요" });
+
+      await user.click(like);
+      await user.click(like);
+      release();
+
+      await waitFor(() => expect(like).toHaveClass("active"));
+      expect(stat("좋아요")).toBe("285");
+      expect(calls).toBe(1);
+    });
+
+    it("팔로우를 누르면 following 을 보내고 팔로잉으로 바뀐다", async () => {
+      const bodies = serveFollow();
+      const { user } = renderOther();
+
+      await user.click(screen.getByRole("button", { name: "팔로우" }));
+
+      expect(await screen.findByRole("button", { name: "팔로잉" })).toBeInTheDocument();
+      await waitFor(() => expect(bodies).toEqual([{ following: true }]));
+    });
+
+    it("팔로우가 실패하면 되돌리고 토스트를 보여준다", async () => {
+      server.use(http.patch(`${API}/community/profiles/7/follow`, () => fail(500, SERVER_ERROR)));
+      const { user } = renderOther({ ...OTHER_PROFILE_PAGE, following: true });
+
+      await user.click(screen.getByRole("button", { name: "팔로잉" }));
+
+      expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "팔로잉" })).toBeInTheDocument();
+    });
+
+    describe("카드", () => {
+      const TITLE = "동유럽 3주 살이 전체 동선";
+      const CARD_ID = OTHER_MINDMAPS[0].id;
+
+      it("좋아요를 누르면 서버 값으로 맞추고 상세 팝업은 열리지 않는다", async () => {
+        const bodies = servePatch<{ liked: boolean }>(`/community/mindmaps/${CARD_ID}/like`, () => ok({ likeCount: 290, likedByMe: true }));
+        const { user } = renderOther();
+        const like = within(cardOf(TITLE)).getByRole("button", { name: "마인드맵 좋아요" });
+
+        await user.click(like);
+
+        await waitFor(() => expect(like).toHaveTextContent("♥ 290"));
+        expect(like).toHaveAttribute("aria-pressed", "true");
+        expect(bodies).toEqual([{ liked: true }]);
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+
+      it("북마크를 누르면 저장 표시로 바뀌고, 저장된 카드는 해제를 보낸다", async () => {
+        const bodies = servePatch<{ bookmarked: boolean }>(`/community/mindmaps/${CARD_ID}/bookmark`, ({ bookmarked }) =>
+          ok({ bookmarkCount: bookmarked ? 92 : 91, bookmarkId: bookmarked ? 5 : null }),
+        );
+        const { user } = renderOther();
+        const bookmark = within(cardOf(TITLE)).getByRole("button", { name: "마인드맵 북마크" });
+
+        await user.click(bookmark);
+        await waitFor(() => expect(bookmark).toHaveTextContent("◆ 92"));
+        await user.click(bookmark);
+
+        await waitFor(() => expect(bookmark).toHaveTextContent("◇ 91"));
+        expect(bodies).toEqual([{ bookmarked: true }, { bookmarked: false }]);
+      });
+
+      it("나도 탐색을 누르면 그 카드만 바뀌고 프로필의 나도 탐색중 수도 함께 움직인다", async () => {
+        const bodies = servePatch<{ exploring: boolean }>(`/community/mindmaps/${CARD_ID}/exploring`, ({ exploring }) =>
+          ok({ exploringCount: exploring ? 1 : 0, exploringByMe: exploring }),
+        );
+        const { user } = renderOther();
+        const card = cardOf(TITLE);
+
+        await user.click(within(card).getByRole("button", { name: "+ 나도 탐색" }));
+
+        expect(await within(card).findByRole("button", { name: "✓ 탐색중" })).toHaveClass("exploreBtnOn");
+        expect(screen.getAllByRole("button", { name: "+ 나도 탐색" })).toHaveLength(OTHER_MINDMAPS.length - 1);
+        expect(stat("나도 탐색중")).toBe("13");
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        await waitFor(() => expect(bodies).toEqual([{ exploring: true }]));
+      });
+
+      it.each([
+        ["좋아요", "like", "마인드맵 좋아요", "♡ 284"],
+        ["북마크", "bookmark", "마인드맵 북마크", "◇ 91"],
+      ])("%s 가 실패하면 되돌리고 토스트를 보여준다", async (_, path, name, text) => {
+        server.use(http.patch(`${API}/community/mindmaps/${CARD_ID}/${path}`, () => fail(500, SERVER_ERROR)));
+        const { user } = renderOther();
+        const button = within(cardOf(TITLE)).getByRole("button", { name });
+
+        await user.click(button);
+
+        expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
+        expect(button).toHaveTextContent(text);
+        expect(button).toHaveAttribute("aria-pressed", "false");
+      });
+
+      it("나도 탐색이 실패하면 카드와 프로필 수를 되돌린다", async () => {
+        server.use(http.patch(`${API}/community/mindmaps/${CARD_ID}/exploring`, () => fail(500, SERVER_ERROR)));
+        const { user } = renderOther();
+        const card = cardOf(TITLE);
+
+        await user.click(within(card).getByRole("button", { name: "+ 나도 탐색" }));
+
+        expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
+        expect(within(card).getByRole("button", { name: "+ 나도 탐색" })).toBeInTheDocument();
+        expect(stat("나도 탐색중")).toBe("12");
+      });
+
+      it("상세 팝업의 좋아요 수는 카드에서 바뀐 값을 따른다", async () => {
+        servePatch(`/community/mindmaps/${CARD_ID}/like`, () => ok({ likeCount: 290, likedByMe: true }));
+        const { user } = renderOther();
+        const like = within(cardOf(TITLE)).getByRole("button", { name: "마인드맵 좋아요" });
+        await user.click(like);
+        await waitFor(() => expect(like).toHaveTextContent("♥ 290"));
+
+        await user.click(screen.getByText(TITLE));
+
+        expect(within(screen.getByRole("dialog")).getByText("좋아요 290")).toBeInTheDocument();
+      });
+
+      it("내 카드엔 좋아요 버튼이 없고 수만 보인다", () => {
+        const mine = { ...OTHER_MINDMAPS[0], ownerId: MEMBER.id };
+        renderOther({ ...OTHER_PROFILE_PAGE, mindmaps: [mine] });
+
+        expect(within(cardOf(TITLE)).queryByRole("button", { name: "마인드맵 좋아요" })).not.toBeInTheDocument();
+        expect(within(cardOf(TITLE)).getByText("♡ 284")).toBeInTheDocument();
+      });
+    });
   });
 
   it("마인드맵 카드가 모두 보이고 내 프로필과 달리 핀 표시는 없다", () => {
@@ -297,20 +475,6 @@ describe("다른 사용자 프로필", () => {
 
     for (const m of OTHER_MINDMAPS) expect(screen.getByText(m.title)).toBeInTheDocument();
     expect(screen.queryAllByTitle("핀고정됨")).toHaveLength(0);
-    expect(screen.getAllByRole("button", { name: "+ 나도 탐색" })).toHaveLength(OTHER_MINDMAPS.length);
-  });
-
-  it("카드의 + 나도 탐색을 누르면 그 카드만 탐색중으로 바뀌고 상세 팝업은 열리지 않는다", async () => {
-    const { user } = renderOther();
-    const card = cardOf("동유럽 3주 살이 전체 동선");
-
-    await user.click(within(card).getByRole("button", { name: "+ 나도 탐색" }));
-
-    expect(within(card).getByRole("button", { name: "✓ 탐색중" })).toHaveClass("exploreBtnOn");
-    expect(screen.getAllByRole("button", { name: "+ 나도 탐색" })).toHaveLength(OTHER_MINDMAPS.length - 1);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-
-    await user.click(within(card).getByRole("button", { name: "✓ 탐색중" }));
     expect(screen.getAllByRole("button", { name: "+ 나도 탐색" })).toHaveLength(OTHER_MINDMAPS.length);
   });
 

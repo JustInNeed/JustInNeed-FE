@@ -263,6 +263,13 @@
 .exploreBtnOn {
   color: var(--green-300);
 }
+.cardAction {
+  color: inherit;
+  font: inherit;
+}
+.cardActionOn {
+  color: var(--green-300);
+}
 
 /* ---- 프로필 수정 ---- */
 .editBody {

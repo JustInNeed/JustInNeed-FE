@@ -177,7 +177,7 @@ describe("/profile/[id] 페이지", () => {
 
   it("다른 사용자 프로필로 이동하면 화면 상태가 새로 시작된다", async () => {
     serveProfile();
-    serveProfile({ ...API_PROFILE, userId: 8, nickname: "빵순이" });
+    serveProfile({ ...API_PROFILE, userId: 8, nickname: "빵순이", likedByMe: false, following: false, likeCount: 9 });
     const { user, rerender } = renderPersonal(await page("7"));
     await screen.findByRole("heading", { level: 1, name: "냥집사" });
     await user.click(screen.getByRole("button", { name: "#놀이 7" }));
@@ -187,5 +187,8 @@ describe("/profile/[id] 페이지", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "빵순이" })).toBeInTheDocument();
     expect(screen.queryByText(/개 선택$/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "좋아요" })).not.toHaveClass("active");
+    expect(screen.getByRole("button", { name: "팔로우" })).toBeInTheDocument();
+    expect(screen.getByText("좋아요", { selector: ".statL" }).previousElementSibling).toHaveTextContent("9");
   });
 });
