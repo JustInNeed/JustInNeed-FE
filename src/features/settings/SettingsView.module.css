@@ -257,3 +257,9 @@
   justify-content: space-between;
   gap: 8px;
 }
+.loading {
+  padding: 32px 0;
+  font-size: 13px;
+  color: var(--ink-500);
+  text-align: center;
+}

@@ -1,9 +1,26 @@
-import { SettingsView } from "@/features/settings/SettingsView";
-import type { ExcludedUrl } from "@/lib/viewTypes";
+"use client";
 
-// 수집 제외 URL API 연결 전 — 빈 목록으로 시작한다
-const EXCLUDED_URLS: ExcludedUrl[] = [];
+import { useMemo } from "react";
+import { SettingsView } from "@/features/settings/SettingsView";
+import { toExcludedUrl } from "@/features/settings/excludedUrl";
+import { getExcludedUrls, getExtensionSettings } from "@/lib/api";
+import { useApi } from "@/lib/hooks/useApi";
 
 export default function SettingsPage() {
-  return <SettingsView excludedUrls={EXCLUDED_URLS} />;
+  const urls = useApi(getExcludedUrls);
+  const extension = useApi(getExtensionSettings);
+  const excludedUrls = useMemo(() => (urls.data?.excludedUrls ?? []).map(toExcludedUrl), [urls.data]);
+
+  return (
+    <SettingsView
+      excludedUrls={excludedUrls}
+      loading={urls.loading}
+      error={urls.error}
+      onRetry={urls.refetch}
+      extension={extension.data ?? undefined}
+      extensionLoading={extension.loading}
+      extensionError={extension.error}
+      onRetryExtension={extension.refetch}
+    />
+  );
 }

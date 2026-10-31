@@ -90,6 +90,40 @@ export interface AnalyticsRecommendations {
   recommendations: BannerTip[];
 }
 
+// ---------- 설정 ----------
+export interface ExcludedUrlItem {
+  excludedUrlId: number;
+  url: string; // 프로토콜 · www. 를 뗀 표시형 (instagram.com, tistory.com/feed)
+  domain: string;
+  isDefault: boolean;
+  isExcluded: boolean;
+}
+
+export interface ExcludedUrlListResponse {
+  code: number;
+  excludedUrls: ExcludedUrlItem[];
+}
+
+export interface ExcludedUrlCreateResponse extends ExcludedUrlItem {
+  code: number;
+  createdAt: string;
+}
+
+export interface ExtensionSettings {
+  popupVisible: boolean;
+  autoEndNotificationEnabled: boolean;
+  manualScrapEnabled: boolean;
+}
+
+export type ExtensionSettingKey = keyof ExtensionSettings;
+
+/** 저장한 적이 없으면 기본값(모두 켜짐)이고 updatedAt 이 없다 */
+export interface ExtensionSettingsResponse extends ExtensionSettings {
+  code: number;
+  userId: number;
+  updatedAt?: string;
+}
+
 export interface LogoutRequest {
   refreshToken?: string;
 }
