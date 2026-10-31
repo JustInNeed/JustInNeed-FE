@@ -3,7 +3,7 @@ import { http } from "msw";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import SessionDetailPage from "@/app/(personal)/sessions/[id]/page";
 import { ToastProvider } from "@/lib/app/ToastContext";
-import { ANALYZING_DETAIL, OLD_EDITED_DETAIL, PARIS_DETAIL, ROME_DETAIL } from "@/test/fixtures/sessions";
+import { OLD_EDITED_DETAIL, PARIS_DETAIL, ROME_DETAIL } from "@/test/fixtures/sessions";
 import { API, SERVER_ERROR, fail, ok, server } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
@@ -87,27 +87,11 @@ describe("세션 상세 — 보기", () => {
     expect(document.querySelector("[class*='highlight']")).not.toBeInTheDocument();
   });
 
-  it("아직 분석 중이면 '분석 중' 이 보이고, 본문 · 출처 대신 안내가 보인다", async () => {
-    await renderDetail(ANALYZING_DETAIL);
-    expect(screen.getByText("2026-04-18 20:10 → 20:55")).toBeInTheDocument();
-    expect(screen.getByText("분석 중")).toBeInTheDocument();
-    expect(screen.getByText("아직 분석 중이에요. 잠시 후 다시 확인해주세요.")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "출처 (0)" })).toBeInTheDocument();
-    expect(screen.getByText("수집된 출처가 없습니다.")).toBeInTheDocument();
-    // 복사 · 다운로드할 본문이 없다
-    expect(screen.queryByRole("button", { name: "줄글 복사" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: ".md 파일 다운로드" })).not.toBeInTheDocument();
-  });
-
   it("편집으로 본문을 비워 저장했으면 '요약 본문이 없습니다.' 가 보인다", async () => {
     await renderDetail({ ...ROME_DETAIL, summary: { markdown: "" } });
     expect(screen.getByText("요약 본문이 없습니다.")).toBeInTheDocument();
   });
 
-  it("분석에 실패한 세션은 '분석 실패' 로 보인다", async () => {
-    await renderDetail({ ...ROME_DETAIL, status: "FAILED" });
-    expect(screen.getByText("분석 실패")).toBeInTheDocument();
-  });
 });
 
 describe("세션 상세 — 못 여는 경우", () => {

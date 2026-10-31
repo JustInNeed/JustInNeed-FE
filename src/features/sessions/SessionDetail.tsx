@@ -18,6 +18,7 @@ import { formatDateTime, formatDuration, formatTime, hostFromUrl, STATUS_LABEL, 
 import { buildSessionMindmap } from "./buildSessionMindmap";
 import { CitationPopup } from "./CitationPopup";
 import { SessionEditor } from "./SessionEditor";
+import { SessionStatusView } from "./SessionStatusView";
 import { AddHashtagPopover } from "./AddHashtagPopover";
 import { LeaveConfirmModal } from "./LeaveConfirmModal";
 import styles from "./SessionDetail.module.css";
@@ -182,6 +183,22 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   }
   if (!detail) return null;
 
+  const onDelete = async () => {
+    if (!confirm("이 세션을 삭제할까요?")) return;
+    try {
+      await deleteSession(detail.id);
+      router.push("/sessions");
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "삭제에 실패했습니다. 다시 시도해 주세요.");
+    }
+  };
+
+  if (detail.status !== "COMPLETED") {
+    return (
+      <SessionStatusView title={detail.title} status={detail.status} isOwner={detail.isOwner} onDelete={onDelete} />
+    );
+  }
+
   // 낙관적 업데이트 + 서버 동기화. 실패하면 되돌리고 false
   const persist = async (body: SessionUpdateRequest, optimistic: Partial<SessionDetailType>): Promise<boolean> => {
     const prev = detail;
@@ -207,16 +224,6 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const removeTag = (tag: string) => {
     const next = detail.tags.filter((t) => t !== tag);
     persist({ tags: next }, { tags: next });
-  };
-
-  const onDelete = async () => {
-    if (!confirm("이 세션을 삭제할까요?")) return;
-    try {
-      await deleteSession(detail.id);
-      router.push("/sessions");
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "삭제에 실패했습니다. 다시 시도해 주세요.");
-    }
   };
 
   const onTagDrop = (i: number) => {
@@ -371,10 +378,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                 <Icon name="link" size={12} /> {detail.pageCount}개 페이지
               </span>
               <span>·</span>
-              <span
-                className={styles.metaDone}
-                style={{ color: detail.status === "FAILED" ? "#c44" : "var(--green-700)" }}
-              >
+              <span className={styles.metaDone}>
                 <Icon name="dot" size={10} /> {STATUS_LABEL[detail.status]}
               </span>
             </div>
@@ -523,11 +527,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   <Markdown>{detail.summary.markdown}</Markdown>
                 </div>
               ) : (
-                <p className={styles.bodyMuted}>
-                  {detail.status === "ANALYZING"
-                    ? "아직 분석 중이에요. 잠시 후 다시 확인해주세요."
-                    : "요약 본문이 없습니다."}
-                </p>
+                <p className={styles.bodyMuted}>요약 본문이 없습니다.</p>
               )}
             </Card>
           )

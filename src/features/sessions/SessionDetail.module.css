@@ -24,6 +24,14 @@
   max-width: 360px;
 }
 
+/* 분석 완료 전 · 실패 세션 — 본문 자리의 안내 */
+.statusBody {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 40px 28px;
+}
+
 .bodyMuted {
   font-size: 14px;
   color: var(--ink-500);
