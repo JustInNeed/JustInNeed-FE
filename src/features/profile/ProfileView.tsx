@@ -201,14 +201,9 @@ function ProfileScreen({ handle, data }: { handle?: string; data: ProfilePageDat
           </div>
           <div className={styles.actions}>
             {isMine ? (
-              <>
-                <Button variant="secondary" onClick={() => setEditing(true)}>
-                  <Icon name="edit" size={14} /> 프로필 수정
-                </Button>
-                <Button variant="secondary" onClick={() => router.push("/settings")} aria-label="설정">
-                  <Icon name="settings" size={14} />
-                </Button>
-              </>
+              <Button variant="secondary" onClick={() => setEditing(true)}>
+                <Icon name="edit" size={14} /> 프로필 수정
+              </Button>
             ) : (
               <>
                 <Button variant="secondary" active={liked} onClick={() => setLiked((v) => !v)}>
