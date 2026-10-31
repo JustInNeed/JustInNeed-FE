@@ -48,7 +48,8 @@ export function ProfileEdit({ profile, hashtags: initialHashtags, pinnedSessions
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [unpinTarget, setUnpinTarget] = useState<number | null>(null);
   const { items: candidates, section: candidatesSection } = useMySessions(true);
-  const nameInvalid = !isValidNickname(name);
+  // 규칙이 생기기 전 닉네임도 안 바꾸면 그대로 둘 수 있다
+  const nameInvalid = name !== (member.nickname ?? "") && !isValidNickname(name);
   const nameErrorText = nameInvalid ? NICKNAME_FORMAT_ERROR : nameError;
 
   // 해제는 확인 후 반영 — 맨 앞 고정만 풀리고 세션은 공개 상태로 남는다

@@ -354,6 +354,19 @@ describe("프로필 수정", () => {
       expect(saveButton()).toBeEnabled();
     });
 
+    it("규칙이 생기기 전 닉네임은 안 바꾸면 그대로 두고 저장할 수 있다", async () => {
+      serveMyProfile();
+      const { user } = renderPersonal(<MyProfile />, { member: { ...MEMBER, nickname: "냥집사" } });
+      await clickEdit(user);
+
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(saveButton()).toBeEnabled();
+
+      await user.type(screen.getByDisplayValue("냥집사"), "2");
+      expect(screen.getByRole("alert")).toHaveTextContent(NICKNAME_FORMAT_ERROR);
+      expect(saveButton()).toBeDisabled();
+    });
+
     it("바꿔 저장하면 닉네임 변경 API 로 저장되고 프로필 이름 · 핸들이 새 닉네임으로 바뀐다", async () => {
       let body: unknown;
       server.use(
