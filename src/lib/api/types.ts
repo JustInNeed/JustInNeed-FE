@@ -134,3 +134,88 @@ export interface TagGroupOrderRequest {
   /** 내 그룹 전체를 원하는 순서대로 빠짐없이 한 번씩. */
   groupIds: number[];
 }
+
+// ---------- 홈 ----------
+/** 좌표는 응답에 없다 — 화면에서 정한다 (features/home/toHomeData) */
+export interface HomeGraphNode {
+  id: string;
+  label: string;
+  size: number;
+  group: "core" | "city" | "logi" | "sub";
+}
+
+export interface HomeNodeMeta {
+  /** 마지막으로 본 시점 — 30일이 지났으면 all */
+  seen: "today" | "week" | "month" | "all";
+  tags: string[]; // '#' 없이 raw 문자열
+  /** 노드가 나온 세션 */
+  sessionId?: number | null;
+}
+
+export interface HomeTagGroup {
+  id: number;
+  name: string;
+  tags: string[]; // '#' 없이 raw 문자열
+}
+
+export interface HomeGraphResponse {
+  nodes: HomeGraphNode[];
+  edges: [string, string][];
+  /** 노드 id → 메타. 메타가 없는 노드도 있다 */
+  nodeMeta: Record<string, HomeNodeMeta>;
+  tagGroups: HomeTagGroup[];
+  filterTags: string[]; // '#' 없이 raw 문자열
+}
+
+export interface HomeStatsResponse {
+  totalNodes: number;
+  nodeDelta: number;
+  hashtagCount: number;
+  weekSessions: number;
+  sessionDelta: number;
+  avgSessionMinutes: number;
+  deepReadingPct: number;
+  deepReadingDelta: number;
+}
+
+export interface HomeWeekActivity {
+  range: string; // "10.25 — 10.31"
+  /** 항상 7개 — 오늘로 끝나는 최근 7일, 오래된 날부터 (월요일 시작이 아님) */
+  days: { day: string; minutes: number }[];
+}
+
+export interface HomeTopTag {
+  tag: string; // '#' 없이 raw 문자열
+  count: number;
+}
+
+export interface HomeTimelineSlot {
+  startTime: string; // "09:00"
+  endTime: string | null; // 진행 중이면 null
+  tags: string[]; // '#' 없이 raw 문자열
+  sites: string[]; // 도메인
+}
+
+export interface HomeWeekVisit {
+  domain: string;
+  dwellSec: number;
+}
+
+export interface HomeWeekSession {
+  dayOffset: number; // 0 = 오늘, -6 = 6일 전
+  startedAt: string; // "10:10"
+  tags: string[]; // '#' 없이 raw 문자열
+  visits: HomeWeekVisit[];
+}
+
+/** GET /home — 기록이 없는 회원은 0 · 활동 0분 7일 · 빈 목록 */
+export interface HomeResponse {
+  graph: HomeGraphResponse;
+  stats: HomeStatsResponse;
+  weekActivity: HomeWeekActivity;
+  topTags: HomeTopTag[];
+  todayTimeline: HomeTimelineSlot[];
+  weekSessions: HomeWeekSession[];
+  /** 최근 순, 최대 300개 */
+  sessions: SessionListItem[];
+}
