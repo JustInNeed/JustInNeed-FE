@@ -1,5 +1,5 @@
-// API가 아직 없는 화면(홈 · 분석 · 커뮤니티 · 북마크 · 프로필 · 설정)이 props로 받는 데이터 모양.
-// API를 연결하면 응답을 이 모양으로 바꿔 넘기고, 테스트 픽스처(src/test/fixtures)도 같은 타입을 쓴다.
+// 화면이 props로 받는 데이터 모양 (홈 · 분석 · 커뮤니티 · 북마크 · 프로필 · 설정).
+// API를 연결하면 응답을 이 모양으로 바꿔 넘기고 (홈: features/home/toHomeData), 테스트 픽스처(src/test/fixtures)도 같은 타입을 쓴다.
 import type { SessionListItem } from "@/lib/api";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
 
@@ -8,8 +8,11 @@ export type GraphPeriod = "today" | "week" | "month" | "all";
 
 /** 노드를 마지막으로 본 시점과 연결된 해시태그 (# 없는 raw) */
 export interface GraphNodeMeta {
-  seen: Exclude<GraphPeriod, "all">;
+  /** all: 30일이 지나 기간 "전체"에서만 보이는 노드 */
+  seen: GraphPeriod;
   tags: string[];
+  /** 노드가 나온 세션 — "관련 세션 보기" 대상 */
+  sessionId?: number;
 }
 
 export interface GraphTagGroup {
@@ -144,7 +147,7 @@ export interface HomeStats {
   deepReadingDelta: number;
 }
 
-/** 이번 주 활동 막대 — 요일별 탐색 시간 */
+/** 이번 주 활동 막대 — 오늘로 끝나는 최근 7일의 요일별 탐색 시간 (오래된 날부터) */
 export interface DayActivity {
   day: string; // "월"
   minutes: number;
@@ -158,7 +161,7 @@ export interface HomeTopTag {
 export interface HomeData {
   graph: HomeGraph;
   stats: HomeStats;
-  /** range: 표시용 기간 ("4.20 — 4.26") */
+  /** range: 표시용 기간 ("4.20 — 4.26"). days 는 받은 순서대로 그린다 */
   weekActivity: { range: string; days: DayActivity[] };
   /** 상위 해시태그 (많은 순, 최대 10개) */
   topTags: HomeTopTag[];

@@ -1,6 +1,5 @@
 import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import HomePage from "@/app/(personal)/home/page";
 import { EMPTY_HOME_DATA, HOME_DATA } from "@/test/fixtures/home";
 import { renderPersonal } from "@/test/render";
 import { HomeView } from "./HomeView";
@@ -41,6 +40,24 @@ describe("홈 대시보드", () => {
     const bar = (day: string) => within(activity).getByText(day).parentElement!.querySelector(".bar");
     expect(bar("토")).toHaveStyle({ height: "100%" });
     expect(bar("목")).toHaveStyle({ height: `${(110 / 120) * 100}%` });
+  });
+
+  it("이번 주 활동은 월요일 시작이 아니어도 받은 순서대로 그린다 (요일 key 중복 없음)", () => {
+    const consoleError = vi.spyOn(console, "error");
+    const days = ["목", "금", "토", "일", "월", "화", "수"].map((day, i) => ({ day, minutes: (i + 1) * 10 }));
+    renderPersonal(<HomeView data={{ ...HOME_DATA, weekActivity: { range: "10.22 — 10.28", days } }} />);
+    const activity = card("이번 주 활동");
+    expect(Array.from(activity.querySelectorAll(".barDay")).map((el) => el.textContent)).toEqual(days.map((d) => d.day));
+    expect(Array.from(activity.querySelectorAll(".barValue")).map((el) => el.textContent)).toEqual([
+      "10m",
+      "20m",
+      "30m",
+      "40m",
+      "50m",
+      "1h 0m",
+      "1h 10m",
+    ]);
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it("상위 해시태그 10개가 개수와 함께 많은 순으로 보인다", () => {
@@ -132,12 +149,6 @@ describe("홈 데이터 없음 · 불러오기 실패", () => {
     expect(empty).toHaveTextContent("확장 프로그램이 탐색 세션을 모으면 마인드맵과 통계가 여기에 보여요.");
     expect(screen.queryByText("누적 노드")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "필터" })).not.toBeInTheDocument();
-  });
-
-  it("홈 페이지는 아직 홈 API 가 없어 빈 상태로 보인다", () => {
-    renderPersonal(<HomePage />);
-    expect(screen.getByRole("heading", { name: "홈" })).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("아직 모인 탐색 기록이 없어요.");
   });
 
   it("불러오기에 실패하면 오류 메시지와 '다시 시도'가 보이고, 누르면 onRetry 가 호출된다", async () => {

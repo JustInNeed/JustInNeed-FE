@@ -11,6 +11,7 @@ export {
   deleteSession,
   reanalyzeSession,
 } from "./sessions";
+export { getHome } from "./home";
 export {
   getTagGroups,
   createTagGroup,
