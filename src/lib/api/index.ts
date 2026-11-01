@@ -15,6 +15,7 @@ export { getHome } from "./home";
 export {
   getCommunityProfile,
   getProfileCards,
+  getSharedSessions,
   getProfileMindmap,
   updateProfileLike,
   getMyProfile,

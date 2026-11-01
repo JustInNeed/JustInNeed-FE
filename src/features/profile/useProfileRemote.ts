@@ -11,11 +11,12 @@ import {
   getMyMindmap,
   getMySessions,
   getProfileMindmap,
+  getSharedSessions,
   type CardSessionsResponse,
   type SessionListItem,
 } from "@/lib/api";
 import { useApi } from "@/lib/hooks/useApi";
-import { toFullMindmap, toMyProfileMindmap, toProfileMindmap } from "./toProfilePage";
+import { toFullMindmap, toMyProfileMindmap, toProfileMindmap, toSession } from "./toProfilePage";
 
 const CARD_PAGE_SIZE = 12;
 const SESSION_PAGE_SIZE = 12;
@@ -67,6 +68,18 @@ export function useProfileCards(userId: number | null, enabled: boolean) {
     enabled,
   );
   return { cards: items, section };
+}
+
+/** 다른 사용자의 세션 탭 — 공개 세션 전부, 핀고정이 먼저 */
+export function useSharedSessions(userId: number | null, enabled: boolean) {
+  return usePagedList(
+    async (page) => {
+      const { sessions, hasNext } = await getSharedSessions(userId!, page, SESSION_PAGE_SIZE);
+      return { items: sessions.map(toSession), hasNext };
+    },
+    [userId],
+    enabled,
+  );
 }
 
 /** 내 마인드맵 탭 카드 — 비공개 포함, 핀고정이 먼저 */

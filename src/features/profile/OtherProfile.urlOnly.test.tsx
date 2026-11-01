@@ -3,7 +3,7 @@ import { screen, within } from "@testing-library/react";
 import { http } from "msw";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { API_CONTENT_SESSION, API_MINDMAP, API_PROFILE, apiCard } from "@/test/fixtures/profile";
+import { API_CONTENT_SESSION, API_MINDMAP, API_PROFILE, API_SHARED_SESSIONS, apiCard } from "@/test/fixtures/profile";
 import { API, ok, server } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
@@ -29,10 +29,11 @@ const RELATED = [
   },
 ];
 
-function serve(profile = API_PROFILE, cards = [apiCard()]) {
+function serve(profile = API_PROFILE, cards = [apiCard()], sessions = API_SHARED_SESSIONS) {
   server.use(
     http.get(`${API}/community/profiles/7`, () => ok(profile)),
     http.get(`${API}/community/profiles/7/mindmaps`, () => ok({ mindmaps: cards, hasNext: false })),
+    http.get(`${API}/community/profiles/7/shared-sessions`, () => ok({ sessions, hasNext: false })),
     http.get(`${API}/community/mindmaps/31/sessions`, () => ok({ sessions: RELATED })),
     http.get(`${API}/community/profiles/7/mindmap`, () => ok(API_MINDMAP)),
   );
@@ -103,6 +104,7 @@ describe("URL 만 공개한 사용자의 프로필", () => {
     const { user } = renderPersonal(<OtherProfile id="7" />);
 
     await user.click(await screen.findByRole("button", { name: "세션 (2)" }));
+    await screen.findByRole("heading", { level: 3, name: "#놀이 #사료" });
     expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
       "#놀이 #사료",
       "원문 링크만 공개된 세션",
@@ -118,18 +120,18 @@ describe("URL 만 공개한 사용자의 프로필", () => {
     const { user } = renderPersonal(<OtherProfile id="7" />);
 
     await user.click(await screen.findByRole("button", { name: "세션 (2)" }));
-    await user.click(screen.getByRole("button", { name: /원문 링크만 공개된 세션/ }));
+    await user.click(await screen.findByRole("button", { name: /원문 링크만 공개된 세션/ }));
 
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/32");
   });
 
   it("CONTENT 세션은 제목과 태그가 그대로 보인다", async () => {
-    serve({ ...API_PROFILE, visibility: "CONTENT", pinnedSessions: [API_CONTENT_SESSION] });
+    serve({ ...API_PROFILE, visibility: "CONTENT", sharedSessionCount: 1 }, [apiCard()], [API_CONTENT_SESSION]);
     const { user } = renderPersonal(<OtherProfile id="7" />);
 
     await user.click(await screen.findByRole("button", { name: "세션 (1)" }));
 
-    expect(screen.getByRole("heading", { level: 3, name: "로마 3박 4일 동선" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 3, name: "로마 3박 4일 동선" })).toBeInTheDocument();
     expect(screen.getByText("#로마")).toBeInTheDocument();
   });
 

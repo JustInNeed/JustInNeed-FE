@@ -25,7 +25,6 @@ import {
 import { saveBookmark } from "@/lib/api/bookmarks";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import { useToast } from "@/lib/app/ToastContext";
-import { withHash } from "@/lib/format";
 import type { ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
 import { ProfileEdit } from "./ProfileEdit";
 import { ProfileList, type ProfileListSection } from "./ProfileList";
@@ -41,7 +40,7 @@ const BOOKMARK_OPTIONS = [
 const BUNDLE_NAME_MAX_LENGTH = 30;
 const BUNDLE_FORM_BUTTON = { padding: "6px 12px" };
 
-/** 내 세션 탭 — 공개 · 비공개 전부. 프로필과 따로 받는다 */
+/** 세션 탭 — 내 프로필은 공개 · 비공개 전부, 다른 사용자는 공개 세션 전부. 프로필과 따로 받는다 */
 export interface ProfileSessionsSection extends ProfileListSection {
   sessions: MySession[];
 }
@@ -191,13 +190,6 @@ function ProfileScreen({
     );
   }
 
-  // 다른 사용자 프로필에선 비공개 해시태그와 그 노드를 빼고 보여줌
-  const hiddenTags = isMine ? [] : profile.topTags.filter((t) => !t.isPublic);
-  const hidden = new Set(hiddenTags.map((t) => t.tag));
-  const visibleTags = (tags: string[]) => tags.filter((t) => !hidden.has(withHash(t)));
-  const withVisibleTags = <T extends SessionListItem>(s: T): T => ({ ...s, tags: visibleTags(s.tags) });
-  const shownTopTags = profile.topTags.filter((t) => !hidden.has(t.tag));
-  const nodeCount = profile.nodes - hiddenTags.reduce((n, t) => n + t.count, 0);
   const owner = { name: profile.name, avatar: profile.avatar, handle: profile.handle };
   const mindmaps = data.mindmaps.map((p) => ({ ...p, ...cardPatches[p.id] }));
   const detail = mindmaps.find((p) => p.id === detailId);
@@ -207,13 +199,7 @@ function ProfileScreen({
   // URL 만 공개한 카드 · 세션은 제목이 없어 제목 자리에 해시태그를 보여주고, 태그 줄엔 같은 태그를 또 찍지 않는다
   const withTitle = <T extends SessionListItem>(s: T): T => (s.title ? s : { ...s, title: titleFromTags(s.tags), tags: [] });
 
-  const pinnedSessions = profile.pinnedSessionIds
-    .map((id) => data.sessions.find((s) => s.id === id))
-    .filter((s): s is SessionListItem => !!s);
-  // 세션 탭 — 내 프로필은 따로 받은 내 세션 전부, 다른 사용자는 공유 세션
-  const tabSessions: (SessionListItem & { isPinned?: boolean })[] = (sessionsSection?.sessions ?? pinnedSessions)
-    .map(withVisibleTags)
-    .map(withTitle);
+  const tabSessions = (sessionsSection?.sessions ?? []).map(withTitle);
 
   const toggleSelect = (tag: string) => {
     if (savingBookmark) return; // 보내는 중인 선택이 저장 뒤 풀리므로 바꾸지 않는다
@@ -411,15 +397,15 @@ function ProfileScreen({
         {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
 
         <div className={styles.stats}>
-          <Stat n={nodeCount} l="노드" />
-          <Stat n={data.sharedSessionCount ?? pinnedSessions.length} l="공유 세션" />
+          <Stat n={profile.nodes} l="노드" />
+          <Stat n={data.sharedSessionCount} l="공유 세션" />
           <Stat n={like.count} l="좋아요" />
           {!isMine && <Stat n={(data.exploringCount ?? 0) + exploringShift} l="나도 탐색중" accent />}
         </div>
 
-        {(shownTopTags.length > 0 || profile.interests.length > 0) && (
+        {(profile.topTags.length > 0 || profile.interests.length > 0) && (
           <div className={styles.tagRow}>
-            {shownTopTags.map((t) =>
+            {profile.topTags.map((t) =>
               // 비공개 태그는 내 프로필에서만 흐리게 보임
               tagChip(
                 `top-${t.tag}`,
@@ -484,8 +470,8 @@ function ProfileScreen({
         <div className={styles.tabs}>
           <button onClick={() => setTab("mindmap")} className={`${styles.tab} ${tab === "mindmap" ? styles.tabOn : ""}`}>마인드맵</button>
           <button onClick={() => setTab("sessions")} className={`${styles.tab} ${tab === "sessions" ? styles.tabOn : ""}`}>
-            {/* 내 세션은 페이지로 받아 전체 수를 모른다 */}
-            {isMine ? "세션" : `세션 (${tabSessions.length})`}
+            {/* 내 세션은 비공개도 함께 받아 공개 세션 수와 맞지 않는다 */}
+            {isMine ? "세션" : `세션 (${data.sharedSessionCount})`}
           </button>
         </div>
 
@@ -503,9 +489,9 @@ function ProfileScreen({
                   seed={p.id}
                   nodes={p.nodes}
                   height={220}
-                  title={p.title || titleFromTags(visibleTags(p.hashtags))}
+                  title={p.title || titleFromTags(p.hashtags)}
                   meta={p.isPublic === false ? <PrivateMark /> : undefined}
-                  tags={p.title ? visibleTags(p.hashtags).slice(0, 2) : undefined}
+                  tags={p.title ? p.hashtags.slice(0, 2) : undefined}
                   topLeft={p.isPinned ? <PinMark /> : undefined}
                   topRight={`노드 ${p.nodes}`}
                   onClick={() => setDetailId(p.id)}
@@ -559,7 +545,7 @@ function ProfileScreen({
                   session={s}
                   onClick={() => router.push(`/sessions/${s.id}`)}
                   marks={
-                    isMine && (s.isPinned || !s.isPublic) ? (
+                    s.isPinned || !s.isPublic ? (
                       <>
                         {s.isPinned && <PinMark />}
                         {!s.isPublic && <PrivateMark />}
@@ -576,14 +562,14 @@ function ProfileScreen({
       {detail && !(fullView && fullMindmap) && (
         <MindmapDetailModal
           onSessionClick={(id) => router.push(`/sessions/${id}`)}
-          // 작성자는 이 프로필 주인, 해시태그 · 관련 세션 태그는 비공개를 뺀 값
+          // 작성자는 이 프로필 주인
           post={{
             ...detail,
             user: owner,
-            title: detail.title || titleFromTags(visibleTags(detail.hashtags)),
-            hashtags: detail.title ? visibleTags(detail.hashtags) : [],
+            title: detail.title || titleFromTags(detail.hashtags),
+            hashtags: detail.title ? detail.hashtags : [],
           }}
-          sessions={(cardSessions.sessions ?? []).map(withVisibleTags)}
+          sessions={cardSessions.sessions ?? []}
           sessionsStatus={
             cardSessions.sessions ? undefined : cardSessions.error ? (
               <InlineState kind="error" title="관련 세션을 불러오지 못했어요." description={cardSessions.error} onRetry={cardSessions.retry} />

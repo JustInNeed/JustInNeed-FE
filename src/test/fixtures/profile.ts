@@ -117,13 +117,13 @@ export const MY_PROFILE_PAGE: ProfilePageData = {
 };
 
 // ---------- 다른 사용자 프로필 (@wanderlust) ----------
-// #카페 · #슬로우트래블 은 비공개 — 태그 줄 · 카드 태그 · 세션 태그 어디에도 보이지 않고 노드 수에서도 빠진다
 
-export const OTHER_SESSIONS: SessionListItem[] = [
-  session(9102, "빈 → 부다페스트 야간열차 예약", "2026-04-18T20:10:00", "2026-04-18T20:55:00", 8, ["야간열차", "비엔나", "부다페스트"]),
-  session(9104, "비엔나 카페 지도", "2026-04-16T15:00:00", "2026-04-16T16:20:00", 12, ["비엔나", "카페", "자허토르테"]),
-  session(9105, "체스키크룸로프 당일치기", "2026-04-15T09:00:00", "2026-04-15T09:40:00", 5, ["체코", "소도시"]),
-  session(9107, "프라하 구시가지 산책 코스", "2026-04-14T19:30:00", "2026-04-14T20:30:00", 10, ["프라하", "카를교", "슬로우트래블"]),
+/** 공개 세션 — 응답 순서대로 핀고정 3개가 먼저. 9105 는 고정하지 않았다 */
+export const OTHER_SESSIONS: MySession[] = [
+  mine(session(9107, "프라하 구시가지 산책 코스", "2026-04-14T19:30:00", "2026-04-14T20:30:00", 10, ["프라하", "카를교"]), true, true),
+  mine(session(9104, "비엔나 카페 지도", "2026-04-16T15:00:00", "2026-04-16T16:20:00", 12, ["비엔나", "자허토르테"]), true, true),
+  mine(session(9102, "빈 → 부다페스트 야간열차 예약", "2026-04-18T20:10:00", "2026-04-18T20:55:00", 8, ["야간열차", "비엔나", "부다페스트"]), true, true),
+  mine(session(9105, "체스키크룸로프 당일치기", "2026-04-15T09:00:00", "2026-04-15T09:40:00", 5, ["체코", "소도시"]), true),
 ];
 const otherSession = (id: number) => OTHER_SESSIONS.find((s) => s.id === id)!;
 
@@ -139,17 +139,16 @@ export const OTHER_PROFILE: ProfileData = {
     { tag: "#프라하", count: 32, isPublic: true },
     { tag: "#비엔나", count: 28, isPublic: true },
     { tag: "#야간열차", count: 16, isPublic: true },
-    { tag: "#카페", count: 14, isPublic: false },
-    { tag: "#슬로우트래블", count: 12, isPublic: false },
   ],
   visibility: "url",
-  pinnedSessionIds: [9107, 9104, 9102],
+  pinnedSessionIds: [],
 };
 
+/** 첫 카드만 핀고정 */
 export const OTHER_MINDMAPS: MindmapFixture[] = [
-  mindmap("101", "동유럽 3주 살이 전체 동선", ["#프라하", "#동유럽", "#야간열차"], 64, 284, 91, [otherSession(9102), otherSession(9107)]),
-  mindmap("102", "비엔나 카페 투어", ["#카페", "#비엔나", "#자허토르테"], 41, 120, 40, [otherSession(9104)]),
-  mindmap("103", "프라하 천천히 걷기", ["#슬로우트래블", "#프라하"], 33, 98, 27, [otherSession(9107)]),
+  { ...mindmap("101", "동유럽 3주 살이 전체 동선", ["#프라하", "#동유럽", "#야간열차"], 64, 284, 91, [otherSession(9102), otherSession(9107)]), isPinned: true },
+  mindmap("102", "비엔나 카페 투어", ["#비엔나", "#자허토르테"], 41, 120, 40, [otherSession(9104)]),
+  mindmap("103", "프라하 천천히 걷기", ["#프라하"], 33, 98, 27, [otherSession(9107)]),
   mindmap("104", "야간열차 노선 정리", ["#야간열차", "#나이트젯"], 29, 77, 30, [otherSession(9102)]),
   mindmap("105", "부다페스트 온천 비교", ["#부다페스트", "#온천"], 22, 54, 11, [otherSession(9102)]),
   mindmap("106", "체코 소도시 당일치기", ["#체코", "#소도시"], 18, 31, 8, [otherSession(9105)]),
@@ -158,14 +157,15 @@ export const OTHER_MINDMAPS: MindmapFixture[] = [
 export const OTHER_PROFILE_PAGE: ProfilePageData = {
   profile: OTHER_PROFILE,
   mindmaps: OTHER_MINDMAPS,
-  sessions: OTHER_SESSIONS,
+  sessions: [],
+  sharedSessionCount: OTHER_SESSIONS.length,
   exploringCount: 12,
 };
 
 // ---------- 커뮤니티 프로필 API 응답 (실제 응답 모양) ----------
-// API_PROFILE: URL_ONLY(기본값) 사용자. 공유 세션에 title 키가 없고 카드 title · snippet 이 null 이다.
+// API_PROFILE: URL_ONLY(기본값) 사용자. 공개 세션에 title 키가 없고 카드 title · snippet 이 null 이다.
 
-const urlOnlySession = (id: number, tags: string[]): CommunitySharedSession => ({
+const urlOnlySession = (id: number, tags: string[], isPinned = false): CommunitySharedSession => ({
   id,
   tags,
   urls: ["https://www.nightjet.com/en"],
@@ -173,6 +173,7 @@ const urlOnlySession = (id: number, tags: string[]): CommunitySharedSession => (
   endedAt: "2026-10-20T20:55:00",
   pageCount: 4,
   status: "COMPLETED",
+  isPinned,
 });
 
 export const API_PROFILE: CommunityProfileResponse = {
@@ -181,6 +182,7 @@ export const API_PROFILE: CommunityProfileResponse = {
   bio: "고양이와 사는 사람",
   visibility: "URL_ONLY",
   totalNodeCount: 22,
+  sharedSessionCount: 2,
   topHashtags: [
     { hashtagId: 1, name: "놀이", nodeCount: 7 },
     { hashtagId: 2, name: "사료", nodeCount: 5 },
@@ -190,8 +192,10 @@ export const API_PROFILE: CommunityProfileResponse = {
   likedByMe: true,
   following: true,
   exploringCount: 3,
-  pinnedSessions: [urlOnlySession(31, ["놀이", "사료"]), urlOnlySession(32, [])],
 };
+
+/** API_PROFILE 의 공개 세션 — 앞의 하나만 핀고정 */
+export const API_SHARED_SESSIONS = [urlOnlySession(31, ["놀이", "사료"], true), urlOnlySession(32, [])];
 
 /** CONTENT 공개 사용자의 공유 세션 — title 이 온다 */
 export const API_CONTENT_SESSION: CommunitySharedSession = { ...urlOnlySession(33, ["로마"]), title: "로마 3박 4일 동선" };
@@ -211,13 +215,13 @@ export const apiCard = (over: Partial<CommunityProfileCard> = {}): CommunityProf
   exploringByMe: false,
   lastActivityAt: "2026-10-31T10:00:00",
   relatedUrls: [{ title: null, url: "https://www.nightjet.com/en" }],
+  isPinned: false,
   ...over,
 });
 
 export const apiMyCard = (over: Partial<MyProfileCard> = {}): MyProfileCard => ({
   ...apiCard({ owner: { userId: 6, nickname: "sprout.kr" }, title: "로마 3박 4일 동선", snippet: "로마 동선 정리" }),
   isPublic: true,
-  isPinned: false,
   ...over,
 });
 

@@ -4,6 +4,7 @@ import type {
   CommunityProfileCardPage,
   CommunityProfileMindmap,
   CommunityProfileResponse,
+  CommunitySharedSessionPage,
   MyProfileCardPage,
   MyProfileResponse,
   MySessionPage,
@@ -19,6 +20,10 @@ export const getCommunityProfile = (userId: number) =>
 
 export const getProfileCards = (userId: number, page: number, size: number) =>
   api.get<CommunityProfileCardPage>(`/community/profiles/${userId}/mindmaps?page=${page}&size=${size}`);
+
+/** 공개 세션 전부 — 핀고정이 먼저 */
+export const getSharedSessions = (userId: number, page: number, size: number) =>
+  api.get<CommunitySharedSessionPage>(`/community/profiles/${userId}/shared-sessions?page=${page}&size=${size}`);
 
 export const getProfileMindmap = (userId: number) =>
   api.get<CommunityProfileMindmap>(`/community/profiles/${userId}/mindmap`);

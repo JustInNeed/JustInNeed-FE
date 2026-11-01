@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { CommunityProfileMindmap } from "@/lib/api";
-import { API_CONTENT_SESSION, API_MINDMAP, API_MY_PROFILE, API_PROFILE, MY_PROFILE, apiCard, apiMyCard } from "@/test/fixtures/profile";
+import {
+  API_CONTENT_SESSION,
+  API_MINDMAP,
+  API_MY_PROFILE,
+  API_PROFILE,
+  API_SHARED_SESSIONS,
+  MY_PROFILE,
+  apiCard,
+  apiMyCard,
+} from "@/test/fixtures/profile";
 import {
   titleFromTags,
   toFullMindmap,
@@ -9,6 +18,7 @@ import {
   toMyProfileUpdate,
   toProfileMindmap,
   toProfilePage,
+  toSession,
 } from "./toProfilePage";
 
 describe("toProfilePage", () => {
@@ -28,9 +38,9 @@ describe("toProfilePage", () => {
         { tag: "#사료", count: 5, isPublic: true },
       ],
       visibility: "url",
-      pinnedSessionIds: [31, 32],
+      pinnedSessionIds: [],
     });
-    expect(page).toMatchObject({ exploringCount: 3, likedByMe: true, following: true, mindmaps: [] });
+    expect(page).toMatchObject({ exploringCount: 3, likedByMe: true, following: true, mindmaps: [], sessions: [], sharedSessionCount: 2 });
   });
 
   it("닉네임 · 소개가 null 이면 대체 이름과 빈 소개, 빈 핸들로 보여준다", () => {
@@ -43,10 +53,11 @@ describe("toProfilePage", () => {
     expect(toProfilePage({ ...API_PROFILE, visibility: "CONTENT" }).profile.visibility).toBe("full");
   });
 
-  it("공유 세션은 URL_ONLY 면 제목이 비고, 상태는 그대로 두어 상세로 열 수 있다", () => {
-    const { sessions } = toProfilePage(API_PROFILE);
+});
 
-    expect(sessions[0]).toEqual({
+describe("toSession", () => {
+  it("공유 세션은 URL_ONLY 면 제목이 비고, 상태 · 핀 표시는 그대로 두어 상세로 열 수 있다", () => {
+    expect(toSession(API_SHARED_SESSIONS[0])).toEqual({
       id: 31,
       title: "",
       startedAt: "2026-10-20T20:10:00",
@@ -56,13 +67,13 @@ describe("toProfilePage", () => {
       isFavorite: false,
       isPublic: true,
       tags: ["놀이", "사료"],
+      isPinned: true,
     });
+    expect(toSession(API_SHARED_SESSIONS[1]).isPinned).toBe(false);
   });
 
   it("CONTENT 공유 세션은 제목을 그대로 쓴다", () => {
-    const { sessions } = toProfilePage({ ...API_PROFILE, pinnedSessions: [API_CONTENT_SESSION] });
-
-    expect(sessions[0].title).toBe("로마 3박 4일 동선");
+    expect(toSession(API_CONTENT_SESSION).title).toBe("로마 3박 4일 동선");
   });
 });
 
@@ -142,7 +153,9 @@ describe("toProfileMindmap", () => {
       exploring: 3,
       exploringByMe: true,
       when: "2026-10-31",
+      isPinned: false,
     });
+    expect(toProfileMindmap(apiCard({ isPinned: true })).isPinned).toBe(true);
   });
 
   it("CONTENT 카드는 제목 · 소개글을 그대로 쓴다", () => {
