@@ -5,10 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 import { PersonalProvider } from "@/lib/app/PersonalContext";
 import { NICKNAME_FORMAT_ERROR } from "@/lib/nickname";
 import { MEMBER } from "@/test/fixtures/member";
-import { MY_PROFILE, MY_PROFILE_PAGE } from "@/test/fixtures/profile";
+import { MY_PROFILE, MY_SESSIONS } from "@/test/fixtures/profile";
 import { API, fail, ok, server } from "@/test/msw/server";
 import { renderApp, renderPersonal } from "@/test/render";
-import { ProfileView } from "./ProfileView";
+import { MyProfile } from "./MyProfile";
+import { serveMyProfile } from "./myProfileTestUtils";
 
 // 카드 · 팝업의 미리보기 그래프는 장식(aria-hidden)이라 가벼운 div 로 바꿔 DOM 을 줄인다 (요소 수천 개 → 쿼리가 느려짐)
 vi.mock("@/components/mindmap/MindmapPreview", async () => {
@@ -16,16 +17,29 @@ vi.mock("@/components/mindmap/MindmapPreview", async () => {
   return { MindmapPreview: ({ children }: { children?: ReactNode }) => createElement("div", null, children) };
 });
 
-const titleOf = (id: number) => MY_PROFILE_PAGE.sessions.find((s) => s.id === id)!.title;
+const titleOf = (id: number) => MY_SESSIONS.find((s) => s.id === id)!.title;
+/** 공개 세션 수 — 핀고정 후보 */
+const PUBLIC_SESSION_COUNT = MY_SESSIONS.filter((s) => s.isPublic).length;
+
+/** 프로필 수정 버튼을 누르고 핀고정 후보까지 받는다 */
+async function clickEdit(user: ReturnType<typeof renderPersonal>["user"]) {
+  await user.click(await screen.findByRole("button", { name: "프로필 수정" }));
+  await screen.findByText(titleOf(9004));
+}
 
 /** 내 프로필을 그리고 프로필 수정을 연다 */
 async function openEdit() {
-  const r = renderPersonal(<ProfileView data={MY_PROFILE_PAGE} />);
-  await r.user.click(screen.getByRole("button", { name: "프로필 수정" }));
-  return r;
+  const server = serveMyProfile();
+  const r = renderPersonal(<MyProfile />);
+  await clickEdit(r.user);
+  return { ...r, server };
 }
 
 const saveButton = () => screen.getByRole("button", { name: "저장" });
+const saveAndWait = async (user: ReturnType<typeof renderPersonal>["user"]) => {
+  await user.click(saveButton());
+  await screen.findByRole("button", { name: "프로필 수정" });
+};
 const tagInput = () => screen.getByPlaceholderText("새 해시태그 추가");
 const addButton = () => screen.getByRole("button", { name: "추가" });
 const interestChips = () => screen.getAllByRole("button", { name: /×$/ }).map((b) => b.textContent!.replace(/\s*×$/, ""));
@@ -44,6 +58,14 @@ function tagRow() {
   return within(document.querySelector<HTMLElement>(".tagRow")!);
 }
 
+/** 세션 탭을 열고 카드 제목을 표시 순서대로 */
+async function sessionTabTitles(user: ReturnType<typeof renderPersonal>["user"]) {
+  await user.click(screen.getByRole("button", { name: "세션" }));
+  await screen.findByRole("heading", { level: 3, name: titleOf(9007) });
+  return screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
+}
+const REST = [9006, 9007].map(titleOf);
+
 describe("프로필 수정", () => {
   it("지금 프로필 값으로 채워져 열린다", async () => {
     await openEdit();
@@ -57,9 +79,14 @@ describe("프로필 수정", () => {
     expect(screen.getByRole("switch", { name: "#파리" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("switch", { name: "#예산" })).toHaveAttribute("aria-checked", "false");
     expect(screen.getByText("노드 11개 · 비공개")).toBeInTheDocument();
-    // 핀고정 세션이 순서대로 먼저, 나머지 세션이 그 뒤에
+    // 상위 5개 밖의 내 해시태그도 설정할 수 있다
+    expect(screen.getByRole("switch", { name: "#기차" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("switch", { name: "#비자" })).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByText("노드 4개 · 비공개")).toBeInTheDocument();
+    // 핀고정 세션이 순서대로 먼저, 나머지 공개 세션이 그 뒤에
     expect(pinnedTitles()).toEqual([9001, 9003, 9002, 9005].map(titleOf));
-    expect(screen.getAllByRole("checkbox")).toHaveLength(MY_PROFILE_PAGE.sessions.length);
+    expect(screen.getAllByRole("checkbox")).toHaveLength(PUBLIC_SESSION_COUNT);
+    expect(screen.getByText("공개 세션 중 고정한 세션이 맨 앞에 보여요.")).toBeInTheDocument();
     expect(screen.getByText("드래그로 순서 변경")).toBeInTheDocument();
   });
 
@@ -72,7 +99,7 @@ describe("프로필 수정", () => {
       await user.type(bio, "가".repeat(125));
       expect(bio).toHaveValue("가".repeat(120));
 
-      await user.click(saveButton());
+      await saveAndWait(user);
       expect(screen.getByText("가".repeat(120))).toBeInTheDocument();
     });
   });
@@ -166,9 +193,9 @@ describe("프로필 수정", () => {
     await user.click(screen.getByRole("radio", { name: /내용까지 공개/ }));
     expect(screen.getByRole("radio", { name: /내용까지 공개/ })).toBeChecked();
     expect(screen.getByRole("radio", { name: /원문 URL만 공개/ })).not.toBeChecked();
-    await user.click(saveButton());
+    await saveAndWait(user);
 
-    await user.click(screen.getByRole("button", { name: "프로필 수정" }));
+    await clickEdit(user);
     expect(screen.getByRole("radio", { name: /내용까지 공개/ })).toBeChecked();
   });
 
@@ -179,7 +206,7 @@ describe("프로필 수정", () => {
     await user.click(screen.getByRole("switch", { name: "#예산" }));
     expect(screen.getByText("노드 28개 · 비공개")).toBeInTheDocument();
     expect(screen.getByText("노드 11개 · 공개")).toBeInTheDocument();
-    await user.click(saveButton());
+    await saveAndWait(user);
 
     expect(tagRow().getByText("#파리")).toHaveClass("topTagPrivate");
     expect(tagRow().getByText("#파리").querySelector("svg")).not.toBeNull();
@@ -187,18 +214,15 @@ describe("프로필 수정", () => {
   });
 
   describe("핀고정 세션", () => {
-    it("세션을 체크하면 핀고정 목록 끝에 붙고, 저장하면 공유 세션에 그 순서로 보인다", async () => {
+    it("세션을 체크하면 핀고정 목록 끝에 붙고, 저장하면 세션 탭 맨 앞에 그 순서로 보인다 — 공유 세션 수는 그대로", async () => {
       const { user } = await openEdit();
 
       await user.click(pinCheckbox(9004));
       expect(pinnedTitles()).toEqual([9001, 9003, 9002, 9005, 9004].map(titleOf));
-      await user.click(saveButton());
+      await saveAndWait(user);
 
       expect(screen.getByText("공유 세션", { selector: ".statL" }).previousElementSibling).toHaveTextContent("5");
-      await user.click(screen.getByRole("button", { name: "세션 (5)" }));
-      expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(
-        [9001, 9003, 9002, 9005, 9004].map(titleOf),
-      );
+      expect(await sessionTabTitles(user)).toEqual([...[9001, 9003, 9002, 9005, 9004].map(titleOf), ...REST]);
     });
 
     it("핀고정 세션을 끌어다 놓으면 순서가 바뀌고, 저장하면 세션 탭 순서도 바뀐다", async () => {
@@ -216,11 +240,8 @@ describe("프로필 수정", () => {
       expect(pinRow(9002)).not.toHaveClass("pinRowDragging");
       expect(pinRow(9001)).not.toHaveClass("pinRowOver");
 
-      await user.click(saveButton());
-      await user.click(screen.getByRole("button", { name: "세션 (4)" }));
-      expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(
-        [9002, 9001, 9003, 9005].map(titleOf),
-      );
+      await saveAndWait(user);
+      expect(await sessionTabTitles(user)).toEqual([...[9002, 9001, 9003, 9005, 9004].map(titleOf), ...REST]);
     });
 
     it("핀고정되지 않은 세션은 끌어 옮길 수 없다", async () => {
@@ -230,12 +251,12 @@ describe("프로필 수정", () => {
       expect(pinRow(9004)).not.toHaveAttribute("draggable");
     });
 
-    it("핀고정을 해제하면 확인 팝업이 뜨고 해제를 누르면 공유 목록에서 빠진다", async () => {
+    it("핀고정을 해제하면 확인 팝업이 뜨고 해제를 누르면 고정만 풀리고 공개 세션으로 남는다", async () => {
       const { user } = await openEdit();
 
       await user.click(pinCheckbox(9003));
-      const dialog = screen.getByRole("dialog", { name: "핀고정을 해제할까요?" });
-      expect(dialog).toHaveTextContent("세션 내용은 삭제되지 않아요.");
+      const dialog = screen.getByRole("dialog", { name: "고정을 해제할까요?" });
+      expect(dialog).toHaveTextContent("맨 앞 고정만 풀려요. 세션은 공개 상태로 남아요.");
       expect(pinCheckbox(9003)).toBeChecked(); // 확인 전까지는 그대로
 
       await user.click(within(dialog).getByRole("button", { name: "해제" }));
@@ -243,8 +264,10 @@ describe("프로필 수정", () => {
       expect(pinCheckbox(9003)).not.toBeChecked();
       expect(pinnedTitles()).toEqual([9001, 9002, 9005].map(titleOf));
 
-      await user.click(saveButton());
-      expect(screen.getByRole("button", { name: "세션 (3)" })).toBeInTheDocument();
+      await saveAndWait(user);
+      expect(screen.getByText("공유 세션", { selector: ".statL" }).previousElementSibling).toHaveTextContent("5");
+      expect(await sessionTabTitles(user)).toEqual([...[9001, 9002, 9005, 9003, 9004].map(titleOf), ...REST]);
+      expect(screen.getAllByTitle("핀고정됨")).toHaveLength(3);
     });
 
     it("확인 팝업에서 취소를 누르면 핀고정이 그대로 남는다", async () => {
@@ -280,7 +303,7 @@ describe("프로필 수정", () => {
     await user.type(bio, "요즘은 동유럽.");
     await user.type(tagInput(), "동유럽{Enter}");
     await user.click(screen.getByRole("button", { name: /^#독서/ }));
-    await user.click(saveButton());
+    await saveAndWait(user);
 
     expect(screen.queryByRole("heading", { level: 1, name: "프로필 수정" })).not.toBeInTheDocument();
     expect(screen.getByText("요즘은 동유럽.")).toBeInTheDocument();
@@ -292,7 +315,7 @@ describe("프로필 수정", () => {
   });
 
   it("취소하면 바꾼 내용은 버려지고 다시 열어도 원래 값이다", async () => {
-    const { user } = await openEdit();
+    const { user, server: fake } = await openEdit();
 
     const bio = screen.getByDisplayValue(MY_PROFILE.bio);
     await user.clear(bio);
@@ -305,12 +328,13 @@ describe("프로필 수정", () => {
     expect(screen.getByText(MY_PROFILE.bio)).toBeInTheDocument();
     expect(tagRow().queryByText("#버릴태그")).not.toBeInTheDocument();
     expect(tagRow().getByText("#파리")).not.toHaveClass("topTagPrivate");
-    expect(screen.getByRole("button", { name: "세션 (4)" })).toBeInTheDocument();
     expect(screen.queryByText("프로필을 저장했어요.")).not.toBeInTheDocument();
+    expect(fake.puts).toEqual([]);
 
-    await user.click(screen.getByRole("button", { name: "프로필 수정" }));
+    await clickEdit(user);
     expect(screen.getByDisplayValue(MY_PROFILE.bio)).toBeInTheDocument();
     expect(interestChips()).toEqual(MY_PROFILE.interests);
+    expect(pinnedTitles()).toEqual([9001, 9003, 9002, 9005].map(titleOf));
   });
 
   describe("닉네임", () => {
@@ -330,6 +354,19 @@ describe("프로필 수정", () => {
       expect(saveButton()).toBeEnabled();
     });
 
+    it("규칙이 생기기 전 닉네임은 안 바꾸면 그대로 두고 저장할 수 있다", async () => {
+      serveMyProfile();
+      const { user } = renderPersonal(<MyProfile />, { member: { ...MEMBER, nickname: "냥집사" } });
+      await clickEdit(user);
+
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(saveButton()).toBeEnabled();
+
+      await user.type(screen.getByDisplayValue("냥집사"), "2");
+      expect(screen.getByRole("alert")).toHaveTextContent(NICKNAME_FORMAT_ERROR);
+      expect(saveButton()).toBeDisabled();
+    });
+
     it("바꿔 저장하면 닉네임 변경 API 로 저장되고 프로필 이름 · 핸들이 새 닉네임으로 바뀐다", async () => {
       let body: unknown;
       server.use(
@@ -347,12 +384,13 @@ describe("프로필 수정", () => {
           </PersonalProvider>
         );
       }
+      serveMyProfile();
       const { user } = renderApp(
         <MemberHost>
-          <ProfileView data={MY_PROFILE_PAGE} />
+          <MyProfile />
         </MemberHost>,
       );
-      await user.click(screen.getByRole("button", { name: "프로필 수정" }));
+      await clickEdit(user);
       const nickname = screen.getByDisplayValue("yesong");
       await user.clear(nickname);
       await user.type(nickname, "sprout");
@@ -388,7 +426,7 @@ describe("프로필 수정", () => {
 
     it("이미 쓰는 닉네임이면(409) 입력칸 아래 서버 메시지가 보이고 수정 화면이 유지된다", async () => {
       server.use(http.patch(`${API}/members/me/nickname`, () => fail(409, "이미 사용 중인 닉네임입니다.")));
-      const { user, updateMember } = await openEdit();
+      const { user, updateMember, server: fake } = await openEdit();
       const nickname = screen.getByDisplayValue("yesong");
       await user.clear(nickname);
       await user.type(nickname, "admin");
@@ -400,6 +438,7 @@ describe("프로필 수정", () => {
       expect(saveButton()).toBeEnabled();
       expect(updateMember).not.toHaveBeenCalled();
       expect(screen.queryByText("프로필을 저장했어요.")).not.toBeInTheDocument();
+      expect(fake.puts).toEqual([]); // 닉네임이 안 되면 프로필은 보내지 않는다
 
       // 닉네임을 다시 고치면 서버 오류 문구는 사라진다
       await user.type(nickname, "1");

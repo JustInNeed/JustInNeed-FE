@@ -5,9 +5,16 @@ import type {
   CommunityProfileMindmap,
   CommunityProfileResponse,
   CommunitySharedSession,
+  MyProfileCard,
+  MyProfileHashtag,
+  MyProfileResponse,
+  MySession,
   SessionListItem,
 } from "@/lib/api";
-import type { FullMindmap, ProfileData, ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
+import type { ProfileData, ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
+
+/** 카드와 그 카드의 관련 세션 응답 — 화면은 세션을 팝업을 열 때 따로 받는다 */
+type MindmapFixture = ProfileMindmap & { sessions: SessionListItem[] };
 
 const session = (
   id: number,
@@ -26,23 +33,54 @@ const mindmap = (
   likes: number,
   bookmarks: number,
   sessions: SessionListItem[],
-): ProfileMindmap => ({ id, title, snippet: `${title} 정리`, hashtags, nodes, likes, bookmarks, exploring: 0, when: "2일 전", sessions });
+): MindmapFixture => ({ id, title, snippet: `${title} 정리`, hashtags, nodes, likes, bookmarks, exploring: 0, when: "2일 전", sessions });
 
 // ---------- 내 프로필 ----------
 
-/** 내 세션 — 프로필 수정의 핀고정 후보 */
-export const MY_SESSIONS: SessionListItem[] = [
-  session(9001, "로마 3박 4일 동선 짜기", "2026-04-26T21:14:00", "2026-04-26T22:48:00", 18, ["로마", "콜로세움", "바티칸", "먹거리"]),
-  session(9002, "유럽 항공권 비교 (인천→로마 IN, 프라하→인천 OUT)", "2026-04-25T14:02:00", "2026-04-25T15:21:00", 11, ["항공권", "스카이스캐너", "예산"]),
-  session(9003, "파리 미술관 4곳 비교 (루브르/오르세/오랑주리/퐁피두)", "2026-04-24T10:05:00", "2026-04-24T11:30:00", 14, ["파리", "미술관", "루브르", "오르세"]),
-  session(9004, "유레일패스 vs 개별 구매", "2026-04-23T19:12:00", "2026-04-23T19:51:00", 7, ["유레일", "예산", "기차"]),
-  session(9005, "바르셀로나 가우디 투어", "2026-04-22T22:30:00", "2026-04-22T23:15:00", 9, ["바르셀로나", "가우디", "사그라다파밀리아"]),
-  session(9006, "쉥겐 비자 & 입국 서류", "2026-04-21T09:40:00", "2026-04-21T10:08:00", 5, ["비자", "쉥겐", "ETIAS"]),
-  session(9007, "프라하 1박 일정 짜기", "2026-04-20T23:05:00", "2026-04-20T23:32:00", 6, ["프라하", "카를교", "체코"]),
+const mine = (s: SessionListItem, isPublic: boolean, isPinned = false): MySession => ({ ...s, isPublic, isPinned });
+
+/** 내 세션 — 응답 순서대로 핀고정이 먼저, 그다음 최신순. 9006 · 9007 은 비공개 */
+export const MY_SESSIONS: MySession[] = [
+  mine(session(9001, "로마 3박 4일 동선 짜기", "2026-04-26T21:14:00", "2026-04-26T22:48:00", 18, ["로마", "콜로세움", "바티칸", "먹거리"]), true, true),
+  mine(session(9003, "파리 미술관 4곳 비교 (루브르/오르세/오랑주리/퐁피두)", "2026-04-24T10:05:00", "2026-04-24T11:30:00", 14, ["파리", "미술관", "루브르", "오르세"]), true, true),
+  mine(session(9002, "유럽 항공권 비교 (인천→로마 IN, 프라하→인천 OUT)", "2026-04-25T14:02:00", "2026-04-25T15:21:00", 11, ["항공권", "스카이스캐너", "예산"]), true, true),
+  mine(session(9005, "바르셀로나 가우디 투어", "2026-04-22T22:30:00", "2026-04-22T23:15:00", 9, ["바르셀로나", "가우디", "사그라다파밀리아"]), true, true),
+  mine(session(9004, "유레일패스 vs 개별 구매", "2026-04-23T19:12:00", "2026-04-23T19:51:00", 7, ["유레일", "예산", "기차"]), true),
+  mine(session(9006, "쉥겐 비자 & 입국 서류", "2026-04-21T09:40:00", "2026-04-21T10:08:00", 5, ["비자", "쉥겐", "ETIAS"]), false),
+  mine(session(9007, "프라하 1박 일정 짜기", "2026-04-20T23:05:00", "2026-04-20T23:32:00", 6, ["프라하", "카를교", "체코"]), false),
 ];
 const mySession = (id: number) => MY_SESSIONS.find((s) => s.id === id)!;
 
-/** 이름 · 핸들은 화면에서 로그인 회원 닉네임으로 바뀐다 */
+const apiHashtag = (hashtagId: number, hashtag: string, nodeCount: number, isPublic = true): MyProfileHashtag => ({
+  hashtagId,
+  hashtag,
+  nodeCount,
+  isPublic,
+});
+const MY_TOP_HASHTAGS = [
+  apiHashtag(1, "파리", 28),
+  apiHashtag(2, "로마", 24),
+  apiHashtag(3, "항공권", 18),
+  apiHashtag(4, "미술관", 15),
+  apiHashtag(5, "예산", 11, false),
+];
+
+/** GET /community/me/profile — 해시태그 전체엔 상위 5개 밖의 #기차 · 비공개 #비자 가 더 있다 */
+export const API_MY_PROFILE: MyProfileResponse = {
+  userId: 6,
+  nickname: "sprout.kr",
+  bio: "HCI 연구하며 여행 다니는 사람. 요즘은 유럽.",
+  visibility: "URL_ONLY",
+  totalNodeCount: 218,
+  sharedSessionCount: 5,
+  likeCount: 87,
+  topHashtags: MY_TOP_HASHTAGS,
+  hashtags: [...MY_TOP_HASHTAGS, apiHashtag(6, "기차", 6), apiHashtag(7, "비자", 4, false)],
+  interests: ["유럽여행", "HCI", "미술관", "프론트엔드", "독서"].map((hashtag, i) => ({ interestId: i + 1, hashtag })),
+  pinnedSessions: [9001, 9003, 9002, 9005].map(mySession),
+};
+
+/** API_MY_PROFILE 을 화면 값으로 — 이름 · 핸들은 화면에서 로그인 회원 닉네임으로 바뀐다 */
 export const MY_PROFILE: ProfileData = {
   name: "sprout.kr",
   handle: "@sprout.kr",
@@ -62,35 +100,20 @@ export const MY_PROFILE: ProfileData = {
   pinnedSessionIds: [9001, 9003, 9002, 9005],
 };
 
-export const MY_MINDMAPS: ProfileMindmap[] = [
-  mindmap("m1", "로마 3박 4일 동선", ["#로마", "#콜로세움", "#먹거리"], 64, 41, 12, [mySession(9001)]),
-  mindmap("m2", "파리 미술관 투어 지도", ["#파리", "#미술관", "#루브르"], 52, 33, 18, [mySession(9003)]),
-  mindmap("m3", "유럽 항공권 · 예산 정리", ["#예산", "#항공권"], 38, 20, 9, [mySession(9002), mySession(9004)]),
-  mindmap("m4", "바르셀로나 가우디 건축", ["#바르셀로나", "#가우디"], 27, 12, 4, [mySession(9005)]),
+/** 앞의 둘은 핀고정, 마지막은 비공개 */
+export const MY_MINDMAPS: MindmapFixture[] = [
+  { ...mindmap("901", "로마 3박 4일 동선", ["#로마", "#콜로세움", "#먹거리"], 64, 41, 12, [mySession(9001)]), isPublic: true, isPinned: true },
+  { ...mindmap("902", "파리 미술관 투어 지도", ["#파리", "#미술관", "#루브르"], 52, 33, 18, [mySession(9003)]), isPublic: true, isPinned: true },
+  { ...mindmap("903", "유럽 항공권 · 예산 정리", ["#예산", "#항공권"], 38, 20, 9, [mySession(9002), mySession(9004)]), isPublic: true, isPinned: false },
+  { ...mindmap("904", "쉥겐 비자 서류", ["#비자", "#쉥겐"], 27, 12, 4, [mySession(9006)]), isPublic: false, isPinned: false },
 ];
-
-export const MY_FULL_MINDMAP: FullMindmap = {
-  nodes: [
-    { id: "eu", label: "유럽 여행", x: 600, y: 380, size: 28, group: "core" },
-    { id: "rome", label: "로마", x: 380, y: 220, size: 20, group: "city" },
-    { id: "paris", label: "파리", x: 820, y: 200, size: 22, group: "city" },
-    { id: "budget", label: "예산", x: 440, y: 620, size: 14, group: "logi" },
-    { id: "colos", label: "콜로세움", x: 220, y: 130, size: 9, group: "sub" },
-    { id: "louvre", label: "루브르", x: 1020, y: 280, size: 11, group: "sub" },
-  ],
-  edges: [["eu", "rome"], ["eu", "paris"], ["eu", "budget"], ["rome", "colos"], ["paris", "louvre"]],
-  nodeUrls: {
-    budget: "https://wise.com/kr/currency-converter/eur-to-krw-rate",
-    colos: "https://www.colosseo.it/en/",
-    louvre: "https://www.louvre.fr/en",
-  },
-};
 
 export const MY_PROFILE_PAGE: ProfilePageData = {
   profile: MY_PROFILE,
   mindmaps: MY_MINDMAPS,
-  fullMindmap: MY_FULL_MINDMAP,
-  sessions: MY_SESSIONS,
+  sessions: API_MY_PROFILE.pinnedSessions,
+  hashtags: API_MY_PROFILE.hashtags.map((t) => ({ id: t.hashtagId, tag: `#${t.hashtag}`, count: t.nodeCount, isPublic: t.isPublic })),
+  sharedSessionCount: API_MY_PROFILE.sharedSessionCount,
 };
 
 // ---------- 다른 사용자 프로필 (@wanderlust) ----------
@@ -123,7 +146,7 @@ export const OTHER_PROFILE: ProfileData = {
   pinnedSessionIds: [9107, 9104, 9102],
 };
 
-export const OTHER_MINDMAPS: ProfileMindmap[] = [
+export const OTHER_MINDMAPS: MindmapFixture[] = [
   mindmap("101", "동유럽 3주 살이 전체 동선", ["#프라하", "#동유럽", "#야간열차"], 64, 284, 91, [otherSession(9102), otherSession(9107)]),
   mindmap("102", "비엔나 카페 투어", ["#카페", "#비엔나", "#자허토르테"], 41, 120, 40, [otherSession(9104)]),
   mindmap("103", "프라하 천천히 걷기", ["#슬로우트래블", "#프라하"], 33, 98, 27, [otherSession(9107)]),
@@ -132,22 +155,9 @@ export const OTHER_MINDMAPS: ProfileMindmap[] = [
   mindmap("106", "체코 소도시 당일치기", ["#체코", "#소도시"], 18, 31, 8, [otherSession(9105)]),
 ];
 
-export const OTHER_FULL_MINDMAP: FullMindmap = {
-  nodes: [
-    { id: "east", label: "동유럽", x: 600, y: 380, size: 28, group: "core" },
-    { id: "prague", label: "프라하", x: 380, y: 220, size: 20, group: "city" },
-    { id: "vienna", label: "비엔나", x: 820, y: 200, size: 20, group: "city" },
-    { id: "night", label: "야간열차", x: 600, y: 600, size: 16, group: "logi" },
-    { id: "bridge", label: "카를교", x: 220, y: 130, size: 9, group: "sub" },
-  ],
-  edges: [["east", "prague"], ["east", "vienna"], ["east", "night"], ["prague", "bridge"]],
-  nodeUrls: { bridge: "https://www.prague.eu/en", night: "https://www.nightjet.com/en" },
-};
-
 export const OTHER_PROFILE_PAGE: ProfilePageData = {
   profile: OTHER_PROFILE,
   mindmaps: OTHER_MINDMAPS,
-  fullMindmap: OTHER_FULL_MINDMAP,
   sessions: OTHER_SESSIONS,
   exploringCount: 12,
 };
@@ -201,6 +211,13 @@ export const apiCard = (over: Partial<CommunityProfileCard> = {}): CommunityProf
   exploringByMe: false,
   lastActivityAt: "2026-10-31T10:00:00",
   relatedUrls: [{ title: null, url: "https://www.nightjet.com/en" }],
+  ...over,
+});
+
+export const apiMyCard = (over: Partial<MyProfileCard> = {}): MyProfileCard => ({
+  ...apiCard({ owner: { userId: 6, nickname: "sprout.kr" }, title: "로마 3박 4일 동선", snippet: "로마 동선 정리" }),
+  isPublic: true,
+  isPinned: false,
   ...over,
 });
 

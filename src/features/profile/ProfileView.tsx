@@ -10,12 +10,15 @@ import { SessionCard } from "@/features/sessions";
 import {
   ApiError,
   SessionExpiredError,
+  getCardSessions,
+  getMyCardSessions,
   getProfileMindmap,
   setCardBookmark,
   setCardExploring,
   setCardLike,
   setProfileFollow,
   updateProfileLike,
+  type MySession,
   type SaveBookmarkRequest,
   type SessionListItem,
 } from "@/lib/api";
@@ -24,7 +27,8 @@ import { usePersonal } from "@/lib/app/PersonalContext";
 import { useToast } from "@/lib/app/ToastContext";
 import { withHash } from "@/lib/format";
 import type { ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
-import { ProfileEdit, type ProfileDraft } from "./ProfileEdit";
+import { ProfileEdit } from "./ProfileEdit";
+import { ProfileList, type ProfileListSection } from "./ProfileList";
 import { titleFromTags, toHashtagIds } from "./toProfilePage";
 import { useCardSessions, useOwnerMindmap } from "./useProfileRemote";
 import styles from "./Profile.module.css";
@@ -37,38 +41,14 @@ const BOOKMARK_OPTIONS = [
 const BUNDLE_NAME_MAX_LENGTH = 30;
 const BUNDLE_FORM_BUTTON = { padding: "6px 12px" };
 
-// 내 프로필 데이터가 없을 때 — 이름 · 핸들은 로그인 회원 닉네임으로 채우고 나머지는 빈 상태로 보여준다
-const EMPTY_PAGE: ProfilePageData = {
-  profile: {
-    name: "",
-    handle: "",
-    avatar: "🌱",
-    bio: "",
-    nodes: 0,
-    likes: 0,
-    interests: [],
-    topTags: [],
-    visibility: "url",
-    pinnedSessionIds: [],
-  },
-  mindmaps: [],
-  fullMindmap: { nodes: [], edges: [], nodeUrls: {} },
-  sessions: [],
-};
-
-/** 다른 사용자 마인드맵 탭 — 프로필과 따로 받아 실패해도 프로필은 보인다 */
-export interface ProfileMindmapsSection {
-  loading: boolean;
-  error: string | null;
-  onRetry: () => void;
-  hasNext: boolean;
-  onLoadMore: () => void;
+/** 내 세션 탭 — 공개 · 비공개 전부. 프로필과 따로 받는다 */
+export interface ProfileSessionsSection extends ProfileListSection {
+  sessions: MySession[];
 }
 
 export interface ProfileViewProps {
   /** 다른 사용자 id. 없으면 내 프로필 */
   userId?: number;
-  /** 내 프로필 API 가 생기기 전까지는 null — 닉네임만 채운 빈 프로필 */
   data: ProfilePageData | null;
   loading?: boolean;
   /** 불러오기 실패 메시지 */
@@ -76,10 +56,23 @@ export interface ProfileViewProps {
   onRetry?: () => void;
   /** 없거나 탈퇴한 사용자 · 잘못된 주소 */
   notFound?: boolean;
-  mindmapsSection?: ProfileMindmapsSection;
+  mindmapsSection?: ProfileListSection;
+  sessionsSection?: ProfileSessionsSection;
+  /** 내 프로필을 저장한 뒤 — 서버 값을 다시 받는다 */
+  onSaved?: () => void;
 }
 
-export function ProfileView({ userId, data, loading = false, error = null, onRetry, notFound = false, mindmapsSection }: ProfileViewProps) {
+export function ProfileView({
+  userId,
+  data,
+  loading = false,
+  error = null,
+  onRetry,
+  notFound = false,
+  mindmapsSection,
+  sessionsSection,
+  onSaved,
+}: ProfileViewProps) {
   const router = useRouter();
   if (notFound) {
     return (
@@ -101,9 +94,8 @@ export function ProfileView({ userId, data, loading = false, error = null, onRet
       </ProfileState>
     );
   }
-  if (userId === undefined) return <ProfileScreen data={data ?? EMPTY_PAGE} />;
   if (!data) return null;
-  return <ProfileScreen userId={userId} data={data} mindmapsSection={mindmapsSection} />;
+  return <ProfileScreen userId={userId} data={data} mindmapsSection={mindmapsSection} sessionsSection={sessionsSection} onSaved={onSaved} />;
 }
 
 function ProfileState({ children }: { children: ReactNode }) {
@@ -118,19 +110,22 @@ function ProfileScreen({
   userId,
   data,
   mindmapsSection,
+  sessionsSection,
+  onSaved,
 }: {
   userId?: number;
   data: ProfilePageData;
-  mindmapsSection?: ProfileMindmapsSection;
+  mindmapsSection?: ProfileListSection;
+  sessionsSection?: ProfileSessionsSection;
+  onSaved?: () => void;
 }) {
   const router = useRouter();
   const toast = useToast();
   const { member } = usePersonal();
   const isMine = userId === undefined;
-  // 내 프로필은 수정 화면에서 저장한 값을 덮어 보여줌 (프로필 저장 API 생기면 교체). 닉네임은 회원 정보 기준
-  const [saved, setSaved] = useState<ProfileDraft | null>(null);
+  // 내 프로필의 이름 · 핸들은 회원 정보 기준
   const myName = member.nickname ?? data.profile.name;
-  const profile = isMine ? { ...data.profile, ...saved, name: myName, handle: `@${myName}` } : data.profile;
+  const profile = isMine ? { ...data.profile, name: myName, handle: `@${myName}` } : data.profile;
 
   const [tab, setTab] = useState<"mindmap" | "sessions">("mindmap");
   const [editing, setEditing] = useState(false);
@@ -152,10 +147,10 @@ function ProfileScreen({
     setFullView(false);
   }, []);
   const closeFullView = useCallback(() => setFullView(false), []);
-  // 다른 사용자의 관련 세션 · 전체 마인드맵은 처음 열 때 받는다
-  const cardSessions = useCardSessions(detailId, !isMine);
+  // 관련 세션 · 전체 마인드맵은 처음 열 때 받는다
+  const cardSessions = useCardSessions(detailId, isMine ? getMyCardSessions : getCardSessions);
   const ownerMindmap = useOwnerMindmap(userId);
-  const fullMindmap = isMine ? data.fullMindmap : ownerMindmap.mindmap;
+  const fullMindmap = ownerMindmap.mindmap;
   const openFullView = () => {
     setFullView(true);
     ownerMindmap.open();
@@ -179,21 +174,28 @@ function ProfileScreen({
     };
   }, [bookmarkOpen, savingBookmark]);
 
-  const saveProfile = (draft: ProfileDraft) => {
-    setSaved(draft);
+  const closeEditAfterSave = () => {
     setEditing(false);
-    toast.success("프로필을 저장했어요.");
+    onSaved?.();
   };
 
   if (editing) {
-    return <ProfileEdit profile={profile} sessions={data.sessions} onCancel={() => setEditing(false)} onSave={saveProfile} />;
+    return (
+      <ProfileEdit
+        profile={profile}
+        hashtags={data.hashtags ?? []}
+        pinnedSessions={data.sessions}
+        onCancel={() => setEditing(false)}
+        onSaved={closeEditAfterSave}
+      />
+    );
   }
 
   // 다른 사용자 프로필에선 비공개 해시태그와 그 노드를 빼고 보여줌
   const hiddenTags = isMine ? [] : profile.topTags.filter((t) => !t.isPublic);
   const hidden = new Set(hiddenTags.map((t) => t.tag));
   const visibleTags = (tags: string[]) => tags.filter((t) => !hidden.has(withHash(t)));
-  const withVisibleTags = (s: SessionListItem) => ({ ...s, tags: visibleTags(s.tags) });
+  const withVisibleTags = <T extends SessionListItem>(s: T): T => ({ ...s, tags: visibleTags(s.tags) });
   const shownTopTags = profile.topTags.filter((t) => !hidden.has(t.tag));
   const nodeCount = profile.nodes - hiddenTags.reduce((n, t) => n + t.count, 0);
   const owner = { name: profile.name, avatar: profile.avatar, handle: profile.handle };
@@ -203,11 +205,13 @@ function ProfileScreen({
   const exploringShift = mindmaps.reduce((sum, p, i) => sum + p.exploring - data.mindmaps[i].exploring, 0);
 
   // URL 만 공개한 카드 · 세션은 제목이 없어 제목 자리에 해시태그를 보여주고, 태그 줄엔 같은 태그를 또 찍지 않는다
-  const withTitle = (s: SessionListItem) => (s.title ? s : { ...s, title: titleFromTags(s.tags), tags: [] });
+  const withTitle = <T extends SessionListItem>(s: T): T => (s.title ? s : { ...s, title: titleFromTags(s.tags), tags: [] });
 
   const pinnedSessions = profile.pinnedSessionIds
     .map((id) => data.sessions.find((s) => s.id === id))
-    .filter((s): s is SessionListItem => !!s)
+    .filter((s): s is SessionListItem => !!s);
+  // 세션 탭 — 내 프로필은 따로 받은 내 세션 전부, 다른 사용자는 공유 세션
+  const tabSessions: (SessionListItem & { isPinned?: boolean })[] = (sessionsSection?.sessions ?? pinnedSessions)
     .map(withVisibleTags)
     .map(withTitle);
 
@@ -408,7 +412,7 @@ function ProfileScreen({
 
         <div className={styles.stats}>
           <Stat n={nodeCount} l="노드" />
-          <Stat n={pinnedSessions.length} l="공유 세션" />
+          <Stat n={data.sharedSessionCount ?? pinnedSessions.length} l="공유 세션" />
           <Stat n={like.count} l="좋아요" />
           {!isMine && <Stat n={(data.exploringCount ?? 0) + exploringShift} l="나도 탐색중" accent />}
         </div>
@@ -479,99 +483,94 @@ function ProfileScreen({
 
         <div className={styles.tabs}>
           <button onClick={() => setTab("mindmap")} className={`${styles.tab} ${tab === "mindmap" ? styles.tabOn : ""}`}>마인드맵</button>
-          <button onClick={() => setTab("sessions")} className={`${styles.tab} ${tab === "sessions" ? styles.tabOn : ""}`}>세션 ({pinnedSessions.length})</button>
+          <button onClick={() => setTab("sessions")} className={`${styles.tab} ${tab === "sessions" ? styles.tabOn : ""}`}>
+            {/* 내 세션은 페이지로 받아 전체 수를 모른다 */}
+            {isMine ? "세션" : `세션 (${tabSessions.length})`}
+          </button>
         </div>
 
-        {tab === "mindmap" &&
-          (mindmaps.length === 0 ? (
-            <div className={styles.sessionEmpty}>
-              {mindmapsSection?.error ? (
-                <InlineState kind="error" title="마인드맵을 불러오지 못했어요." description={mindmapsSection.error} onRetry={mindmapsSection.onRetry} />
-              ) : mindmapsSection?.loading ? (
-                <div className={styles.state}>불러오는 중…</div>
-              ) : (
-                <InlineState kind="empty" title="공유한 마인드맵이 없어요." />
-              )}
-            </div>
-          ) : (
-            <>
-              <div className={styles.mapGrid}>
-                {mindmaps.map((p) => (
-                  <MindmapCard
-                    key={p.id}
-                    seed={p.id}
-                    nodes={p.nodes}
-                    height={220}
-                    title={p.title || titleFromTags(visibleTags(p.hashtags))}
-                    tags={p.title ? visibleTags(p.hashtags).slice(0, 2) : undefined}
-                    topLeft={isMine ? <span title="핀고정됨"><Icon name="pin" size={11} stroke={2} /></span> : undefined}
-                    topRight={`노드 ${p.nodes}`}
-                    onClick={() => setDetailId(p.id)}
-                    footer={
-                      <>
-                        {/* 내 카드엔 좋아요를 누를 수 없다 (서버가 400) */}
-                        {isMine || p.ownerId === member.id ? (
-                          <span>♡ {p.likes}</span>
-                        ) : (
-                          <CardAction label="마인드맵 좋아요" on={!!p.likedByMe} onClick={() => toggleCardLike(p)}>
-                            {p.likedByMe ? "♥" : "♡"} {p.likes}
-                          </CardAction>
-                        )}
-                        {isMine ? (
-                          <span>◇ {p.bookmarks}</span>
-                        ) : (
-                          <CardAction label="마인드맵 북마크" on={p.bookmarkId != null} onClick={() => toggleCardBookmark(p)}>
-                            {p.bookmarkId != null ? "◆" : "◇"} {p.bookmarks}
-                          </CardAction>
-                        )}
-                        {!isMine && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void toggleCardExploring(p);
-                            }}
-                            className={`${styles.exploreBtn} ${p.exploringByMe ? styles.exploreBtnOn : ""}`}
-                          >
-                            {p.exploringByMe ? "✓ 탐색중" : "+ 나도 탐색"}
-                          </button>
-                        )}
-                      </>
-                    }
-                  />
-                ))}
-              </div>
-              {mindmapsSection && (
-                <div className={styles.mapMore}>
-                  {mindmapsSection.error ? (
-                    <InlineState kind="error" title="마인드맵을 더 불러오지 못했어요." description={mindmapsSection.error} onRetry={mindmapsSection.onRetry} />
-                  ) : mindmapsSection.loading ? (
-                    <span className={styles.mapMoreLoading}>불러오는 중…</span>
-                  ) : (
-                    mindmapsSection.hasNext && (
-                      <Button variant="secondary" onClick={mindmapsSection.onLoadMore}>더 보기</Button>
-                    )
-                  )}
-                </div>
-              )}
-            </>
-          ))}
-
-        {tab === "sessions" &&
-          (pinnedSessions.length === 0 ? (
-            <div className={styles.sessionEmpty}>
-              <InlineState
-                kind="empty"
-                title="공유한 세션이 없어요."
-                description={isMine ? "프로필 수정에서 세션을 핀고정하면 여기에 보여요." : undefined}
-              />
-            </div>
-          ) : (
-            <div className={styles.sessionGrid}>
-              {pinnedSessions.map((s) => (
-                <SessionCard key={s.id} session={s} onClick={() => router.push(`/sessions/${s.id}`)} />
+        {tab === "mindmap" && (
+          <ProfileList
+            section={mindmapsSection}
+            label="마인드맵"
+            isEmpty={mindmaps.length === 0}
+            empty={<InlineState kind="empty" title={isMine ? "아직 마인드맵이 없어요." : "공유한 마인드맵이 없어요."} />}
+          >
+            <div className={styles.mapGrid}>
+              {mindmaps.map((p) => (
+                <MindmapCard
+                  key={p.id}
+                  seed={p.id}
+                  nodes={p.nodes}
+                  height={220}
+                  title={p.title || titleFromTags(visibleTags(p.hashtags))}
+                  meta={p.isPublic === false ? <PrivateMark /> : undefined}
+                  tags={p.title ? visibleTags(p.hashtags).slice(0, 2) : undefined}
+                  topLeft={p.isPinned ? <PinMark /> : undefined}
+                  topRight={`노드 ${p.nodes}`}
+                  onClick={() => setDetailId(p.id)}
+                  footer={
+                    <>
+                      {/* 내 카드엔 좋아요를 누를 수 없다 (서버가 400) */}
+                      {isMine || p.ownerId === member.id ? (
+                        <span>♡ {p.likes}</span>
+                      ) : (
+                        <CardAction label="마인드맵 좋아요" on={!!p.likedByMe} onClick={() => toggleCardLike(p)}>
+                          {p.likedByMe ? "♥" : "♡"} {p.likes}
+                        </CardAction>
+                      )}
+                      {isMine ? (
+                        <span>◇ {p.bookmarks}</span>
+                      ) : (
+                        <CardAction label="마인드맵 북마크" on={p.bookmarkId != null} onClick={() => toggleCardBookmark(p)}>
+                          {p.bookmarkId != null ? "◆" : "◇"} {p.bookmarks}
+                        </CardAction>
+                      )}
+                      {!isMine && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void toggleCardExploring(p);
+                          }}
+                          className={`${styles.exploreBtn} ${p.exploringByMe ? styles.exploreBtnOn : ""}`}
+                        >
+                          {p.exploringByMe ? "✓ 탐색중" : "+ 나도 탐색"}
+                        </button>
+                      )}
+                    </>
+                  }
+                />
               ))}
             </div>
-          ))}
+          </ProfileList>
+        )}
+
+        {tab === "sessions" && (
+          <ProfileList
+            section={sessionsSection}
+            label="세션"
+            isEmpty={tabSessions.length === 0}
+            empty={<InlineState kind="empty" title={isMine ? "아직 세션이 없어요." : "공유한 세션이 없어요."} />}
+          >
+            <div className={styles.sessionGrid}>
+              {tabSessions.map((s) => (
+                <SessionCard
+                  key={s.id}
+                  session={s}
+                  onClick={() => router.push(`/sessions/${s.id}`)}
+                  marks={
+                    isMine && (s.isPinned || !s.isPublic) ? (
+                      <>
+                        {s.isPinned && <PinMark />}
+                        {!s.isPublic && <PrivateMark />}
+                      </>
+                    ) : undefined
+                  }
+                />
+              ))}
+            </div>
+          </ProfileList>
+        )}
       </div>
 
       {detail && !(fullView && fullMindmap) && (
@@ -584,9 +583,9 @@ function ProfileScreen({
             title: detail.title || titleFromTags(visibleTags(detail.hashtags)),
             hashtags: detail.title ? visibleTags(detail.hashtags) : [],
           }}
-          sessions={(isMine ? detail.sessions : (cardSessions.sessions ?? [])).map(withVisibleTags)}
+          sessions={(cardSessions.sessions ?? []).map(withVisibleTags)}
           sessionsStatus={
-            isMine || cardSessions.sessions ? undefined : cardSessions.error ? (
+            cardSessions.sessions ? undefined : cardSessions.error ? (
               <InlineState kind="error" title="관련 세션을 불러오지 못했어요." description={cardSessions.error} onRetry={cardSessions.retry} />
             ) : (
               <div className={styles.stateInline}>불러오는 중…</div>
@@ -596,7 +595,7 @@ function ProfileScreen({
           // 이미 이 사람 프로필이라 작성자 이름을 누르면 팝업만 닫힌다
           onOpenProfile={() => {}}
           actions={
-            !isMine && fullView && ownerMindmap.error ? (
+            fullView && ownerMindmap.error ? (
               <InlineState kind="error" title="전체 마인드맵을 불러오지 못했어요." description={ownerMindmap.error} onRetry={ownerMindmap.retry} />
             ) : (
               <Button variant="primary" disabled={fullView} onClick={openFullView}>
@@ -659,6 +658,22 @@ function CardAction({ label, on, onClick, children }: { label: string; on: boole
     >
       {children}
     </button>
+  );
+}
+
+function PinMark() {
+  return (
+    <span role="img" aria-label="핀고정됨" title="핀고정됨">
+      <Icon name="pin" size={11} stroke={2} />
+    </span>
+  );
+}
+
+function PrivateMark() {
+  return (
+    <span className={styles.privateMark} title="비공개 · 나만 보여요">
+      <Icon name="lock" size={11} stroke={2} /> 비공개
+    </span>
   );
 }
 
