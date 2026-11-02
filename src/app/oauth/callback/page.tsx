@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { exchangeLoginCode, type LoginTokenResponse } from "@/lib/api";
 import { clearPendingProvider, commitPendingProvider, setTokens } from "@/lib/auth/tokens";
 import { setAuthToast } from "@/lib/auth/toast";
+import { consumeConnectAfterLogin } from "@/lib/extension";
 import styles from "./callback.module.css";
 
 export default function OauthCallbackPage() {
@@ -27,6 +28,13 @@ export default function OauthCallbackPage() {
     const succeed = ({ accessToken, refreshToken, needsNickname }: LoginTokenResponse) => {
       setTokens({ accessToken, refreshToken });
       commitPendingProvider();
+      // 확장 연결 페이지에서 로그인하러 왔으면 그 페이지로 돌아간다 (확장이 그 탭을 닫으므로 로그인 토스트는 예약하지 않음).
+      // 가입 직후면 닉네임부터 — 연결은 그 뒤 개인 화면이 확장 상태를 보고 한다
+      const toExtension = consumeConnectAfterLogin();
+      if (toExtension && !needsNickname) {
+        router.replace("/extension/connect");
+        return;
+      }
       setAuthToast({ kind: "login", justSignedUp: needsNickname });
       router.replace(needsNickname ? "/onboarding/nickname" : "/home");
     };

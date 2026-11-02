@@ -1,6 +1,6 @@
 export * from "./types";
 export { ApiError, SessionExpiredError, api, refreshAccessToken } from "./client";
-export { exchangeLoginCode, logout, refresh } from "./auth";
+export { exchangeLoginCode, issueExtensionCode, logout, refresh } from "./auth";
 export { getMe, updateNickname, checkNicknameAvailability, withdrawAccount, SOCIAL_PROVIDER_LABEL } from "./members";
 export {
   getSessions,
