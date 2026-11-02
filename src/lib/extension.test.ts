@@ -1,11 +1,13 @@
 import { http } from "msw";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { API, fail, ok, server } from "@/test/msw/server";
-import { installFakeExtension, loggedOutExtension, removeFakeExtension } from "@/test/extension";
+import { NO_REPLY, installFakeExtension, loggedOutExtension, removeFakeExtension } from "@/test/extension";
 import { setTokens } from "@/lib/auth/tokens";
 import {
+  CONNECT_TIMEOUT_MS,
   EXTENSION_ID,
   ExtensionMissingError,
+  REPLY_TIMEOUT_MS,
   connectExtension,
   consumeConnectAfterLogin,
   getExtensionStatus,
@@ -83,6 +85,37 @@ describe("크롬 확장 연결 도구", () => {
       const sent = installFakeExtension(loggedOutExtension());
       await expect(connectExtension()).rejects.toThrow("이미 로그아웃된 로그인이에요.");
       expect(sent.map((s) => s.message.type)).toEqual(["JIN_STATUS"]);
+    });
+  });
+
+  describe("확장이 멈춰 답하지 않을 때", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("상태 묻기는 3초 뒤 '없음'(null) 으로 넘어간다", async () => {
+      vi.useFakeTimers();
+      installFakeExtension(() => NO_REPLY);
+      const p = getExtensionStatus();
+      await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS);
+      expect(await p).toBeNull();
+    });
+
+    it("로그아웃 알림도 3초 뒤 넘어간다 — 웹 로그아웃이 멈추지 않는다", async () => {
+      vi.useFakeTimers();
+      installFakeExtension(() => NO_REPLY);
+      const p = logoutExtension();
+      await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS);
+      await expect(p).resolves.toBeUndefined();
+    });
+
+    it("연결 중에 멈추면 25초 뒤 '응답하지 않아요' 오류", async () => {
+      setTokens({ accessToken: "web-a", refreshToken: "web-r" });
+      issueOk();
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      installFakeExtension((m) => (m.type === "JIN_STATUS" ? { loggedIn: false, memberId: null, version: "0.1.0" } : NO_REPLY));
+      const p = connectExtension();
+      const caught = p.catch((e: unknown) => e);
+      await vi.advanceTimersByTimeAsync(CONNECT_TIMEOUT_MS);
+      expect(await caught).toEqual(new Error("확장 프로그램이 응답하지 않아요. 잠시 뒤 다시 시도해 주세요."));
     });
   });
 
