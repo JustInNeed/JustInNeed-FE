@@ -294,6 +294,12 @@ export interface LoginTokenResponse extends TokenResponse {
   needsNickname: boolean;
 }
 
+/** 크롬 확장에 넘길 일회용 연결 코드 (POST /auth/extension-code). 확장이 POST /auth/token 으로 자기 전용 토큰과 바꾼다 */
+export interface ExtensionCodeResponse {
+  code: string;
+  expiresInSeconds: number;
+}
+
 /** 수집 중 → 분석 대기 → 분석 중 → 분석 완료 / 분석 실패 */
 export type SessionStatus = "COLLECTING" | "READY" | "ANALYZING" | "COMPLETED" | "FAILED";
 

@@ -6,6 +6,7 @@ import { API, fail, ok, server } from "@/test/msw/server";
 import { mockRouter } from "@/test/router";
 import { getAccessToken, getLastProvider, getRefreshToken, setPendingProvider, setTokens } from "@/lib/auth/tokens";
 import { consumeAuthToast } from "@/lib/auth/toast";
+import { consumeConnectAfterLogin, markConnectAfterLogin } from "@/lib/extension";
 import OauthCallbackPage from "./page";
 
 /** 백엔드가 소셜 로그인 후 돌려보낸 콜백 주소로 들어온 상태 */
@@ -94,6 +95,28 @@ describe("OAuth 콜백", () => {
       expect(pendingProvider()).toBeNull();
       expect(consumeAuthToast()).toBeNull();
       expect(window.location.search).toBe("");
+    });
+
+    it("확장 연결 페이지에서 로그인하러 왔으면 그 페이지로 돌아가고, 로그인 토스트는 예약하지 않는다", async () => {
+      markConnectAfterLogin();
+      exchangeOk(false);
+      arrive("?code=c1");
+      render(<OauthCallbackPage />);
+      await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/extension/connect"));
+      expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+      expect(getAccessToken()).toBe("a1");
+      expect(consumeAuthToast()).toBeNull();
+      expect(consumeConnectAfterLogin()).toBe(false);
+    });
+
+    it("확장 연결 중이어도 가입 직후면 닉네임 온보딩이 먼저이고, 표시는 지운다", async () => {
+      markConnectAfterLogin();
+      exchangeOk(true);
+      arrive("?code=c1");
+      render(<OauthCallbackPage />);
+      await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/onboarding/nickname"));
+      expect(consumeAuthToast()).toEqual({ kind: "login", justSignedUp: true });
+      expect(consumeConnectAfterLogin()).toBe(false);
     });
 
     it("StrictMode 로 effect 가 두 번 돌아도 교환 요청은 한 번만 보낸다 (일회용 코드)", async () => {

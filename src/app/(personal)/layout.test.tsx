@@ -8,6 +8,7 @@ import { MEMBER, NEW_MEMBER } from "@/test/fixtures/member";
 import { getAccessToken, getRefreshToken } from "@/lib/auth/tokens";
 import { consumeAuthToast, setAuthToast } from "@/lib/auth/toast";
 import { AccountSection } from "@/features/settings/AccountSection";
+import { installFakeExtension, loggedOutExtension, removeFakeExtension } from "@/test/extension";
 import PersonalLayout from "./layout";
 
 const renderLayout = (options?: Parameters<typeof renderApp>[1]) =>
@@ -145,6 +146,72 @@ describe("개인 영역 레이아웃", () => {
       await user.click(screen.getByRole("button", { name: "로그아웃" }));
 
       await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/login"));
+      expect(getAccessToken()).toBeNull();
+    });
+  });
+
+  describe("크롬 확장 맞추기", () => {
+    /** POST /auth/extension-code — 몇 번 불렸는지 센다 */
+    function issueOk() {
+      let calls = 0;
+      server.use(
+        http.post(`${API}/auth/extension-code`, () => {
+          calls++;
+          return ok({ code: "ext-code-1", expiresInSeconds: 60 });
+        }),
+      );
+      return () => calls;
+    }
+
+    afterEach(() => removeFakeExtension());
+
+    it("확장이 로그아웃 상태면 연결 코드를 받아 이 회원으로 연결한다", async () => {
+      const calls = issueOk();
+      const sent = installFakeExtension(loggedOutExtension(MEMBER.id));
+      await openAsMember();
+      await vi.waitFor(() => expect(sent.map((s) => s.message.type)).toEqual(["JIN_STATUS", "JIN_STATUS", "JIN_CONNECT"]));
+      expect(calls()).toBe(1);
+    });
+
+    it("확장이 이미 같은 회원이면 상태만 묻고 연결하지 않는다", async () => {
+      const sent = installFakeExtension(() => ({ loggedIn: true, memberId: MEMBER.id, version: "0.1.0" }));
+      await openAsMember();
+      await vi.waitFor(() => expect(sent).toHaveLength(1));
+      await act(async () => {});
+      expect(sent.map((s) => s.message.type)).toEqual(["JIN_STATUS"]);
+    });
+
+    it("확장이 다른 회원이면 이 회원으로 다시 연결한다", async () => {
+      issueOk();
+      const sent = installFakeExtension((m) =>
+        m.type === "JIN_STATUS" ? { loggedIn: true, memberId: 999, version: "0.1.0" } : { ok: true, memberId: MEMBER.id },
+      );
+      await openAsMember();
+      await vi.waitFor(() => expect(sent.map((s) => s.message.type)).toContain("JIN_CONNECT"));
+    });
+
+    it("연결이 실패해도 화면은 그대로이고 콘솔 경고만 남긴다", async () => {
+      issueOk();
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      installFakeExtension((m) =>
+        m.type === "JIN_STATUS" ? { loggedIn: false, memberId: null, version: "0.1.0" } : { ok: false, why: "확장 오류" },
+      );
+      await openAsMember();
+      await vi.waitFor(() => expect(warn).toHaveBeenCalledWith("[JustInNeed] 확장 프로그램 연결 실패:", "확장 오류"));
+      expect(within(screen.getByRole("main")).getByText("본문")).toBeInTheDocument();
+      expect(mockRouter.replace).not.toHaveBeenCalled();
+      warn.mockRestore();
+    });
+
+    it("웹에서 로그아웃하면 확장에도 JIN_LOGOUT 을 보낸다", async () => {
+      vi.spyOn(window, "confirm").mockReturnValue(true);
+      server.use(http.post(`${API}/auth/logout`, () => ok(null)));
+      const sent = installFakeExtension(() => ({ loggedIn: true, memberId: MEMBER.id, version: "0.1.0" }));
+      const { user } = await openAsMember();
+      await user.click(screen.getByRole("button", { name: "로그아웃" }));
+
+      await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/login"));
+      expect(sent.map((s) => s.message.type)).toContain("JIN_LOGOUT");
       expect(getAccessToken()).toBeNull();
     });
   });
