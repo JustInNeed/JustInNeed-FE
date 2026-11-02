@@ -6,6 +6,7 @@ import { mockRouter } from "@/test/router";
 import { API, fail, ok, server } from "@/test/msw/server";
 import { getAccessToken, getRefreshToken } from "@/lib/auth/tokens";
 import { consumeAuthToast } from "@/lib/auth/toast";
+import { installFakeExtension, removeFakeExtension } from "@/test/extension";
 import { WithdrawSection } from "./WithdrawSection";
 
 const confirmInput = () => screen.getByLabelText(/를 입력해 주세요/);
@@ -53,6 +54,18 @@ describe("설정 > 회원 탈퇴", () => {
     expect(getAccessToken()).toBeNull();
     expect(getRefreshToken()).toBeNull();
     expect(consumeAuthToast()).toEqual({ kind: "withdraw" });
+  });
+
+  it("탈퇴하면 크롬 확장에도 JIN_LOGOUT 을 보낸다", async () => {
+    server.use(http.delete(`${API}/settings/account`, () => ok({ memberId: 6, withdrawn: true })));
+    const sent = installFakeExtension(() => ({ ok: true }));
+    const { user } = renderApp(<WithdrawSection onBack={vi.fn()} />);
+    await user.type(confirmInput(), "WITHDRAW");
+    await user.click(withdrawBtn());
+
+    await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/login"));
+    expect(sent.map((s) => s.message)).toEqual([{ type: "JIN_LOGOUT" }]);
+    removeFakeExtension();
   });
 
   it("문구를 맞게 입력하고 Enter 를 눌러도 탈퇴된다", async () => {

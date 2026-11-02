@@ -7,6 +7,7 @@ import { ApiError, withdrawAccount } from "@/lib/api";
 import { clearTokens } from "@/lib/auth/tokens";
 import { setAuthToast } from "@/lib/auth/toast";
 import { useToast } from "@/lib/app/ToastContext";
+import { logoutExtension } from "@/lib/extension";
 import styles from "./SettingsView.module.css";
 
 const CONFIRM_TEXT = "WITHDRAW";
@@ -24,6 +25,7 @@ export function WithdrawSection({ onBack }: { onBack: () => void }) {
     setSubmitting(true);
     try {
       await withdrawAccount(confirm);
+      await logoutExtension(); // 크롬 확장도 로그아웃 (확장이 없으면 그냥 넘어감)
       clearTokens();
       setAuthToast({ kind: "withdraw" });
       router.replace("/login");

@@ -86,6 +86,23 @@ export async function connectExtension(): Promise<number | null> {
   return r.memberId ?? null;
 }
 
+/**
+ * 웹 로그인 회원과 확장을 맞춘다 (개인 화면이 열릴 때). 확장이 로그아웃이거나 다른 회원이면 다시 연결한다.
+ * 확장 설치가 늦었거나 확장 토큰이 만료 · 분실된 경우도 이걸로 복구된다.
+ * 확장이 없으면 아무것도 안 한다. 실패해도 던지지 않고 콘솔 경고만 — 확장 때문에 웹 화면이 막히면 안 된다.
+ */
+export async function syncExtension(memberId: number): Promise<void> {
+  try {
+    const status = await getExtensionStatus();
+    if (!status) return;
+    if (status.loggedIn && status.memberId === memberId) return;
+    await connectExtension();
+  } catch (e) {
+    if (e instanceof ExtensionMissingError) return;
+    console.warn("[JustInNeed] 확장 프로그램 연결 실패:", e instanceof Error ? e.message : e);
+  }
+}
+
 /** 확장도 로그아웃시킨다. 확장이 없거나 실패해도 웹 로그아웃은 막지 않는다 */
 export async function logoutExtension(): Promise<void> {
   await send({ type: "JIN_LOGOUT" });

@@ -8,6 +8,7 @@ import { getMe, logout, SessionExpiredError, SOCIAL_PROVIDER_LABEL, type MemberR
 import { clearTokens, getAccessToken, getRefreshToken } from "@/lib/auth/tokens";
 import { consumeAuthToast, setAuthToast } from "@/lib/auth/toast";
 import { PersonalProvider } from "@/lib/app/PersonalContext";
+import { logoutExtension, syncExtension } from "@/lib/extension";
 import styles from "./layout.module.css";
 
 export default function PersonalLayout({ children }: { children: React.ReactNode }) {
@@ -27,6 +28,8 @@ export default function PersonalLayout({ children }: { children: React.ReactNode
           return;
         }
         setMember(m);
+        // 크롬 확장이 있으면 이 회원으로 로그인돼 있는지 맞춘다 (없거나 실패해도 화면은 그대로)
+        void syncExtension(m.id);
         // 로그인 직후 1회: 환영/로그인 토스트
         const flag = consumeAuthToast();
         if (flag?.kind === "login") {
@@ -60,6 +63,8 @@ export default function PersonalLayout({ children }: { children: React.ReactNode
     } catch {
       /* 서버 실패해도 로컬 토큰은 삭제 */
     }
+    // 크롬 확장도 로그아웃 (확장 토큰은 따로라 알려야 바로 끊긴다. 확장이 없으면 그냥 넘어감)
+    await logoutExtension();
     clearTokens();
     setAuthToast({ kind: "logout" });
     router.replace("/login");
