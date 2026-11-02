@@ -8,10 +8,12 @@ import { issueExtensionCode } from "@/lib/api";
 /** 확장 manifest 의 key 로 고정한 ID. 웹스토어에 올려 ID 가 바뀌면 환경 변수로 바꾼다 */
 export const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID ?? "pgmclbgdbaiigahdhpnieemifhgoikpa";
 
-// 확장 답을 기다리는 한도. 확장이 멈추면(서버 응답 대기 등) 웹 로그아웃 · 화면이 같이 멈추지 않게 넘기면 "답 없음"으로 본다.
-// 연결은 확장이 서버를 두 번 부르므로(코드 교환 · 회원 확인, 각 10초 한도) 길게 둔다
-export const REPLY_TIMEOUT_MS = 3_000;
-export const CONNECT_TIMEOUT_MS = 25_000;
+// 확장 답을 기다리는 한도. 확장이 멈추면 웹 로그아웃 · 화면이 같이 멈추지 않게, 넘기면 "답 없음"으로 본다.
+// 상태 묻기 · 로그아웃은 확장이 저장된 값만 보고 바로 답한다(서버를 안 기다림) — 쉬던 확장이 깨어나는 시간만 넉넉히.
+// 연결은 확장이 서버를 두 번 부르고(각 30초 한도) 앞선 확인이 끝나길 기다릴 수 있어 아주 느린 네트워크까지 길게 둔다.
+// 연결 한도를 넘겨도 확장은 하던 연결을 마저 끝낸다 — 웹은 기다리기만 그만두고 [다시 시도]를 보여 준다
+export const REPLY_TIMEOUT_MS = 5_000;
+export const CONNECT_TIMEOUT_MS = 90_000;
 
 // 로그인 화면을 거쳐 돌아올 때 연결 페이지로 다시 오라는 표시 (탭마다 · OAuth 이동 동안 유지되는 sessionStorage)
 const CONNECT_AFTER_LOGIN_KEY = "jin_extension_connect";

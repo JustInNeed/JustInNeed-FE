@@ -91,7 +91,7 @@ describe("크롬 확장 연결 도구", () => {
   describe("확장이 멈춰 답하지 않을 때", () => {
     afterEach(() => vi.useRealTimers());
 
-    it("상태 묻기는 3초 뒤 '없음'(null) 으로 넘어간다", async () => {
+    it("상태 묻기는 5초 뒤 '없음'(null) 으로 넘어간다", async () => {
       vi.useFakeTimers();
       installFakeExtension(() => NO_REPLY);
       const p = getExtensionStatus();
@@ -99,7 +99,7 @@ describe("크롬 확장 연결 도구", () => {
       expect(await p).toBeNull();
     });
 
-    it("로그아웃 알림도 3초 뒤 넘어간다 — 웹 로그아웃이 멈추지 않는다", async () => {
+    it("로그아웃 알림도 5초 뒤 넘어간다 — 웹 로그아웃이 멈추지 않는다", async () => {
       vi.useFakeTimers();
       installFakeExtension(() => NO_REPLY);
       const p = logoutExtension();
@@ -107,7 +107,7 @@ describe("크롬 확장 연결 도구", () => {
       await expect(p).resolves.toBeUndefined();
     });
 
-    it("연결 중에 멈추면 25초 뒤 '응답하지 않아요' 오류", async () => {
+    it("연결 중에 멈추면 90초 뒤 '응답하지 않아요' 오류", async () => {
       setTokens({ accessToken: "web-a", refreshToken: "web-r" });
       issueOk();
       vi.useFakeTimers({ shouldAdvanceTime: true });
