@@ -39,6 +39,7 @@ export type IconName =
   | "bell"
   | "sprout"
   | "x"
+  | "menu"
   | "check"
   | "folder"
   | "compass"
@@ -55,6 +56,7 @@ export type IconName =
   | "download";
 
 const PATHS: Record<IconName, ReactNode> = {
+  menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   home: (
     <>
       <path d="M3 12 12 4l9 8" />

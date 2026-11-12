@@ -192,3 +192,100 @@
   background: var(--surface);
   color: var(--ink-900);
 }
+
+/* ── 좁은 화면 (1024px 미만): 상단 바 + 서랍 (QA-003 A안) ── */
+.topbar,
+.scrim,
+.closeBtn {
+  display: none;
+}
+
+@media (max-width: 1023.98px) {
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 52px;
+    flex: none;
+    padding: 0 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+  }
+  .menuBtn {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-700);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .menuBtn:hover {
+    border-color: var(--green-300);
+  }
+  .topbarLogo {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--green-400), var(--green-600));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .topbarName {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(26, 31, 23, 0.38);
+  }
+
+  /* 닫혀 있을 땐 화면 밖 + visibility:hidden 이라 Tab 으로도 들어가지 않는다 */
+  .aside {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 50;
+    height: 100dvh;
+    max-width: calc(100vw - 56px);
+    overflow-y: auto;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
+  }
+  .asideOpen {
+    transform: translateX(0);
+    visibility: visible;
+    box-shadow: 4px 0 20px rgba(26, 31, 23, 0.14);
+    transition: transform 0.2s ease;
+  }
+
+  .closeBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-500);
+  }
+}
+
+@media (max-width: 1023.98px) and (prefers-reduced-motion: reduce) {
+  .aside,
+  .asideOpen {
+    transition: none;
+  }
+}
