@@ -347,10 +347,6 @@
   display: flex;
   gap: 8px;
 }
-/* 10/10 이면 추가 버튼 비활성 */
-.addBtn:disabled {
-  opacity: 0.45;
-}
 .tagPublicRow {
   padding: 10px 0;
   border-top: 1px solid var(--line);
