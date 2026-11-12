@@ -10,7 +10,6 @@ import {
   NICKNAME_CHECK_FAILED_MESSAGE,
   NICKNAME_FORMAT_ERROR,
   NICKNAME_HINT,
-  NICKNAME_MAX_LENGTH,
   NICKNAME_TAKEN_MESSAGE,
   checkNicknameAvailable,
   isValidNickname,
@@ -96,7 +95,6 @@ export function AccountSection({ onWithdraw, checkNickname = checkNicknameAvaila
               setStatus(null);
               setSaveError(null);
             }}
-            maxLength={NICKNAME_MAX_LENGTH}
             aria-invalid={errorText ? true : undefined}
             aria-describedby={errorText || status === "ok" ? "account-nickname-message" : undefined}
             className={inputClass}

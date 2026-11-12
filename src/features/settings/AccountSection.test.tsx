@@ -58,9 +58,21 @@ describe("설정 > 계정", () => {
 
     it("형식이 틀리면 형식 안내가 뜨고 중복 확인 · 저장이 꺼진다", async () => {
       await renderWithNickname("1ab");
-      expect(screen.getByRole("alert")).toHaveTextContent("영문으로 시작하는 3-8자(영문·숫자)로 입력해주세요.");
+      expect(screen.getByRole("alert")).toHaveTextContent("영문으로 시작하는 3-16자(영문·숫자)로 입력해주세요.");
       expect(nicknameInput()).toHaveAttribute("aria-invalid", "true");
       expect(checkBtn()).toBeDisabled();
+      expect(saveBtn()).toBeDisabled();
+    });
+
+    it("16자까지는 쓸 수 있고, 17자째도 입력은 막지 않고 형식 안내를 띄운다", async () => {
+      const { user } = await renderWithNickname("abcdefghijklmnop");
+      expect(nicknameInput()).toHaveValue("abcdefghijklmnop");
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(checkBtn()).toBeEnabled();
+
+      await user.type(nicknameInput(), "q");
+      expect(nicknameInput()).toHaveValue("abcdefghijklmnopq");
+      expect(screen.getByRole("alert")).toHaveTextContent("영문으로 시작하는 3-16자(영문·숫자)로 입력해주세요.");
       expect(saveBtn()).toBeDisabled();
     });
 

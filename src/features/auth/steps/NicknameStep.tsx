@@ -4,7 +4,6 @@ import {
   NICKNAME_AVAILABLE_MESSAGE,
   NICKNAME_CHECK_FAILED_MESSAGE,
   NICKNAME_FORMAT_ERROR,
-  NICKNAME_MAX_LENGTH,
   NICKNAME_TAKEN_MESSAGE,
   checkNicknameAvailable,
   isValidNickname,
@@ -82,8 +81,7 @@ export function NicknameStep({
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
           }}
-          maxLength={NICKNAME_MAX_LENGTH}
-          placeholder="영문 3-8자"
+          placeholder="영문 3-16자"
           className={styles.nickInput}
           style={{ minWidth: 0 }}
         />
