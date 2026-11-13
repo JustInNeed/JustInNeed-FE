@@ -40,6 +40,7 @@ export type IconName =
   | "sprout"
   | "x"
   | "menu"
+  | "calendar"
   | "check"
   | "folder"
   | "compass"
@@ -57,6 +58,12 @@ export type IconName =
 
 const PATHS: Record<IconName, ReactNode> = {
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
+  calendar: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </>
+  ),
   home: (
     <>
       <path d="M3 12 12 4l9 8" />

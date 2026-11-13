@@ -236,7 +236,10 @@ interface Slide {
   eyebrow: string;
   icon: IconName;
   title: string;
-  body: string;
+  /** 팁 · 추천 슬라이드의 본문 */
+  body?: string;
+  /** 세션 슬라이드 — 날짜 · 걸린 시간은 아이콘 줄, 해시태그는 칩으로 (QA-012 A안) */
+  session?: { date: string; duration: string | null; tags: string[] };
 }
 
 interface RollingBannerProps {
@@ -265,9 +268,11 @@ function RollingBanner({ sessions, tips, recs, random }: RollingBannerProps) {
       eyebrow: "이번 주 인사이트",
       icon: "sparkle",
       title: session.title,
-      body: [formatDate(session.startedAt), formatDuration(session.startedAt, session.endedAt), session.tags.slice(0, 3).map(withHash).join(" ")]
-        .filter(Boolean)
-        .join(" · "),
+      session: {
+        date: formatDate(session.startedAt),
+        duration: formatDuration(session.startedAt, session.endedAt) || null,
+        tags: session.tags.slice(0, 3).map(withHash),
+      },
     });
   }
   if (tip) slides.push({ eyebrow: "오늘의 웹 서핑 팁", icon: "sprout", ...tip });
@@ -291,7 +296,31 @@ function RollingBanner({ sessions, tips, recs, random }: RollingBannerProps) {
         <div className={styles.bannerBody}>
           <div className={styles.recEyebrow}>{s.eyebrow}</div>
           <h3 className={styles.bannerTitle}>{s.title}</h3>
-          <p className={styles.bannerText}>{s.body}</p>
+          {s.session ? (
+            <>
+              <div className={styles.bannerMeta}>
+                <span className={styles.bannerMetaItem}>
+                  <Icon name="calendar" size={12} /> {s.session.date}
+                </span>
+                {s.session.duration && (
+                  <span className={styles.bannerMetaItem}>
+                    <Icon name="clock" size={12} /> {s.session.duration}
+                  </span>
+                )}
+              </div>
+              {s.session.tags.length > 0 && (
+                <div className={styles.bannerTags}>
+                  {s.session.tags.map((t) => (
+                    <span key={t} className={styles.bannerTag}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <p className={styles.bannerText}>{s.body}</p>
+          )}
         </div>
       </div>
       <div className={styles.dots}>

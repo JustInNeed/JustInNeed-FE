@@ -142,6 +142,36 @@
   color: var(--ink-700);
   line-height: 1.6;
 }
+/* 세션 슬라이드: 아이콘 정보 줄 + 해시태그 칩 (QA-012 A안) */
+.bannerMeta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--ink-500);
+}
+.bannerMetaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.bannerTags {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.bannerTag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--green-200);
+  background: var(--green-50);
+  color: var(--green-800);
+  font-size: 12px;
+  font-weight: 600;
+}
 .dots {
   position: absolute;
   bottom: 16px;
