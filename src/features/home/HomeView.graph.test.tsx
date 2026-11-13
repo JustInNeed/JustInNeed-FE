@@ -299,6 +299,20 @@ describe("노드 선택 팝오버", () => {
     expect(sessionButton()).not.toBeInTheDocument();
   });
 
+  it("선택한 노드를 다시 누르면 마우스가 그 노드 위에 있어도 팝업과 강조가 바로 사라진다 (QA-008)", async () => {
+    const { user } = setup();
+    await user.click(node("로마"));
+    expect(sessionButton()).toBeInTheDocument();
+    await user.click(node("로마"));
+    expect(sessionButton()).not.toBeInTheDocument();
+    expect(node("파리")).toHaveStyle(NORMAL); // 강조가 풀려 다른 노드도 보통 투명도
+
+    // 나갔다가 다시 올리면 호버 팝업은 다시 뜬다
+    await user.unhover(node("로마"));
+    await user.hover(node("로마"));
+    expect(sessionButton()).toBeInTheDocument();
+  });
+
   it("선택한 노드를 다시 누르면 선택이 풀린다", async () => {
     const { user } = setup();
     await user.click(node("로마"));

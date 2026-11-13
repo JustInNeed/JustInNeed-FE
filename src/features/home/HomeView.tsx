@@ -92,6 +92,23 @@ function HomeDashboard({ data }: { data: HomeData }) {
     return () => document.removeEventListener("mousedown", onDown);
   }, [filterOpen, searchOpen]);
 
+  // 선택한 노드를 다시 누르면 선택을 푼다. 마우스가 아직 그 노드 위라 호버로 다시 강조되지 않게,
+  // 그 노드에서 마우스가 나갈 때까지 호버를 무시한다 (QA-008)
+  const hoverMutedRef = useRef<string | null>(null);
+  const toggleSelect = (id: string) => {
+    if (selected === id) {
+      setSelected(null);
+      setHovered(null);
+      hoverMutedRef.current = id;
+    } else {
+      setSelected(id);
+    }
+  };
+  const onHoverNode = (id: string | null) => {
+    if (id === null) hoverMutedRef.current = null;
+    else if (id === hoverMutedRef.current) return;
+    setHovered(id);
+  };
   const focusId = selected || hovered;
   const focusNode = focusId ? graph.nodes.find((n) => n.id === focusId) : undefined;
   const focusSession = focusNode ? relatedSession(focusNode, graph.nodeMeta, sessions) : undefined;
@@ -178,9 +195,9 @@ function HomeDashboard({ data }: { data: HomeData }) {
               height={700}
               initialZoom={GRAPH_INITIAL_ZOOM}
               selectedId={selected}
-              onSelect={(id) => setSelected((cur) => (cur === id ? null : id))}
+              onSelect={toggleSelect}
               hoveredId={hovered}
-              onHover={setHovered}
+              onHover={onHoverNode}
               dimmedIds={dimmedIds}
               matchIds={matchIds}
               showHint={false}
