@@ -26,6 +26,9 @@ import styles from "./SessionsView.module.css";
 type ViewMode = "list" | "group";
 
 const PAGE_SIZE = 10;
+/** 분석이 끝나지 않은 세션이 있으면 이 간격으로 첫 페이지를 다시 받아 상태를 맞춘다 (QA-015) */
+const POLL_MS = 5000;
+const PENDING_STATUSES: ReadonlySet<SessionListItem["status"]> = new Set(["READY", "ANALYZING"]);
 
 export function SessionsView() {
   const router = useRouter();
@@ -88,6 +91,37 @@ export function SessionsView() {
       genRef.current += 1;
     };
   }, [favOnly, listReload]);
+
+  // 분석 대기 · 분석 중 세션이 보이면 5초마다 첫 페이지를 다시 받아 상태를 맞춘다 (QA-015).
+  // 이미 불러온 카드는 같은 id 끼리 새 값으로 바꾸고, 그사이 새로 생긴 세션은 맨 앞에 붙인다. 페이지 위치는 그대로 둔다.
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
+  const hasPending = sessions.some((s) => PENDING_STATUSES.has(s.status));
+  useEffect(() => {
+    if (!hasPending || listLoading) return;
+    const timer = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      const gen = genRef.current;
+      getSessions({ page: 0, size: PAGE_SIZE, favorite: favOnly })
+        .then((p) => {
+          if (gen !== genRef.current) return;
+          const cur = sessionsRef.current;
+          const fresh = new Map(p.sessions.map((s) => [s.id, s]));
+          const statusChanged = cur.some((s) => fresh.has(s.id) && fresh.get(s.id)!.status !== s.status);
+          const known = new Set(cur.map((s) => s.id));
+          const added = p.sessions.filter((s) => !known.has(s.id));
+          if (!statusChanged && added.length === 0) return;
+          setSessions((ss) => [...added, ...ss.map((s) => fresh.get(s.id) ?? s)]);
+          groupsQuery.refetch(); // 분석이 끝나 해시태그가 붙으면 그룹 보기도 바뀐다
+        })
+        .catch(() => {
+          /* 다음 주기에 다시 시도 */
+        });
+    }, POLL_MS);
+    return () => clearInterval(timer);
+    // groupsQuery.refetch 는 매 렌더 새 함수일 수 있어 의존성에서 뺀다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPending, listLoading, favOnly]);
 
   // 다음 페이지 — 불러오는 중이면 무시. 실패하면 토스트, 다시 스크롤하면 다시 요청
   const loadMore = () => {

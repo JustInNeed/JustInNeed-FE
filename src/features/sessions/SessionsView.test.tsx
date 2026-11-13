@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http } from "msw";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SessionsPage from "@/app/(personal)/sessions/page";
 import type { SessionListItem, SessionUpdateRequest } from "@/lib/api";
 import {
@@ -611,5 +611,71 @@ describe("세션 목록 — 해시태그(그룹) 보기 전환", () => {
     expect(screen.getByRole("button", { name: "해시태그" })).not.toHaveClass("active");
     await waitFor(() => expect(cardTitles()).toEqual(titles(FAVORITES.slice(0, 10))));
     expect(requests).toEqual([q(0), q(0, true)]);
+  });
+});
+
+describe("분석 중 세션 자동 새로고침 (QA-015)", () => {
+  const analyzing: SessionListItem = {
+    id: 9301,
+    title: "분석 중인 세션",
+    startedAt: "2026-04-28T10:00:00",
+    endedAt: "2026-04-28T10:30:00",
+    pageCount: 3,
+    status: "ANALYZING",
+    isFavorite: false,
+    isPublic: false,
+    tags: [],
+  };
+  const done: SessionListItem = { ...analyzing, status: "COMPLETED", tags: ["라멘"] };
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("분석 중 세션이 있으면 5초마다 다시 받아, 분석이 끝나면 카드가 완료 상태로 바뀐다", async () => {
+    let list = [analyzing];
+    const requests = serveSessions(() => list);
+    renderSessions();
+    await screen.findByRole("heading", { level: 3, name: analyzing.title });
+    expect(within(card(analyzing.title)).getByText("분석 중")).toBeInTheDocument();
+    expect(requests).toHaveLength(1);
+
+    await vi.advanceTimersByTimeAsync(5000);
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(within(card(analyzing.title)).getByText("분석 중")).toBeInTheDocument();
+
+    list = [done];
+    await vi.advanceTimersByTimeAsync(5000);
+    await waitFor(() => expect(within(card(done.title)).getByText("#라멘")).toBeInTheDocument());
+    expect(within(card(done.title)).queryByText("분석 중")).not.toBeInTheDocument();
+
+    // 분석 중 세션이 없어지면 더 받지 않는다
+    const after = requests.length;
+    await vi.advanceTimersByTimeAsync(15000);
+    expect(requests).toHaveLength(after);
+  });
+
+  it("그사이 새로 등록된 세션은 목록 맨 앞에 붙는다", async () => {
+    const newcomer: SessionListItem = { ...analyzing, id: 9302, title: "방금 끝난 세션", status: "READY" };
+    let list = [analyzing];
+    serveSessions(() => list);
+    renderSessions();
+    await screen.findByRole("heading", { level: 3, name: analyzing.title });
+
+    list = [newcomer, analyzing];
+    await vi.advanceTimersByTimeAsync(5000);
+    await screen.findByRole("heading", { level: 3, name: newcomer.title });
+    expect(cardTitles().slice(0, 2)).toEqual([newcomer.title, analyzing.title]);
+  });
+
+  it("완료된 세션만 있으면 다시 받지 않는다", async () => {
+    const requests = serveSessions([done]);
+    renderSessions();
+    await screen.findByRole("heading", { level: 3, name: done.title });
+    await vi.advanceTimersByTimeAsync(15000);
+    expect(requests).toHaveLength(1);
   });
 });
