@@ -41,6 +41,8 @@ export interface MindmapProps {
   treeEdges?: MindmapEdge[];
   /** 처음 배율 (캔버스 중심 기준). 마운트 시점 기준 */
   initialZoom?: number;
+  /** true 면 노드가 그려진 가로 범위 안에서만 휠로 확대 · 축소하고, 그 밖의 좌우 여백에서는 페이지가 스크롤된다 */
+  wheelZoomOverGraphOnly?: boolean;
   ref?: Ref<MindmapHandle>;
 }
 
@@ -58,11 +60,13 @@ export function Mindmap({
   matchIds,
   showHint = true,
   layout = "radial",
+  wheelZoomOverGraphOnly = false,
   treeEdges,
   initialZoom = 1,
   ref,
 }: MindmapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const graphRef = useRef<SVGGElement>(null);
   const [nodes, setNodes] = useState<SimNode[]>(() => {
     const ns = initialNodes.map((n) => ({ ...n, vx: 0, vy: 0 }));
     return layout === "tree" ? treeLayout(ns, treeEdges ?? edges, width, height) : ns;
@@ -175,6 +179,10 @@ export function Mindmap({
     const svg = svgRef.current;
     if (!svg) return;
     const onWheel = (e: WheelEvent) => {
+      if (wheelZoomOverGraphOnly && graphRef.current) {
+        const box = graphRef.current.getBoundingClientRect();
+        if (e.clientX < box.left || e.clientX > box.right) return; // 그래프 밖 좌우 여백 → 기본 스크롤
+      }
       e.preventDefault();
       const delta = -e.deltaY * 0.001;
       const rect = svg.getBoundingClientRect();
@@ -189,7 +197,7 @@ export function Mindmap({
     };
     svg.addEventListener("wheel", onWheel, { passive: false });
     return () => svg.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [wheelZoomOverGraphOnly]);
 
   useImperativeHandle(ref, () => ({
     zoomBy: (factor) => {
@@ -260,7 +268,7 @@ export function Mindmap({
         </radialGradient>
       </defs>
       <rect width={width} height={height} fill="transparent" />
-      <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
+      <g ref={graphRef} transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
         {/* Edges */}
         {edges.map(([aId, bId], i) => {
           const a = nodes.find((n) => n.id === aId);

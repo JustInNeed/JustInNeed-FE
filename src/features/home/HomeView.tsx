@@ -198,6 +198,7 @@ function HomeDashboard({ data }: { data: HomeData }) {
               onSelect={toggleSelect}
               hoveredId={hovered}
               onHover={onHoverNode}
+              wheelZoomOverGraphOnly
               dimmedIds={dimmedIds}
               matchIds={matchIds}
               showHint={false}

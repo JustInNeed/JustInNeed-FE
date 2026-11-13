@@ -1,7 +1,7 @@
 // 홈 마인드맵 주변 상호작용 — 필터 팝오버 · 검색 · 노드 선택 팝오버.
 // 마인드맵은 실제 컴포넌트를 쓰되 포스 시뮬레이션(rAF)만 멈춰서 노드를 초기 좌표에 고정한다.
 // 노드 흐림 여부는 Mindmap 이 노드 <g> 에 거는 투명도(흐림 0.25 · 보통 1)로 확인한다.
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HOME_DATA } from "@/test/fixtures/home";
 import { renderPersonal } from "@/test/render";
@@ -35,6 +35,33 @@ describe("그래프 줌", () => {
     await user.click(screen.getByRole("button", { name: "축소" }));
     await user.click(screen.getByRole("button", { name: "축소" }));
     expect(Number(zoomOf())).toBeCloseTo(1.1 / 1.2);
+  });
+
+  describe("휠 (QA-008)", () => {
+    // 노드가 그려진 영역(<g>)을 화면 x 300 ~ 700 에 있다고 둔다
+    const placeGraph = () => {
+      const graph = node("파리").parentElement!;
+      vi.spyOn(graph, "getBoundingClientRect").mockReturnValue(
+        { left: 300, right: 700, top: 0, bottom: 500, width: 400, height: 500, x: 300, y: 0, toJSON: () => ({}) } as DOMRect,
+      );
+      return (graph as unknown as SVGGElement).ownerSVGElement!;
+    };
+
+    it("노드가 그려진 가로 범위 안에서 휠을 굴리면 확대 · 축소한다", () => {
+      setup();
+      const svg = placeGraph();
+      const notCancelled = fireEvent.wheel(svg, { deltaY: 300, clientX: 500, clientY: 200 });
+      expect(notCancelled).toBe(false);
+      expect(Number(zoomOf())).toBeLessThan(1.1);
+    });
+
+    it("그 밖의 좌우 여백에서는 확대 · 축소하지 않고 페이지 스크롤을 막지 않는다", () => {
+      setup();
+      const svg = placeGraph();
+      expect(fireEvent.wheel(svg, { deltaY: 300, clientX: 100, clientY: 200 })).toBe(true);
+      expect(fireEvent.wheel(svg, { deltaY: 300, clientX: 900, clientY: 200 })).toBe(true);
+      expect(Number(zoomOf())).toBeCloseTo(1.1);
+    });
   });
 
   it("버튼을 계속 눌러도 배율이 2.5 를 넘지 않는다", async () => {
