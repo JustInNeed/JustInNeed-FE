@@ -85,8 +85,12 @@ describe("그래프 필터", () => {
       "전체",
     ]);
     expect(within(dialog).getByRole("radio", { name: "전체" })).toBeChecked();
-    expect(within(dialog).getByRole("checkbox", { name: "유럽 여행 준비 노드 15" })).not.toBeChecked();
-    expect(within(dialog).getByRole("checkbox", { name: "React 학습 노드 0" })).toBeInTheDocument();
+    // 그룹은 이름이 아니라 해시태그로 보인다 — 앞 3개 + "+N" (QA-011)
+    const europe = within(dialog).getByRole("checkbox", { name: "해시태그 그룹 #로마, #파리, #콜로세움, #항공권, #숙소" });
+    expect(europe).not.toBeChecked();
+    expect(europe.parentElement).toHaveTextContent(/^#로마#파리#콜로세움\+2$/);
+    expect(within(dialog).getByRole("checkbox", { name: "해시태그 그룹 #React, #TypeScript, #훅, #상태관리" })).toBeInTheDocument();
+    expect(within(dialog).queryByText("유럽 여행 준비")).not.toBeInTheDocument();
     expect(within(dialog).getAllByRole("button", { pressed: false }).map((b) => b.textContent)).toEqual([
       "#로마",
       "#파리",
@@ -131,7 +135,7 @@ describe("그래프 필터", () => {
   it("해시태그 그룹을 고르면 그룹 태그가 붙은 노드만 남는다", async () => {
     const { user } = setup();
     await user.click(filterButton());
-    await user.click(within(filterDialog()).getByRole("checkbox", { name: /유럽 여행 준비/ }));
+    await user.click(within(filterDialog()).getByRole("checkbox", { name: /#로마, #파리, #콜로세움/ }));
     await user.click(within(filterDialog()).getByRole("button", { name: "적용" }));
 
     ["로마", "콜로세움", "파리", "비자/입국", "여행블로그"].forEach((l) => expect(node(l)).toHaveStyle(NORMAL));
@@ -143,7 +147,7 @@ describe("그래프 필터", () => {
     await user.click(filterButton());
     const dialog = filterDialog();
     await user.click(within(dialog).getByRole("radio", { name: "이번 주" }));
-    await user.click(within(dialog).getByRole("checkbox", { name: /유럽 여행 준비/ }));
+    await user.click(within(dialog).getByRole("checkbox", { name: /#로마, #파리, #콜로세움/ }));
     await user.click(within(dialog).getByRole("button", { name: "#로마" }));
     await user.click(within(dialog).getByRole("button", { name: "#파리" }));
     expect(within(dialog).getByText("3개 적용")).toBeInTheDocument();

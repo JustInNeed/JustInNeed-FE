@@ -166,7 +166,7 @@ describe("홈 페이지 — 응답 표시", () => {
     await dashboard();
     await user.click(screen.getByRole("button", { name: "필터" }));
     const dialog = screen.getByRole("dialog", { name: "그래프 필터" });
-    expect(within(dialog).getByRole("checkbox", { name: "유럽 여행 노드 3" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("checkbox", { name: "해시태그 그룹 #로마, #파리" })).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "#파리" }));
     await user.click(within(dialog).getByRole("button", { name: "적용" }));
 

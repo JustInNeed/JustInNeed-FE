@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { withHash } from "@/lib/format";
 import type { HomeGraph } from "@/lib/viewTypes";
-import { DEFAULT_GRAPH_FILTER, PERIOD_OPTIONS, countApplied, groupNodeCount, type GraphFilter } from "./graphFilter";
+import { DEFAULT_GRAPH_FILTER, PERIOD_OPTIONS, countApplied, type GraphFilter } from "./graphFilter";
 import styles from "./GraphTools.module.css";
 
 export interface GraphFilterPopoverProps {
@@ -12,6 +12,9 @@ export interface GraphFilterPopoverProps {
   graph: HomeGraph;
   onApply: (filter: GraphFilter) => void;
 }
+
+/** 해시태그 그룹 행에 보여 줄 해시태그 수 — 나머지는 "+N" */
+const GROUP_TAGS_SHOWN = 3;
 
 /** 필터 버튼 아래 팝오버 — 기간 · 해시태그 그룹 · 해시태그 (디자인 A-1). [적용] 전까지는 그래프에 반영하지 않는다. */
 export function GraphFilterPopover({ applied, graph, onApply }: GraphFilterPopoverProps) {
@@ -49,13 +52,27 @@ export function GraphFilterPopover({ applied, graph, onApply }: GraphFilterPopov
         {graph.tagGroups.length > 0 && (
           <fieldset className={styles.fieldset}>
             <legend className={styles.legend}>해시태그 그룹</legend>
+            {/* 그룹은 이름 대신 해시태그로 보여 준다 — 세션 목록의 해시태그 보기와 같은 모양 (QA-011 A안) */}
             {graph.tagGroups.map((g) => {
               const on = draft.groupIds.includes(g.id);
+              const shown = g.tags.slice(0, GROUP_TAGS_SHOWN);
+              const rest = g.tags.length - shown.length;
               return (
-                <label key={g.id} className={`${styles.option} ${on ? styles.optionOn : ""}`}>
-                  <input type="checkbox" checked={on} onChange={() => toggleGroup(g.id)} />
-                  <span className={styles.optionLabel}>{g.name}</span>
-                  <span className={styles.optionCount}>노드 {groupNodeCount(graph, g)}</span>
+                <label key={g.id} className={`${styles.groupOption} ${on ? styles.groupOptionOn : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={() => toggleGroup(g.id)}
+                    aria-label={`해시태그 그룹 ${g.tags.map(withHash).join(", ")}`}
+                  />
+                  <span className={styles.groupTags} aria-hidden>
+                    {shown.map((t) => (
+                      <span key={t} className={`${styles.groupTag} ${on ? styles.groupTagOn : ""}`}>
+                        {withHash(t)}
+                      </span>
+                    ))}
+                    {rest > 0 && <span className={styles.groupMore}>+{rest}</span>}
+                  </span>
                 </label>
               );
             })}
