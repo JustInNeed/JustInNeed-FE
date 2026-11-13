@@ -94,9 +94,6 @@ function HomeDashboard({ data }: { data: HomeData }) {
 
   const focusId = selected || hovered;
   const focusNode = focusId ? graph.nodes.find((n) => n.id === focusId) : undefined;
-  const connected = focusNode
-    ? graph.edges.filter(([a, b]) => a === focusNode.id || b === focusNode.id).length
-    : 0;
   const focusSession = focusNode ? relatedSession(focusNode, graph.nodeMeta, sessions) : undefined;
 
   return (
@@ -192,17 +189,15 @@ function HomeDashboard({ data }: { data: HomeData }) {
         )}
         {focusNode && (
           <div className={styles.popover}>
-            <div className={styles.popEyebrow}>선택됨</div>
             <div className={styles.popTitle}>{focusNode.label}</div>
-            <div className={styles.popMeta}>
-              연결된 노드 {connected}개{focusSession && ` · 출처 ${focusSession.pageCount}개`}
-            </div>
             {/* 가장 잘 맞는 세션 상세로, 없으면 세션 목록으로 */}
             <button
               className={styles.popBtn}
               onClick={() => router.push(focusSession ? `/sessions/${focusSession.id}` : "/sessions")}
+              aria-label="관련 세션 보기"
+              title="관련 세션 보기"
             >
-              관련 세션 보기 <Icon name="chevronRight" size={12} />
+              <Icon name="arrowRight" size={14} />
             </button>
           </div>
         )}

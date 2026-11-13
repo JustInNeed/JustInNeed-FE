@@ -19,7 +19,8 @@ const DIMMED = { opacity: "0.25" };
 const NORMAL = { opacity: "1" };
 const filterButton = () => screen.getByRole("button", { name: "필터" });
 const filterDialog = () => screen.getByRole("dialog", { name: "그래프 필터" });
-const popover = () => screen.getByText("선택됨").parentElement!;
+const sessionButton = () => screen.queryByRole("button", { name: "관련 세션 보기" });
+const popover = () => sessionButton()!.parentElement!;
 
 describe("그래프 줌", () => {
   const zoomOf = () => /scale\(([\d.]+)\)/.exec(node("파리").parentElement!.getAttribute("transform")!)![1];
@@ -267,13 +268,12 @@ describe("그래프 검색", () => {
 });
 
 describe("노드 선택 팝오버", () => {
-  it("노드를 누르면 연결된 노드 수와 출처 수, '관련 세션 보기'가 보인다", async () => {
+  it("노드를 누르면 제목과 '관련 세션 보기' 화살표 버튼만 보인다 ('선택됨' · 연결 수 문구 없음, QA-007)", async () => {
     const { user } = setup();
     await user.click(node("로마"));
     const pop = popover();
     expect(within(pop).getByText("로마")).toBeInTheDocument();
-    // 로마 연결 6개, 가장 잘 맞는 세션 9001 페이지 18개
-    expect(within(pop).getByText("연결된 노드 6개 · 출처 18개")).toBeInTheDocument();
+    expect(pop).toHaveTextContent(/^로마$/);
     expect(within(pop).getByRole("button", { name: "관련 세션 보기" })).toBeInTheDocument();
   });
 
@@ -284,10 +284,9 @@ describe("노드 선택 팝오버", () => {
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9007");
   });
 
-  it("맞는 세션이 없는 노드는 출처 수 없이 보이고, '관련 세션 보기'는 세션 목록으로 이동한다", async () => {
+  it("맞는 세션이 없는 노드의 '관련 세션 보기'는 세션 목록으로 이동한다", async () => {
     const { user } = setup();
     await user.click(node("짐싸기"));
-    expect(within(popover()).getByText("연결된 노드 1개")).toBeInTheDocument();
     await user.click(within(popover()).getByRole("button", { name: "관련 세션 보기" }));
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions");
   });
@@ -297,7 +296,7 @@ describe("노드 선택 팝오버", () => {
     await user.hover(node("파리"));
     expect(within(popover()).getByText("파리")).toBeInTheDocument();
     await user.unhover(node("파리"));
-    expect(screen.queryByText("선택됨")).not.toBeInTheDocument();
+    expect(sessionButton()).not.toBeInTheDocument();
   });
 
   it("선택한 노드를 다시 누르면 선택이 풀린다", async () => {
@@ -305,6 +304,6 @@ describe("노드 선택 팝오버", () => {
     await user.click(node("로마"));
     await user.click(node("로마"));
     await user.unhover(node("로마"));
-    expect(screen.queryByText("선택됨")).not.toBeInTheDocument();
+    expect(sessionButton()).not.toBeInTheDocument();
   });
 });
