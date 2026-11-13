@@ -179,9 +179,8 @@ export function SessionsView() {
         const updated = await updateTagGroup(payload.id, { hashtags: payload.hashtags });
         setGroups((gs) => gs.map((g) => (g.id === updated.id ? updated : g)));
       } else {
-        // 백엔드 name은 필수(notnull) → 화면엔 없으므로 해시태그로 자동 생성
-        const name = payload.hashtags.slice(0, 3).join(", ") || "새 그룹";
-        const created = await createTagGroup({ name, hashtags: payload.hashtags });
+        // 그룹 이름은 쓰지 않는다 (선택 값, QA-011). 그룹은 해시태그로 보여 준다
+        const created = await createTagGroup({ hashtags: payload.hashtags });
         setGroups((gs) => [...gs, created].sort((a, b) => a.position - b.position));
       }
       setCreating(false);

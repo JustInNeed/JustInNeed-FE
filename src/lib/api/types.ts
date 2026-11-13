@@ -396,22 +396,20 @@ export interface SessionUpdateRequest {
   tags?: string[];
 }
 
+/** 해시태그 그룹 — 이름 없이 해시태그로만 구분한다 (QA-011) */
 export interface TagGroup {
   id: number;
-  name: string;
   hashtags: string[];
   position: number;
   sessions: SessionListItem[];
 }
 
 export interface TagGroupCreateRequest {
-  name: string;
   hashtags?: string[];
   position?: number;
 }
 
 export interface TagGroupUpdateRequest {
-  name?: string;
   hashtags?: string[];
 }
 
@@ -439,7 +437,6 @@ export interface HomeNodeMeta {
 
 export interface HomeTagGroup {
   id: number;
-  name: string;
   tags: string[]; // '#' 없이 raw 문자열
 }
 

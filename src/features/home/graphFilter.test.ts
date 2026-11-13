@@ -60,7 +60,7 @@ describe("dimmedNodeIds", () => {
   });
 
   it("해시태그 그룹을 고르면 그룹 태그가 하나라도 붙은 노드만 남는다", () => {
-    const dimmed = dimmedNodeIds(graph, filter({ groupIds: [1] })); // 유럽 여행 준비: 로마 · 파리 · 콜로세움 · 항공권 · 숙소
+    const dimmed = dimmedNodeIds(graph, filter({ groupIds: [1] })); // 그룹 1: 로마 · 파리 · 콜로세움 · 항공권 · 숙소
     expect(dimmed.has("colos")).toBe(false);
     expect(dimmed.has("travel-blog")).toBe(false);
     expect(dimmed.has("visa")).toBe(false); // 항공권

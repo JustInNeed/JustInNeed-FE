@@ -90,7 +90,6 @@ describe("그래프 필터", () => {
     expect(europe).not.toBeChecked();
     expect(europe.parentElement).toHaveTextContent(/^#로마#파리#콜로세움\+2$/);
     expect(within(dialog).getByRole("checkbox", { name: "해시태그 그룹 #React, #TypeScript, #훅, #상태관리" })).toBeInTheDocument();
-    expect(within(dialog).queryByText("유럽 여행 준비")).not.toBeInTheDocument();
     expect(within(dialog).getAllByRole("button", { pressed: false }).map((b) => b.textContent)).toEqual([
       "#로마",
       "#파리",

@@ -88,7 +88,7 @@ describe("해시태그 그룹 보기", () => {
 
   it("그룹 안의 수집 중 · 분석 대기 · 분석 중 카드는 상태만 보이고 눌러도 상세로 이동하지 않는다, 실패 카드만 열린다", async () => {
     // 완료 전 세션은 해시태그가 없어 그룹에 들어오지 않는다. 카드 규칙이 목록과 같은지만 본다
-    groups = [{ ...tagGroup(4, "일본", ["일본"], 0, []), sessions: STATUS_SESSIONS.slice(0, 4) }];
+    groups = [{ ...tagGroup(4, ["일본"], 0, []), sessions: STATUS_SESSIONS.slice(0, 4) }];
     const { user } = await renderGroups();
     const japan = within(sectionOf("일본"));
     expect(japan.getByText("4개 세션")).toBeInTheDocument();
@@ -200,8 +200,8 @@ describe("해시태그 그룹 만들기", () => {
     expect(within(editor()).getByText("전체 해시태그 (0)")).toBeInTheDocument();
   });
 
-  it("태그를 고르고 순서를 바꿔 만들면 POST /tag-groups 에 앞 3개로 지은 이름과 태그를 보내고 새 그룹이 맨 뒤에 붙는다", async () => {
-    const bodies = onCreate((body) => ok(tagGroup(4, body.name, body.hashtags ?? [], 3)));
+  it("태그를 고르고 순서를 바꿔 만들면 POST /tag-groups 에 이름 없이 태그만 보내고 새 그룹이 맨 뒤에 붙는다 (QA-011)", async () => {
+    const bodies = onCreate((body) => ok(tagGroup(4, body.hashtags ?? [], 3)));
     const { user } = await renderGroups();
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
     await serverTagsLoaded();
@@ -224,7 +224,7 @@ describe("해시태그 그룹 만들기", () => {
 
     await user.click(within(editor()).getByRole("button", { name: "그룹 만들기" }));
     await waitFor(() =>
-      expect(bodies).toEqual([{ name: "루브르, 파리, 파르테논", hashtags: ["루브르", "파리", "파르테논", "미술관"] }]),
+      expect(bodies).toEqual([{ hashtags: ["루브르", "파리", "파르테논", "미술관"] }]),
     );
     await waitFor(() => expect(document.querySelector(".modal")).not.toBeInTheDocument());
     expect(sectionHeads().at(-1)).toEqual(["#루브르", "#파리", "#파르테논", "#미술관"]);
@@ -273,7 +273,7 @@ describe("해시태그 그룹 수정", () => {
   it("수정을 누르면 그 그룹 태그가 골라진 채 열리고, 수정 완료하면 PATCH /tag-groups/{id} 에 hashtags 만 보낸다", async () => {
     const requests = onUpdate((id, body) => {
       const cur = TAG_GROUPS.find((g) => g.id === id)!;
-      return ok(tagGroup(id, cur.name, body.hashtags ?? cur.hashtags, cur.position));
+      return ok(tagGroup(id, body.hashtags ?? cur.hashtags, cur.position));
     });
     const { user } = await renderGroups();
     await user.click(within(sectionOf("항공권")).getByRole("button", { name: "수정" }));
@@ -288,7 +288,7 @@ describe("해시태그 그룹 수정", () => {
     await waitFor(() => expect(requests).toEqual([{ id: 2, body: { hashtags: ["예산", "기차"] } }]));
     await waitFor(() => expect(document.querySelector(".modal")).not.toBeInTheDocument());
     expect(sectionHeads()[1]).toEqual(["#예산", "#기차"]);
-    const expected = tagGroup(2, "", ["예산", "기차"], 1).sessions.length;
+    const expected = tagGroup(2, ["예산", "기차"], 1).sessions.length;
     expect(within(sections()[1]).getByText(`${expected}개 세션`)).toBeInTheDocument();
   });
 

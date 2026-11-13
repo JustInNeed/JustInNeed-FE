@@ -158,7 +158,7 @@ describe("toHomeData — 타임라인 · 해시태그", () => {
   it("nodeMeta · tagGroups · filterTags 의 해시태그는 raw 그대로 둔다", () => {
     const { graph } = toHomeData(HOME_RESPONSE);
     expect(graph.nodeMeta.n1.tags).toEqual(["로마"]);
-    expect(graph.tagGroups).toEqual([{ id: 1, name: "유럽 여행", tags: ["로마", "파리"] }]);
+    expect(graph.tagGroups).toEqual([{ id: 1, tags: ["로마", "파리"] }]);
     expect(graph.filterTags).toEqual(["로마", "파리"]);
   });
 

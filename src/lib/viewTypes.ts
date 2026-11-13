@@ -17,7 +17,6 @@ export interface GraphNodeMeta {
 
 export interface GraphTagGroup {
   id: number;
-  name: string;
   tags: string[]; // '#' 없는 raw
 }
 
