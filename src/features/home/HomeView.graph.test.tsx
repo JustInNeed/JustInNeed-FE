@@ -250,6 +250,24 @@ describe("그래프 검색", () => {
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9002");
   });
 
+  it("세션 결과에 마우스를 올리거나 ↓ 로 고르면 그 세션 화면을 미리 받아 둔다 (QA-009)", async () => {
+    const { user } = setup();
+    await openSearch(user, "로마");
+    await user.hover(screen.getByRole("option", { name: /유럽 항공권 비교/ }));
+    expect(mockRouter.prefetch).toHaveBeenCalledWith("/sessions/9002");
+    await user.keyboard("{ArrowUp}{ArrowUp}");
+    expect(mockRouter.prefetch).toHaveBeenCalledWith("/sessions/9001");
+    // 노드 결과는 미리 받을 화면이 없다
+    expect(mockRouter.prefetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("세션 결과를 한 번 누르면 이동을 한 번만 요청한다 (QA-009)", async () => {
+    const { user } = setup();
+    await openSearch(user, "로마");
+    await user.click(screen.getByRole("option", { name: /유럽 항공권 비교/ }));
+    expect(mockRouter.push).toHaveBeenCalledTimes(1);
+  });
+
   it("노드 결과를 고르면 검색이 닫히고 그 노드가 선택된다", async () => {
     const { user } = setup();
     await openSearch(user, "로마");

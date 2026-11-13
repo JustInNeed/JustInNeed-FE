@@ -17,6 +17,10 @@ export interface GraphSearchProps {
   onQueryChange: (query: string) => void;
   onSelectNode: (id: string) => void;
   onSelectSession: (id: number) => void;
+  /** 세션 결과에 마우스를 올리거나 ↑↓로 고르면 그 세션 화면을 미리 받아 둔다 */
+  onPrefetchSession?: (id: number) => void;
+  /** 이동 중인 세션 — 그 행에 "여는 중…"을 띄우고 다른 선택을 막는다 */
+  openingSessionId?: number | null;
   onClose: () => void;
 }
 
@@ -29,15 +33,24 @@ export function GraphSearch({
   onQueryChange,
   onSelectNode,
   onSelectSession,
+  onPrefetchSession,
+  openingSessionId = null,
   onClose,
 }: GraphSearchProps) {
   const results = useMemo(() => searchGraph(query, nodes, edges, sessions), [query, nodes, edges, sessions]);
   const [active, setActive] = useState(0);
   const activeIndex = Math.min(active, Math.max(results.length - 1, 0));
 
+  const opening = openingSessionId != null;
+
   const pick = (r: GraphSearchResult) => {
+    if (opening) return; // 이동 중에는 다시 눌러도 무시
     if (r.kind === "node") onSelectNode(r.node.id);
     else onSelectSession(r.session.id);
+  };
+
+  const prefetch = (r: GraphSearchResult | undefined) => {
+    if (r?.kind === "session") onPrefetchSession?.(r.session.id);
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -46,10 +59,14 @@ export function GraphSearch({
       onClose();
     } else if (e.key === "ArrowDown" && results.length > 0) {
       e.preventDefault();
-      setActive((activeIndex + 1) % results.length);
+      const next = (activeIndex + 1) % results.length;
+      setActive(next);
+      prefetch(results[next]);
     } else if (e.key === "ArrowUp" && results.length > 0) {
       e.preventDefault();
-      setActive((activeIndex - 1 + results.length) % results.length);
+      const prev = (activeIndex - 1 + results.length) % results.length;
+      setActive(prev);
+      prefetch(results[prev]);
     } else if (e.key === "Enter" && results[activeIndex]) {
       e.preventDefault();
       pick(results[activeIndex]);
@@ -59,6 +76,7 @@ export function GraphSearch({
   const nodeResults = results.filter((r) => r.kind === "node");
   const renderResult = (r: GraphSearchResult, index: number) => {
     const isActive = index === activeIndex;
+    const isOpening = r.kind === "session" && r.session.id === openingSessionId;
     return (
       <button
         key={r.kind === "node" ? `n-${r.node.id}` : `s-${r.session.id}`}
@@ -66,13 +84,17 @@ export function GraphSearch({
         role="option"
         aria-selected={isActive}
         className={`${styles.result} ${isActive ? styles.resultActive : ""}`}
-        onMouseEnter={() => setActive(index)}
+        aria-busy={isOpening || undefined}
+        onMouseEnter={() => {
+          setActive(index);
+          prefetch(r);
+        }}
         onClick={() => pick(r)}
       >
         {r.kind === "node" ? <span className={styles.resultDot} /> : <Icon name="list" size={14} />}
         <span className={styles.resultName}>{r.kind === "node" ? r.node.label : r.session.title}</span>
         <span className={styles.resultMeta}>
-          {r.kind === "node" ? `연결 ${r.links}개` : formatDate(r.session.startedAt)}
+          {r.kind === "node" ? `연결 ${r.links}개` : isOpening ? "여는 중…" : formatDate(r.session.startedAt)}
         </span>
       </button>
     );

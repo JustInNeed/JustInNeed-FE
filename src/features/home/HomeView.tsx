@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Card, PageHeader, StatCard, HashChip, InlineState } from "@/components/ui";
 import { Mindmap, type MindmapHandle } from "@/components/mindmap/Mindmap";
@@ -94,6 +94,13 @@ function HomeDashboard({ data }: { data: HomeData }) {
 
   // 선택한 노드를 다시 누르면 선택을 푼다. 마우스가 아직 그 노드 위라 호버로 다시 강조되지 않게,
   // 그 노드에서 마우스가 나갈 때까지 호버를 무시한다 (QA-008)
+  // 검색에서 세션을 고르면 이동이 끝날 때까지 그 행에 "여는 중…"을 띄우고 다시 누르기를 막는다 (QA-009)
+  const [opening, startOpening] = useTransition();
+  const [openingSession, setOpeningSession] = useState<number | null>(null);
+  const openSession = (id: number) => {
+    setOpeningSession(id);
+    startOpening(() => router.push(`/sessions/${id}`));
+  };
   const hoverMutedRef = useRef<string | null>(null);
   const toggleSelect = (id: string) => {
     if (selected === id) {
@@ -145,7 +152,9 @@ function HomeDashboard({ data }: { data: HomeData }) {
                     setSelected(id);
                     closeSearch();
                   }}
-                  onSelectSession={(id) => router.push(`/sessions/${id}`)}
+                  onSelectSession={openSession}
+                  onPrefetchSession={(id) => router.prefetch(`/sessions/${id}`)}
+                  openingSessionId={opening ? openingSession : null}
                   onClose={closeSearch}
                 />
               ) : (
