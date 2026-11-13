@@ -150,11 +150,6 @@
   font-size: 11px;
   color: var(--ink-500);
 }
-.cardDesc {
-  margin: 2px 0 0;
-  font-size: 11px;
-  color: var(--ink-500);
-}
 .barsWrap {
   flex: 1;
   display: flex;

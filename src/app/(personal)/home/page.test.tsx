@@ -106,7 +106,7 @@ describe("홈 페이지 — 응답 표시", () => {
 
     expect(statCard("누적 노드")).toHaveTextContent("218+12해시태그 47개");
     expect(statCard("이번 주 세션")).toHaveTextContent("14+3평균 42분 / 세션");
-    expect(statCard("Deep Reading")).toHaveTextContent("68%↑ 8%지난주 대비");
+    expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading68%↑ 8%$/);
 
     expect(screen.getByText("10.25 — 10.31")).toBeInTheDocument();
     // 오늘(토)로 끝나는 최근 7일 — 받은 순서 그대로

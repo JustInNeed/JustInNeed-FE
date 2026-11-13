@@ -264,9 +264,6 @@ function HomeDashboard({ data }: { data: HomeData }) {
           <div className={styles.cardHead}>
             <div>
               <h3 className={styles.cardTitle}>{range === "today" ? "오늘의 탐색 타임라인" : "이번 주 탐색 타임라인"}</h3>
-              <p className={styles.cardDesc}>
-                {range === "today" ? "시간대별 수집 해시태그 · 방문 사이트" : "요일별 대표 해시태그 · 방문 사이트"}
-              </p>
             </div>
             <div className={styles.rangeBtns}>
               <button
@@ -315,7 +312,6 @@ function StatCards({ stats }: { stats: HomeStats }) {
         label="Deep Reading"
         value={`${stats.deepReadingPct}%`}
         accent={trend(stats.deepReadingDelta)}
-        sub="지난주 대비"
       />
     </div>
   );
