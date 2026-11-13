@@ -110,6 +110,11 @@ describe("홈 대시보드", () => {
       labels.forEach((l) => expect(screen.getByText(l)).toBeInTheDocument());
       expect(within(daySlot("4/26 (일)")).getByText("오늘")).toBeInTheDocument();
       expect(within(daySlot("4/25 (토)")).queryByText("오늘")).not.toBeInTheDocument();
+      // 오늘이 맨 위, 아래로 갈수록 과거 (QA-006)
+      const order = labels.map((l) => screen.getByText(l));
+      for (let i = 1; i < order.length; i++) {
+        expect(order[i].compareDocumentPosition(order[i - 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      }
     });
 
     it("기록이 없는 날은 '기록 없음'으로 보인다", async () => {

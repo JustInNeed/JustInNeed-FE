@@ -138,14 +138,14 @@ describe("toHomeData — 타임라인 · 해시태그", () => {
 
   it("같은 도메인을 또 방문하면 지우지 않는다 (대표 사이트는 방문 횟수로 고른다)", () => {
     const { weekSessions } = toHomeData(HOME_RESPONSE);
-    const [mon] = buildWeekTimeline(weekSessions, new Date(2026, 9, 31));
+    const mon = buildWeekTimeline(weekSessions, new Date(2026, 9, 31)).at(-1)!;
     expect(mon.sites.map((s) => s.name)).toEqual(["parisinfo.com", "skyscanner.net"]);
   });
 
   it("변환한 이번 주 세션을 날짜별 타임라인으로 묶을 수 있다", () => {
     const days = buildWeekTimeline(toHomeData(HOME_RESPONSE).weekSessions, new Date(2026, 9, 31));
-    expect(days[0]).toMatchObject({ label: "10/25 (일)", tags: ["#파리"], isToday: false });
-    expect(days[6]).toMatchObject({ label: "10/31 (토)", tags: ["#자바", "#스프링"], isToday: true });
+    expect(days[0]).toMatchObject({ label: "10/31 (토)", tags: ["#자바", "#스프링"], isToday: true });
+    expect(days[6]).toMatchObject({ label: "10/25 (일)", tags: ["#파리"], isToday: false });
   });
 
   it("상위 해시태그에 # 를 붙이고 응답 순서를 지킨다", () => {
