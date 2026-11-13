@@ -59,7 +59,7 @@ export function AnalyticsView({ cards, tips = SURFING_TIPS, random = Math.random
   const nothingToShow = states.every((card) => !card.loading && !card.error) && hasNoData(cards);
   return (
     <div className={styles.page}>
-      <PageHeader title="분석 및 추천" subtitle="당신의 웹 탐색 패턴을 진단합니다" />
+      <PageHeader title="분석 및 추천" />
       {firstLoad ? (
         <div className={styles.state}>불러오는 중…</div>
       ) : nothingToShow ? (

@@ -112,7 +112,7 @@ export function CommunityView({ sections }: CommunityViewProps) {
 
   return (
     <div className={styles.page}>
-      <PageHeader title="커뮤니티" subtitle="다른 사람의 웹서핑 흐름에서 다음 단서를 찾아요" />
+      <PageHeader title="커뮤니티" />
       <div className={styles.body}>
         <div ref={searchRef} className={styles.searchWrap}>
           <div className={`${styles.searchBox} ${searchOpen && hasResults ? styles.searchBoxOn : ""}`}>

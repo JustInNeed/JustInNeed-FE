@@ -3,17 +3,14 @@ import styles from "./PageHeader.module.css";
 
 export interface PageHeaderProps {
   title: string;
-  subtitle?: string;
   right?: ReactNode;
 }
 
-export function PageHeader({ title, subtitle, right }: PageHeaderProps) {
+/** 화면 제목 — 제목 아래 설명글은 두지 않는다 (QA-013) */
+export function PageHeader({ title, right }: PageHeaderProps) {
   return (
     <div className={styles.header}>
-      <div>
-        <h1 className={styles.title}>{title}</h1>
-        {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
-      </div>
+      <h1 className={styles.title}>{title}</h1>
       {right}
     </div>
   );

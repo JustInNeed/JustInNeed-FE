@@ -23,7 +23,7 @@ export interface HomeViewProps {
 export function HomeView({ data, loading = false, error = null, onRetry }: HomeViewProps) {
   return (
     <div className={styles.page}>
-      <PageHeader title="홈" subtitle="당신이 탐색해 온 모든 흐름을 한눈에" />
+      <PageHeader title="홈" />
       {loading && !data ? (
         <div className={styles.state}>불러오는 중…</div>
       ) : error ? (

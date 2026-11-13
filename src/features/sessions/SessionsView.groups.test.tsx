@@ -129,7 +129,6 @@ describe("해시태그 그룹 보기", () => {
     const { user } = await renderGroups();
     expect(screen.getByRole("heading", { level: 3, name: "아직 만든 그룹이 없습니다" })).toBeInTheDocument();
     expect(screen.getByText("여러 해시태그를 묶어 관련 세션들을 한 번에 관리해보세요.")).toBeInTheDocument();
-    expect(screen.getByText("전체 25개 세션 · 11개 즐겨찾기 · 0개 그룹")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
     expect(screen.getByRole("heading", { level: 2, name: "새 그룹 만들기" })).toBeInTheDocument();
@@ -228,7 +227,6 @@ describe("해시태그 그룹 만들기", () => {
     );
     await waitFor(() => expect(document.querySelector(".modal")).not.toBeInTheDocument());
     expect(sectionHeads().at(-1)).toEqual(["#루브르", "#파리", "#파르테논", "#미술관"]);
-    expect(screen.getByText("전체 25개 세션 · 11개 즐겨찾기 · 4개 그룹")).toBeInTheDocument();
   });
 
   it("만들기에 실패하면 서버 메시지를 토스트로 띄우고 편집기는 열어 둔다", async () => {
@@ -326,7 +324,6 @@ describe("해시태그 그룹 삭제", () => {
     expect(confirm).toHaveBeenCalledWith("이 그룹을 삭제할까요?");
     expect(sectionHeads()).toEqual([["#로마", "#콜로세움"], ["#React", "#TypeScript"]]);
     await waitFor(() => expect(ids).toEqual([2]));
-    expect(screen.getByText("전체 25개 세션 · 11개 즐겨찾기 · 2개 그룹")).toBeInTheDocument();
   });
 
   it("확인창에서 취소하면 아무 요청도 보내지 않는다", async () => {

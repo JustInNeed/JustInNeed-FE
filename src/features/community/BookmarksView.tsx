@@ -46,7 +46,7 @@ export function BookmarksView({ mindmaps, bundles }: BookmarksViewProps) {
 
   return (
     <div className={styles.page}>
-      <PageHeader title="북마크" subtitle="저장한 마인드맵·해시태그 묶음" />
+      <PageHeader title="북마크" />
       <div className={styles.bmTabs}>
         <Button variant="secondary" active={filter === "mindmap"} onClick={() => setFilter("mindmap")}>
           {tabLabel("마인드맵", mindmaps)}
