@@ -9,10 +9,36 @@
   gap: 24px;
   max-width: 960px;
 }
+/* 목차는 스크롤해도 따라온다 (QA-014 A안) */
 .nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+/* 모든 범주를 한 페이지에 쌓는다 */
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-margin-top: 24px;
+}
+.section > :last-child {
+  margin-bottom: 0;
+}
+.sectionTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-700);
 }
 .navBtn {
   padding: 10px 12px;

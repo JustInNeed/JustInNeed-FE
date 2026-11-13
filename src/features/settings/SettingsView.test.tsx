@@ -60,16 +60,28 @@ describe("설정 화면", () => {
       expect(screen.queryByText("외부 플랫폼")).not.toBeInTheDocument();
     });
 
-    it("처음엔 데이터 수집이 켜져 있고, 누른 메뉴로 강조와 내용이 바뀐다", async () => {
+    it("세 범주가 한 페이지에 모두 보이고, 누른 메뉴가 강조되며 그 범주로 스크롤한다 (QA-014)", async () => {
+      const scrolled: string[] = [];
+      const spy = vi
+        .spyOn(HTMLElement.prototype, "scrollIntoView")
+        .mockImplementation(function (this: HTMLElement) {
+          scrolled.push(this.id);
+        });
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       expect(screen.getByRole("button", { name: "데이터 수집" })).toHaveClass("navBtnOn");
+      expect(screen.getByRole("heading", { level: 2, name: "데이터 수집" })).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "수집 제외 URL" })).toBeInTheDocument();
+      expect(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" })).toBeInTheDocument();
+      expect(screen.getByText("연결된 계정")).toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
       expect(screen.getByRole("button", { name: "확장 프로그램" })).toHaveClass("navBtnOn");
+      expect(screen.getByRole("button", { name: "확장 프로그램" })).toHaveAttribute("aria-current", "true");
       expect(screen.getByRole("button", { name: "데이터 수집" })).not.toHaveClass("navBtnOn");
-      expect(screen.queryByRole("heading", { name: "수집 제외 URL" })).not.toBeInTheDocument();
-      expect(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" })).toBeInTheDocument();
+      expect(scrolled).toEqual(["settings-extension"]);
+      // 다른 범주도 그대로 보인다
+      expect(screen.getByRole("heading", { name: "수집 제외 URL" })).toBeInTheDocument();
+      spy.mockRestore();
     });
 
     it("회원 탈퇴 화면에서 계정 메뉴를 다시 누르면 계정 설정으로 돌아온다", async () => {
