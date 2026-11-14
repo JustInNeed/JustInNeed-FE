@@ -34,6 +34,11 @@
 .section > :last-child {
   margin-bottom: 0;
 }
+/* 범주 사이 구분선 — 위 범주와 간격을 두고 선을 긋는다 (QA-020) */
+.section + .section {
+  border-top: 1px solid var(--line);
+  padding-top: 28px;
+}
 .sectionTitle {
   margin: 0;
   font-size: 15px;
