@@ -38,8 +38,12 @@ export function GraphSearch({
   onClose,
 }: GraphSearchProps) {
   const results = useMemo(() => searchGraph(query, nodes, edges, sessions), [query, nodes, edges, sessions]);
-  const [active, setActive] = useState(0);
-  const activeIndex = Math.min(active, Math.max(results.length - 1, 0));
+  // 강조한 결과는 순서가 아니라 항목으로 기억한다. 한글 입력이 끝나며 입력값이 다시 들어와도
+  // 그 항목이 결과에 남아 있으면 강조가 첫 줄로 튀지 않는다 (QA-021). 없어지면 첫 줄
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const found = results.findIndex((r) => resultKey(r) === activeKey);
+  const activeIndex = found === -1 ? 0 : found;
+  const setActive = (index: number) => setActiveKey(results[index] ? resultKey(results[index]) : null);
 
   const opening = openingSessionId != null;
 
@@ -79,7 +83,7 @@ export function GraphSearch({
     const isOpening = r.kind === "session" && r.session.id === openingSessionId;
     return (
       <button
-        key={r.kind === "node" ? `n-${r.node.id}` : `s-${r.session.id}`}
+        key={resultKey(r)}
         type="button"
         role="option"
         aria-selected={isActive}
@@ -89,7 +93,17 @@ export function GraphSearch({
           setActive(index);
           prefetch(r);
         }}
-        onClick={() => pick(r)}
+        // 누르는 순간(mousedown) 고른다. 한글 입력 중에 누르면 macOS 는 첫 클릭을 입력 확정에 써서
+        // click 이 오지 않는다. 기본 동작을 막아 입력창 포커스도 그대로 둔다 (QA-021)
+        onMouseDown={(e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          pick(r);
+        }}
+        // 키보드로 버튼을 누른 경우만 (마우스는 위에서 이미 골랐다)
+        onClick={(e) => {
+          if (e.detail === 0) pick(r);
+        }}
       >
         {r.kind === "node" ? <span className={styles.resultDot} /> : <Icon name="list" size={14} />}
         <span className={styles.resultName}>{r.kind === "node" ? r.node.label : r.session.title}</span>
@@ -107,10 +121,7 @@ export function GraphSearch({
         <input
           autoFocus
           value={query}
-          onChange={(e) => {
-            onQueryChange(e.target.value);
-            setActive(0);
-          }}
+          onChange={(e) => onQueryChange(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder="노드 · 세션 검색"
           aria-label="노드 · 세션 검색"
@@ -143,3 +154,5 @@ export function GraphSearch({
     </>
   );
 }
+
+const resultKey = (r: GraphSearchResult) => (r.kind === "node" ? `n-${r.node.id}` : `s-${r.session.id}`);
