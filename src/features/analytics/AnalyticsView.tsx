@@ -125,7 +125,10 @@ function AnalyticsBody({ cards, tips, random }: { cards: AnalyticsCards; tips: B
       </Card>
 
       <Card className={styles.card}>
-        <h3 className={styles.cardTitle} style={{ marginBottom: 16 }}>카테고리별 방문 비율</h3>
+        <div className={styles.cardHead}>
+          <h3 className={styles.cardTitle}>카테고리별 방문 비율</h3>
+          <span className={styles.cardSub}>최근 7일</span>
+        </div>
         <CardContent card={cards.categories}>
           {({ categories, note }) => (
             <>
