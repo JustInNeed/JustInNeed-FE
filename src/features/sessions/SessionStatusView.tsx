@@ -63,7 +63,7 @@ export function SessionStatusView({ sessionId, title, status, isOwner, onDelete,
             </div>
             <div className={styles.meta}>
               <span className={styles.metaDone} style={failed ? { color: "#c44" } : undefined}>
-                <Icon name="dot" size={10} /> {STATUS_LABEL[status]}
+                {STATUS_LABEL[status]}
               </span>
             </div>
           </div>

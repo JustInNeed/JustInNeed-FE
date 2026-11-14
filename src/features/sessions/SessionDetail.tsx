@@ -398,7 +398,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
               </span>
               <span>·</span>
               <span className={styles.metaDone}>
-                <Icon name="dot" size={10} /> {STATUS_LABEL[detail.status]}
+                {STATUS_LABEL[detail.status]}
               </span>
             </div>
 
