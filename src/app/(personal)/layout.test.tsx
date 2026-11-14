@@ -169,16 +169,18 @@ describe("개인 영역 레이아웃", () => {
       const calls = issueOk();
       const sent = installFakeExtension(loggedOutExtension(MEMBER.id));
       await openAsMember();
-      await vi.waitFor(() => expect(sent.map((s) => s.message.type)).toEqual(["JIN_STATUS", "JIN_STATUS", "JIN_CONNECT"]));
+      // 사이드바 확장 카드도 따로 JIN_STATUS 를 묻는다 → 연결만 센다
+      await vi.waitFor(() => expect(sent.filter((s) => s.message.type === "JIN_CONNECT")).toHaveLength(1));
       expect(calls()).toBe(1);
     });
 
     it("확장이 이미 같은 회원이면 상태만 묻고 연결하지 않는다", async () => {
       const sent = installFakeExtension(() => ({ loggedIn: true, memberId: MEMBER.id, version: "0.1.0" }));
       await openAsMember();
-      await vi.waitFor(() => expect(sent).toHaveLength(1));
+      await vi.waitFor(() => expect(sent.length).toBeGreaterThan(0));
       await act(async () => {});
-      expect(sent.map((s) => s.message.type)).toEqual(["JIN_STATUS"]);
+      // 사이드바 확장 카드도 JIN_STATUS 를 묻는다 → 상태 묻기만 있고 연결은 없어야 한다
+      expect(new Set(sent.map((s) => s.message.type))).toEqual(new Set(["JIN_STATUS"]));
     });
 
     it("확장이 다른 회원이면 이 회원으로 다시 연결한다", async () => {

@@ -1,8 +1,10 @@
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderPersonal } from "@/test/render";
 import { setMockPathname } from "@/test/router";
 import { MEMBER } from "@/test/fixtures/member";
+import { STATUS_POLL_MS } from "@/lib/app/PersonalContext";
+import { installFakeExtension, loggedOutExtension, removeFakeExtension } from "@/test/extension";
 import { Sidebar } from "./Sidebar";
 
 const activeLinks = () => Array.from(document.querySelectorAll(".navItemActive")).map((el) => el.textContent);
@@ -64,34 +66,96 @@ describe("사이드바", () => {
     });
   });
 
-  describe("수집 상태", () => {
-    it("수집 중으로 시작하고, 경과 시간이 1초마다 늘어난다", () => {
-      vi.useFakeTimers();
-      renderPersonal(<Sidebar />);
-      expect(screen.getByText("수집 중")).toBeInTheDocument();
-      expect(screen.getByText("0분 00초")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "수집 종료" })).toBeInTheDocument();
+  describe("확장 상태 카드", () => {
+    const card = () => screen.getByText("EXTENSION").closest("div")!.parentElement!;
+    // 이 회원(MEMBER)으로 연결된, 수집 상태를 알려 주는 확장. state 를 바꾸면 다음 물음부터 그 값으로 답한다
+    function recorder(state: { recording: boolean; startedAt: number | null }, memberId = MEMBER.id) {
+      return installFakeExtension((m) => {
+        if (m.type === "JIN_STATUS") return { loggedIn: true, memberId, version: "0.3.2", ...state };
+        if (m.type === "JIN_START") {
+          Object.assign(state, { recording: true, startedAt: Date.now() });
+          return { ok: true, ...state };
+        }
+        if (m.type === "JIN_STOP") {
+          Object.assign(state, { recording: false, startedAt: null });
+          return { ok: true, ...state };
+        }
+        return { ok: false, why: `모르는 메시지: ${m.type}` };
+      });
+    }
 
-      act(() => vi.advanceTimersByTime(65_000));
-      expect(screen.getByText("1분 05초")).toBeInTheDocument();
+    afterEach(() => removeFakeExtension());
+
+    it("확장이 없으면 '연결 안 됨' 이고 시작 버튼이 없다", async () => {
+      renderPersonal(<Sidebar />);
+      expect(await within(card()).findByText("연결 안 됨")).toBeInTheDocument();
+      expect(within(card()).queryByRole("button")).toBeNull();
     });
 
-    it("수집 종료를 누르면 대기 중이 되고 시간이 멈추며, 다시 시작하면 0초부터 센다", () => {
-      vi.useFakeTimers();
+    it("확장이 로그아웃이면 '로그인 필요' 와 연결 페이지 링크를 보여 준다", async () => {
+      installFakeExtension(loggedOutExtension());
       renderPersonal(<Sidebar />);
-      act(() => vi.advanceTimersByTime(3_000));
+      expect(await within(card()).findByText("로그인 필요")).toBeInTheDocument();
+      expect(within(card()).getByRole("link", { name: "연결하기" })).toHaveAttribute("href", "/extension/connect");
+    });
 
-      fireEvent.click(screen.getByRole("button", { name: "수집 종료" }));
-      expect(screen.getByText("대기 중")).toBeInTheDocument();
-      expect(screen.getByText("버튼을 눌러 시작")).toBeInTheDocument();
-      act(() => vi.advanceTimersByTime(5_000));
-      expect(screen.getByText("버튼을 눌러 시작")).toBeInTheDocument();
+    it("확장이 다른 회원으로 로그인돼 있어도 '로그인 필요' 다", async () => {
+      recorder({ recording: true, startedAt: Date.now() }, MEMBER.id + 1);
+      renderPersonal(<Sidebar />);
+      expect(await within(card()).findByText("로그인 필요")).toBeInTheDocument();
+    });
 
-      fireEvent.click(screen.getByRole("button", { name: "수집 시작" }));
-      expect(screen.getByText("수집 중")).toBeInTheDocument();
-      expect(screen.getByText("0분 00초")).toBeInTheDocument();
-      act(() => vi.advanceTimersByTime(1_000));
-      expect(screen.getByText("0분 01초")).toBeInTheDocument();
+    it("수집 상태를 모르는 옛 확장이면 '연결됨' 과 업데이트 안내만 보여 준다", async () => {
+      installFakeExtension(() => ({ loggedIn: true, memberId: MEMBER.id, version: "0.3.1" }));
+      renderPersonal(<Sidebar />);
+      expect(await within(card()).findByText("연결됨")).toBeInTheDocument();
+      expect(within(card()).queryByRole("button")).toBeNull();
+    });
+
+    it("확장이 기록 중이면 확장이 시작한 시각 기준 경과 시간을 1초마다 늘린다", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      recorder({ recording: true, startedAt: Date.now() - 125_000 });
+      renderPersonal(<Sidebar />);
+      expect(await within(card()).findByText("수집 중")).toBeInTheDocument();
+      expect(within(card()).getByText("2분 05초")).toBeInTheDocument();
+      await act(() => vi.advanceTimersByTimeAsync(2_000));
+      expect(within(card()).getByText("2분 07초")).toBeInTheDocument();
+      expect(within(card()).getByRole("button", { name: "수집 종료" })).toBeInTheDocument();
+    });
+
+    it("수집 시작 · 종료 버튼은 확장에 JIN_START · JIN_STOP 을 보내고 답대로 카드를 바꾼다", async () => {
+      const sent = recorder({ recording: false, startedAt: null });
+      const { user } = renderPersonal(<Sidebar />);
+      await user.click(await within(card()).findByRole("button", { name: "수집 시작" }));
+      expect(await within(card()).findByText("수집 중")).toBeInTheDocument();
+      expect(within(card()).getByText("0분 00초")).toBeInTheDocument();
+
+      await user.click(within(card()).getByRole("button", { name: "수집 종료" }));
+      expect(await within(card()).findByText("대기 중")).toBeInTheDocument();
+      expect(sent.map((s) => s.message.type).filter((t) => t !== "JIN_STATUS")).toEqual(["JIN_START", "JIN_STOP"]);
+    });
+
+    it("확장 팝업에서 켜는 등 확장 쪽 상태가 바뀌면 다음 물음 때 카드가 따라간다", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const state = { recording: false, startedAt: null as number | null };
+      recorder(state);
+      renderPersonal(<Sidebar />);
+      expect(await within(card()).findByText("대기 중")).toBeInTheDocument();
+      Object.assign(state, { recording: true, startedAt: Date.now() });
+      await act(() => vi.advanceTimersByTimeAsync(STATUS_POLL_MS));
+      expect(within(card()).getByText("수집 중")).toBeInTheDocument();
+    });
+
+    it("시작을 확장이 거절하면 이유를 카드에 보여 주고 상태는 그대로다", async () => {
+      installFakeExtension((m) =>
+        m.type === "JIN_STATUS"
+          ? { loggedIn: true, memberId: MEMBER.id, version: "0.3.2", recording: false, startedAt: null }
+          : { ok: false, why: "no-login" },
+      );
+      const { user } = renderPersonal(<Sidebar />);
+      await user.click(await within(card()).findByRole("button", { name: "수집 시작" }));
+      expect(await within(card()).findByRole("alert")).toHaveTextContent("확장 프로그램에 로그인이 필요해요.");
+      expect(within(card()).getByText("대기 중")).toBeInTheDocument();
     });
   });
 });

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/ui";
-import { formatElapsed, usePersonal } from "@/lib/app/PersonalContext";
+import { usePersonal } from "@/lib/app/PersonalContext";
+import { ExtensionCard } from "./ExtensionCard";
 import styles from "./Sidebar.module.css";
 
 interface NavItem {
@@ -43,7 +44,7 @@ const SECTIONS: NavSection[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { member, logout, recording, setRecording, recordingSeconds } = usePersonal();
+  const { member, logout } = usePersonal();
 
   return (
     <aside className={styles.aside}>
@@ -77,29 +78,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className={styles.recBox}>
-        <div className={styles.recHead}>
-          <span className={styles.recEyebrow}>EXTENSION</span>
-          <span
-            className={styles.statusDot}
-            style={{ background: recording ? "var(--green-500)" : "var(--ink-300)" }}
-          />
-        </div>
-        <div className={styles.recTitle}>{recording ? "수집 중" : "대기 중"}</div>
-        <div className={styles.recSub}>{recording ? formatElapsed(recordingSeconds) : "버튼을 눌러 시작"}</div>
-        <button
-          onClick={() => setRecording(!recording)}
-          className={styles.recBtn}
-          style={{
-            background: recording ? "var(--surface)" : "var(--green-500)",
-            color: recording ? "var(--ink-900)" : "#fff",
-            border: recording ? "1px solid var(--line)" : "none",
-          }}
-        >
-          <Icon name={recording ? "stop" : "play"} size={12} />
-          <span>{recording ? "수집 종료" : "수집 시작"}</span>
-        </button>
-      </div>
+      <ExtensionCard />
 
       <div className={styles.userBox}>
         <div className={styles.avatar}>{(member.nickname || "?").slice(0, 1).toUpperCase()}</div>
