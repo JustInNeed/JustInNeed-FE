@@ -176,8 +176,8 @@ describe("분석 카드", () => {
 
   it("히트맵 칸에 마우스를 올리면 요일 · 시간 · 비율 툴팁이 보인다", () => {
     setup();
-    const surfing = heatBlock("웹서핑 다빈도");
-    const focus = heatBlock("집중 시간 (Deep + Reading)");
+    const surfing = heatBlock("활동이 많은 시간");
+    const focus = heatBlock("정독 비율");
     expect(surfing.querySelectorAll(".heatCell")).toHaveLength(56);
     expect(focus.querySelectorAll(".heatCell")).toHaveLength(56);
     expect(within(focus).getByTitle("월 09시 — 95%")).toBeInTheDocument();
@@ -193,10 +193,10 @@ describe("분석 카드", () => {
 
   it("히트맵 값이 없는 칸은 0%로 보인다", () => {
     setup({ timePatterns: ready({ ...TIME_PATTERNS, surfing: [], focus: [[0.5]] }) });
-    const focus = heatBlock("집중 시간 (Deep + Reading)");
+    const focus = heatBlock("정독 비율");
     expect(within(focus).getByTitle("월 00시 — 50%")).toBeInTheDocument();
     expect(within(focus).getByTitle("월 03시 — 0%")).toBeInTheDocument();
-    expect(within(heatBlock("웹서핑 다빈도")).getAllByTitle(/— 0%$/)).toHaveLength(56);
+    expect(within(heatBlock("활동이 많은 시간")).getAllByTitle(/— 0%$/)).toHaveLength(56);
   });
 });
 

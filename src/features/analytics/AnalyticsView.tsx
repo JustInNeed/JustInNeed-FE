@@ -155,8 +155,8 @@ function AnalyticsBody({ cards, tips, random }: { cards: AnalyticsCards; tips: B
           {({ surfing, focus, note }) => (
             <>
               <div className={styles.heatmaps}>
-                <HeatBlock data={surfing} label="웹서핑 다빈도" sub="접속 활동 양" rgb="100,116,139" />
-                <HeatBlock data={focus} label="집중 시간 (Deep + Reading)" sub="정독 비율" rgb="95,207,62" />
+                <HeatBlock data={surfing} label="활동이 많은 시간" sub="본 분량 기준" rgb="100,116,139" />
+                <HeatBlock data={focus} label="정독 비율" sub="Deep + Reading" rgb="95,207,62" />
               </div>
               <AnalysisRecBox note={note} />
             </>
