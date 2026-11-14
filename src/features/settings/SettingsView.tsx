@@ -156,7 +156,8 @@ export function SettingsView({
   };
 
   // 체크 · 삭제 · 토글은 화면을 먼저 바꾸고, 저장에 실패하면 되돌린다
-  const toggleUrl = async ({ id, on }: ExcludedUrl) => {
+  const toggleUrl = async ({ id, on, isDefault }: ExcludedUrl) => {
+    if (isDefault && on) return; // 기본 URL 은 해제할 수 없다 (QA-029)
     const setOn = (value: boolean) => setExcluded((list) => list.map((it) => (it.id === id ? { ...it, on: value } : it)));
     setOn(!on);
     try {

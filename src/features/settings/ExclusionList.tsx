@@ -66,9 +66,17 @@ export function ExclusionList({ excluded, onToggle, onRemove }: ExclusionListPro
               <label
                 key={item.id}
                 className={styles.exRow}
-                style={{ opacity: item.on ? 1 : 0.55, borderTop: grouped ? "1px solid var(--line)" : i === 0 ? "none" : "1px solid var(--line)" }}
+                style={{ opacity: item.on ? 1 : 0.55, cursor: item.isDefault && item.on ? "default" : undefined, borderTop: grouped ? "1px solid var(--line)" : i === 0 ? "none" : "1px solid var(--line)" }}
               >
-                <input type="checkbox" checked={item.on} onChange={() => onToggle(item)} style={{ accentColor: "var(--green-500)" }} />
+                {/* 켜진 기본 URL 은 해제할 수 없다. 예전에 꺼 둔 기본 URL 은 다시 켤 수만 있다 (QA-029) */}
+                <input
+                  type="checkbox"
+                  checked={item.on}
+                  disabled={item.isDefault && item.on}
+                  title={item.isDefault && item.on ? "기본 제외 URL 은 해제할 수 없어요" : undefined}
+                  onChange={() => onToggle(item)}
+                  style={{ accentColor: "var(--green-500)" }}
+                />
                 <div className={styles.exUrl} style={{ color: item.on ? "var(--ink-900)" : "var(--ink-400)" }}>{item.url}</div>
                 {item.isDefault ? (
                   <span className={styles.exDefault}>기본</span>

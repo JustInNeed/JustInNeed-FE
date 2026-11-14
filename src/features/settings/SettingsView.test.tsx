@@ -151,8 +151,8 @@ describe("설정 화면", () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(within(row("twitter.com")).getByRole("checkbox"));
       expect(within(row("twitter.com")).getByRole("checkbox")).toBeChecked();
-      await user.click(within(row("instagram.com")).getByRole("checkbox"));
-      expect(within(row("instagram.com")).getByRole("checkbox")).not.toBeChecked();
+      await user.click(within(row("tistory.com")).getByRole("checkbox"));
+      expect(within(row("tistory.com")).getByRole("checkbox")).not.toBeChecked();
 
       await waitFor(() => expect(saved).toHaveLength(2));
       expect(saved).toContainEqual({
@@ -163,17 +163,35 @@ describe("설정 화면", () => {
       expect(saved).toContainEqual({
         method: "PATCH",
         path: "/settings/collection/excluded-urls/selections",
-        body: { excludedUrlIds: [1], isExcluded: false },
+        body: { excludedUrlIds: [8], isExcluded: false },
       });
+    });
+
+    it("켜진 기본 URL 은 체크를 해제할 수 없다 (QA-029-4)", async () => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      const box = within(row("instagram.com")).getByRole("checkbox");
+      expect(box).toBeDisabled();
+      await user.click(box);
+      expect(box).toBeChecked();
+      expect(saved).toEqual([]);
+    });
+
+    it("예전에 꺼 둔 기본 URL 은 다시 켤 수 있고, 켜면 그때부터 해제할 수 없다 (QA-029-4)", async () => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      const box = within(row("twitter.com")).getByRole("checkbox");
+      expect(box).toBeEnabled();
+      await user.click(box);
+      expect(box).toBeChecked();
+      expect(box).toBeDisabled();
     });
 
     it("체크 저장에 실패하면 원래 값으로 돌아가고 서버 문구를 토스트로 보여준다", async () => {
       server.use(http.patch(SELECTIONS, () => fail(404, "수집 제외 URL을 찾을 수 없습니다.")));
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
-      await user.click(within(row("instagram.com")).getByRole("checkbox"));
+      await user.click(within(row("tistory.com")).getByRole("checkbox"));
 
       expect(await screen.findByText("수집 제외 URL을 찾을 수 없습니다.")).toBeInTheDocument();
-      expect(within(row("instagram.com")).getByRole("checkbox")).toBeChecked();
+      expect(within(row("tistory.com")).getByRole("checkbox")).toBeChecked();
     });
 
     it("기본 항목은 '기본' 배지만 있고 삭제할 수 없다", () => {
