@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderPersonal } from "@/test/render";
@@ -81,6 +81,23 @@ describe("설정 화면", () => {
       expect(scrolled).toEqual(["settings-extension"]);
       // 다른 범주도 그대로 보인다
       expect(screen.getByRole("heading", { name: "수집 제외 URL" })).toBeInTheDocument();
+      spy.mockRestore();
+    });
+
+    it("누른 메뉴는 스크롤이 끝나도 유지되고, 사용자가 직접 스크롤하면 다시 위치로 고른다 (QA-020-1)", async () => {
+      const spy = vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      const page = screen.getByRole("navigation").closest<HTMLElement>(".page")!;
+      const ext = screen.getByRole("button", { name: "확장 프로그램" });
+
+      await user.click(ext);
+      // 짧은 페이지라 맨 아래에 닿아도 (jsdom 은 모든 범주 위치가 0) 누른 범주가 그대로다
+      fireEvent.scroll(page);
+      expect(ext).toHaveAttribute("aria-current", "true");
+
+      fireEvent.wheel(page);
+      fireEvent.scroll(page);
+      expect(ext).not.toHaveAttribute("aria-current");
       spy.mockRestore();
     });
 

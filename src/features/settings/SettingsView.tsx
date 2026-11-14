@@ -83,25 +83,41 @@ export function SettingsView({
   const pageRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Partial<Record<Section, HTMLElement | null>>>({});
 
-  // 스크롤할 때마다 위쪽 기준선(목차 높이쯤)을 지난 마지막 범주를 지금 범주로 본다. 맨 아래에 닿으면 마지막 범주
+  // 목차를 눌러 옮긴 범주. 페이지가 짧으면 그 범주를 위까지 올릴 수 없어 스크롤 위치로는 다시 고를 수 없다.
+  // 사용자가 직접 스크롤(휠 · 터치 · 키 · 스크롤바)하기 전까지 누른 범주를 그대로 둔다 (QA-020)
+  const pinned = useRef(false);
+
+  // 기준선을 지난 마지막 범주를 지금 범주로 본다. 기준선은 맨 위에선 목차 높이쯤(96px)이고,
+  // 끝까지 내리면 화면 맨 아래까지 내려간다 — 스크롤이 짧아도 범주가 하나씩 차례로 선택된다 (QA-020)
   useEffect(() => {
     const page = pageRef.current;
     if (!page) return;
     const onScroll = () => {
-      const top = page.getBoundingClientRect().top + 96;
+      if (pinned.current) return;
+      const max = page.scrollHeight - page.clientHeight;
+      const progress = max > 0 ? Math.min(1, page.scrollTop / max) : 0;
+      const line = page.getBoundingClientRect().top + 96 + progress * (page.clientHeight - 96);
       let current: Section = SECTIONS[0].id;
       for (const { id } of SECTIONS) {
         const el = sectionRefs.current[id];
-        if (el && el.getBoundingClientRect().top <= top) current = id;
+        if (el && el.getBoundingClientRect().top <= line) current = id;
       }
-      if (page.scrollTop + page.clientHeight >= page.scrollHeight - 2) current = SECTIONS[SECTIONS.length - 1].id;
       setSection(current);
     };
+    const unpin = () => {
+      pinned.current = false;
+    };
+    const userScroll = ["wheel", "touchmove", "keydown", "pointerdown"] as const;
     page.addEventListener("scroll", onScroll, { passive: true });
-    return () => page.removeEventListener("scroll", onScroll);
+    userScroll.forEach((type) => page.addEventListener(type, unpin, { passive: true }));
+    return () => {
+      page.removeEventListener("scroll", onScroll);
+      userScroll.forEach((type) => page.removeEventListener(type, unpin));
+    };
   }, []);
 
   const goTo = (id: Section) => {
+    pinned.current = true;
     setSection(id);
     setWithdrawing(false); // 탈퇴 확인 중이었다면 계정 설정으로 되돌린다 (메뉴를 누르던 예전 동작과 같게)
     sectionRefs.current[id]?.scrollIntoView?.({ behavior: "smooth", block: "start" });
