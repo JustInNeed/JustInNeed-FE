@@ -34,6 +34,11 @@ const tabButton = (name: string) => screen.getByRole("button", { name });
 const card = (title: string) => within(screen.getByRole("link", { name: new RegExp(`^${title}`) }).closest<HTMLElement>("article")!);
 
 describe("SearchView — 검색창 · 탭", () => {
+  it("다른 화면처럼 검색창 위에 '검색' 제목이 있다 (QA-026)", () => {
+    renderSearch({ input: "", q: "" });
+    expect(screen.getByRole("heading", { level: 1, name: "검색" })).toBeInTheDocument();
+  });
+
   it("커뮤니티 검색바와 같은 안내 문구를 쓰고, 입력하면 값을 올려 보낸다", async () => {
     const onInputChange = vi.fn();
     const { user } = renderSearch({ input: "", q: "", onInputChange });

@@ -468,8 +468,9 @@
 }
 
 /* ---- 검색 페이지 ---- */
+/* 위 여백은 제목(PageHeader)이 맡는다 — 커뮤니티 화면과 같은 간격 (QA-026) */
 .searchPageHead {
-  padding: 24px 28px 0;
+  padding: 0 28px;
 }
 .searchBoxPlain {
   position: relative;
