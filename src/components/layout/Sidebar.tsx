@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/ui";
 import { formatElapsed, usePersonal } from "@/lib/app/PersonalContext";
+import { NAV_ROOT_ATTR } from "@/lib/app/NavHistoryContext";
 import styles from "./Sidebar.module.css";
 
 interface NavItem {
@@ -145,7 +146,7 @@ export function Sidebar() {
                   .filter(Boolean)
                   .join(" ");
                 return (
-                  <Link key={item.id} href={item.href} className={cls}>
+                  <Link key={item.id} href={item.href} className={cls} {...{ [NAV_ROOT_ATTR]: "" }}>
                     <Icon name={item.icon} size={16} />
                     <span>{item.label}</span>
                     {active && <span className={styles.activeBar} />}

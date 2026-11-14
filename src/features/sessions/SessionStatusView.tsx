@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Icon, Button, InlineState } from "@/components/ui";
+import { Icon, Button, InlineState, BackLink } from "@/components/ui";
 import { ApiError, reanalyzeSession, type SessionDetail, type SessionStatus } from "@/lib/api";
 import { useToast } from "@/lib/app/ToastContext";
 import { STATUS_LABEL } from "@/lib/format";
@@ -28,7 +27,6 @@ export interface SessionStatusViewProps {
 
 /** 분석 완료 전 · 실패 세션 — 아직 볼 본문이 없어 제목 · 상태 · 안내만 보여 준다 */
 export function SessionStatusView({ sessionId, title, status, isOwner, onDelete, onReanalyzed }: SessionStatusViewProps) {
-  const router = useRouter();
   const toast = useToast();
   const failed = status === "FAILED";
   const canReanalyze = failed && isOwner;
@@ -53,9 +51,7 @@ export function SessionStatusView({ sessionId, title, status, isOwner, onDelete,
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <button onClick={() => router.push("/sessions")} className={styles.back}>
-          ← 세션 목록
-        </button>
+        <BackLink fallback="/sessions" />
         <div className={styles.headerRow}>
           <div className={styles.headerMain}>
             <div className={styles.titleRow}>

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Card, Button, HashChip, Markdown, InlineState } from "@/components/ui";
+import { Icon, Card, Button, HashChip, Markdown, InlineState, BackLink } from "@/components/ui";
+import { useNavRoot } from "@/lib/app/NavHistoryContext";
 import { Mindmap } from "@/components/mindmap/Mindmap";
 import {
   ApiError,
@@ -28,7 +29,7 @@ import styles from "./SessionDetail.module.css";
 const AUTO_SAVE_MS = 30_000;
 
 type AutoSaveState = { status: "idle" | "saving" | "saved"; at: number | null };
-type LeaveTarget = { kind: "cancel" } | { kind: "list" } | { kind: "href"; href: string };
+type LeaveTarget = { kind: "cancel" } | { kind: "back"; go: () => void } | { kind: "href"; href: string };
 type MapLayout = "radial" | "tree";
 
 const MAP_LAYOUTS: [MapLayout, string][] = [
@@ -53,6 +54,7 @@ export interface SessionDetailProps {
 
 export function SessionDetail({ sessionId }: SessionDetailProps) {
   const router = useRouter();
+  const navRoot = useNavRoot();
   const toast = useToast();
   // 주소의 id 가 양의 정수가 아니면 요청 없이 404
   const validId = Number.isInteger(sessionId) && sessionId > 0;
@@ -169,7 +171,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
             <InlineState kind="empty" title="볼 수 없는 세션이에요" description="비공개 세션이라 볼 수 없어요." />
           )}
         </div>
-        <Button variant="secondary" onClick={() => router.push("/sessions")}>
+        <Button variant="secondary" onClick={() => navRoot("/sessions")}>
           세션 목록으로
         </Button>
       </div>
@@ -180,7 +182,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     return (
       <div className={styles.state}>
         <p className={styles.stateError}>{error}</p>
-        <Button variant="secondary" onClick={() => router.push("/sessions")}>
+        <Button variant="secondary" onClick={() => navRoot("/sessions")}>
           세션 목록으로
         </Button>
       </div>
@@ -192,7 +194,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     if (!confirm("이 세션을 삭제할까요?")) return;
     try {
       await deleteSession(detail.id);
-      router.push("/sessions");
+      navRoot("/sessions");
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "삭제에 실패했습니다. 다시 시도해 주세요.");
     }
@@ -292,7 +294,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const proceedLeave = (target: LeaveTarget) => {
     setLeaveTarget(null);
     setEditing(false);
-    if (target.kind === "list") router.push("/sessions");
+    if (target.kind === "back") target.go();
     else if (target.kind === "href") router.push(target.href);
   };
   const requestLeave = (target: LeaveTarget) => (dirty ? setLeaveTarget(target) : proceedLeave(target));
@@ -351,9 +353,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <button onClick={() => requestLeave({ kind: "list" })} className={styles.back}>
-          ← 세션 목록
-        </button>
+        <BackLink fallback="/sessions" onNavigate={(go) => requestLeave({ kind: "back", go })} />
         <div className={styles.headerRow}>
           <div className={styles.headerMain}>
             <div className={styles.titleRow}>
