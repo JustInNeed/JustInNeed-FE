@@ -19,7 +19,20 @@ export interface FeedCardProps {
 
 export function FeedCard({ post, canLike, onToggleLike, onToggleBookmark, onToggleExploring, onOpen }: FeedCardProps) {
   return (
-    <div className={styles.feedCard} onClick={onOpen} role="button">
+    <div
+      className={styles.feedCard}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        // 카드 자체에 포커스가 있을 때만 (안쪽 버튼·링크의 키는 그 요소가 처리)
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+    >
       <div className={styles.feedHead}>
         <div className={styles.avatar}>{post.user.avatar}</div>
         <div className={styles.feedUser}>
