@@ -351,3 +351,10 @@
   font-size: 12px;
   color: var(--ink-500);
 }
+
+/* 좁은 화면 — 이번 주 활동 아래에 타임라인을 쌓는다 (QA-018) */
+@media (max-width: 767.98px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
