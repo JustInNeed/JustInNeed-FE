@@ -291,12 +291,19 @@ describe("설정 화면", () => {
       expect(saved).toHaveLength(1);
     });
 
-    it("빈 입력으로 추가하면 아무 일도 없다", async () => {
+    it("입력한 게 없으면(공백만 포함) 추가 버튼이 꺼져 있고, 입력하면 켜진다 (QA-029-1)", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
-      await user.click(addBtn());
+      expect(addBtn()).toBeDisabled();
+      await user.type(urlInput(), "   ");
+      expect(addBtn()).toBeDisabled();
+      await user.type(urlInput(), "{Enter}");
       expect(shownUrls()).toHaveLength(EXCLUDED_URLS.length);
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
       expect(saved).toEqual([]);
+
+      await user.clear(urlInput());
+      await user.type(urlInput(), "example.org");
+      expect(addBtn()).toBeEnabled();
     });
 
     it("형식이 틀리면 '올바른 URL 형식이 아니에요.' 가 뜨고, 다시 입력하면 사라진다", async () => {

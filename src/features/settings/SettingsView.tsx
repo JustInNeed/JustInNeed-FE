@@ -242,7 +242,8 @@ export function SettingsView({
                         className={inputClass}
                         style={{ flex: 1 }}
                       />
-                      <Button variant="primary" onClick={addUrl} disabled={adding}>
+                      {/* 입력한 게 없으면 누를 수 없다 (QA-029) */}
+                      <Button variant="primary" onClick={addUrl} disabled={adding || !newUrl.trim()}>
                         <Icon name="plus" size={12} /> 추가
                       </Button>
                     </div>
