@@ -289,3 +289,20 @@
   color: var(--ink-500);
   text-align: center;
 }
+
+/* 좁은 화면 — 목차를 본문 위 가로 줄로 올리고 본문을 한 칸으로 (QA-018) */
+@media (max-width: 767.98px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .nav {
+    position: static;
+    flex-direction: row;
+    gap: 4px;
+    overflow-x: auto;
+  }
+  .navBtn {
+    white-space: nowrap;
+  }
+}
