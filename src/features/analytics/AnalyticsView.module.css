@@ -294,3 +294,20 @@
   color: var(--ink-500);
   text-align: center;
 }
+
+/* 좁은 화면 — 카드를 한 칸으로 쌓는다 (QA-018) */
+@media (max-width: 767.98px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* 오른쪽 아래 넘김 점 자리(80px)를 비우는 대신 아래 여백으로 */
+  .bannerBody {
+    padding-right: 0;
+  }
+  .banner {
+    padding-bottom: 36px;
+  }
+  .heatGrid {
+    grid-template-columns: 20px repeat(8, minmax(0, 1fr));
+  }
+}
