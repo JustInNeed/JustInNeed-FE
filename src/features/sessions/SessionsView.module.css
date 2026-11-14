@@ -19,7 +19,8 @@
 .body {
   flex: 1;
   overflow-y: auto;
-  padding: 0 28px 28px;
+  /* 위쪽 2px — 호버 시 카드가 1px 올라가도 스크롤 영역에 잘리지 않게 (QA-022) */
+  padding: 2px 28px 28px;
 }
 
 .grid {
