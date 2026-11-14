@@ -180,10 +180,12 @@
   gap: 8px;
   flex-shrink: 0;
 }
+/* 문구가 바뀌어도(자동저장 안내 ↔ 저장 완료 · 실패) 버튼이 움직이지 않게 너비를 고정 (QA-024-2) */
 .autoSave {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  min-width: 108px;
   margin-right: 2px;
   font-size: 12px;
   color: var(--ink-500);

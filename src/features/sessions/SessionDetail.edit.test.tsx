@@ -282,7 +282,13 @@ describe("세션 상세 — 30초 자동 저장", () => {
   const tick = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms));
   const status = () => document.querySelector(".autoSave");
 
-  it("바꾼 채 30초가 지나면 저장하고 '저장 중…' → '저장됨 · 방금 전' 이 보이며 편집 모드는 그대로다", async () => {
+  it("편집을 시작하면 처음부터 '30초 단위 자동저장' 문구가 아이콘 없이 보인다 (QA-024-2)", async () => {
+    await startEditing();
+    expect(status()).toHaveTextContent(/^30초 단위 자동저장$/);
+    expect(status()?.querySelector("svg")).toBeNull();
+  });
+
+  it("바꾼 채 30초가 지나면 저장하고 '저장 완료' 가 보이며 편집 모드는 그대로다", async () => {
     useFakeClock();
     const g = gate();
     const { user, patches } = await startEditing(async () => {
@@ -290,31 +296,33 @@ describe("세션 상세 — 30초 자동 저장", () => {
       return undefined;
     });
     await user.type(bodyInput(), "{Enter}- 젤라또 한 번 더");
-    expect(status()).not.toBeInTheDocument();
+    expect(status()).toHaveTextContent("30초 단위 자동저장");
 
     await tick(29_000);
     expect(patches).toEqual([]);
     await tick(1_000);
-    await waitFor(() => expect(status()).toHaveTextContent("저장 중…"));
+    // 저장 요청 중에는 문구를 바꾸지 않는다
+    await waitFor(() => expect(patches).toHaveLength(1));
+    expect(status()).toHaveTextContent("30초 단위 자동저장");
     g.open();
 
-    await waitFor(() => expect(status()).toHaveTextContent("저장됨 · 방금 전"));
+    await waitFor(() => expect(status()).toHaveTextContent("저장 완료"));
     expect(patches).toEqual([{ title: ROME_DETAIL.title, editedMarkdown: `${ROME_MD}\n- 젤라또 한 번 더` }]);
     expect(bodyInput()).toBeInTheDocument();
   });
 
-  it("저장된 뒤 시간이 지나면 'N분 전' 으로 바뀌고, 더 바꾼 게 없으면 다시 저장하지 않는다", async () => {
+  it("저장 완료 뒤 더 바꾸면 다시 '30초 단위 자동저장' 으로 돌아가고, 바꾼 게 없으면 다시 저장하지 않는다", async () => {
     useFakeClock();
     const { user, patches } = await startEditing();
     await changeTitle(user);
     await tick(30_000);
-    await waitFor(() => expect(status()).toHaveTextContent("저장됨 · 방금 전"));
-
+    await waitFor(() => expect(status()).toHaveTextContent("저장 완료"));
     await tick(60_000);
-    expect(status()).toHaveTextContent("저장됨 · 1분 전");
-    await tick(2 * 60_000);
-    expect(status()).toHaveTextContent("저장됨 · 3분 전");
+    expect(status()).toHaveTextContent("저장 완료");
     expect(patches).toHaveLength(1);
+
+    await changeTitle(user, "로마 5박 6일");
+    expect(status()).toHaveTextContent("30초 단위 자동저장");
   });
 
   it("바꾼 게 없으면 30초가 지나도 저장하지 않는다", async () => {
@@ -322,7 +330,7 @@ describe("세션 상세 — 30초 자동 저장", () => {
     const { patches } = await startEditing();
     await tick(90_000);
     expect(patches).toEqual([]);
-    expect(status()).not.toBeInTheDocument();
+    expect(status()).toHaveTextContent("30초 단위 자동저장");
   });
 
   it("자동 저장 뒤 더 바꾸지 않았다면 취소해도 경고 없이 저장된 내용으로 돌아간다", async () => {
@@ -330,7 +338,7 @@ describe("세션 상세 — 30초 자동 저장", () => {
     const { user } = await startEditing();
     await changeTitle(user);
     await tick(30_000);
-    await waitFor(() => expect(status()).toHaveTextContent("저장됨"));
+    await waitFor(() => expect(status()).toHaveTextContent("저장 완료"));
 
     await user.click(button("취소"));
     expect(leaveDialog()).not.toBeInTheDocument();
@@ -350,15 +358,32 @@ describe("세션 상세 — 30초 자동 저장", () => {
     expect(patches[1]).toEqual({ title: "로마 5박 6일", editedMarkdown: ROME_MD });
   });
 
-  it("자동 저장이 실패하면 토스트로만 알리고 상태 문구는 띄우지 않는다", async () => {
+  it("자동 저장이 실패하면 '저장 실패' 문구와 토스트로 알린다", async () => {
     useFakeClock();
     const { user } = await startEditing(() => fail(500, SERVER_ERROR));
     await changeTitle(user);
     await tick(30_000);
 
     expect(await screen.findByText("자동 저장에 실패했어요. 저장 버튼을 눌러 저장해 주세요.")).toBeInTheDocument();
-    expect(status()).not.toBeInTheDocument();
+    expect(status()).toHaveTextContent("저장 실패");
     expect(titleInput()).toHaveValue("로마 4박 5일");
+  });
+
+  it("저장에 실패한 뒤 다시 저장되면 '저장 완료' 로 바뀐다", async () => {
+    useFakeClock();
+    let failNext = true;
+    const { user } = await startEditing(() => {
+      if (failNext) {
+        failNext = false;
+        return fail(500, SERVER_ERROR);
+      }
+      return undefined;
+    });
+    await changeTitle(user);
+    await tick(30_000);
+    await waitFor(() => expect(status()).toHaveTextContent("저장 실패"));
+    await tick(30_000);
+    await waitFor(() => expect(status()).toHaveTextContent("저장 완료"));
   });
 
   it("편집을 끝내면 자동 저장도 멈춘다", async () => {

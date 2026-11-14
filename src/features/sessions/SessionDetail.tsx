@@ -17,7 +17,7 @@ import {
 } from "@/lib/api";
 import { useApi } from "@/lib/hooks/useApi";
 import { useToast } from "@/lib/app/ToastContext";
-import { formatDateTime, formatDuration, formatTime, hostFromUrl, savedAgo, STATUS_LABEL, withHash } from "@/lib/format";
+import { formatDateTime, formatDuration, formatTime, hostFromUrl, STATUS_LABEL, withHash } from "@/lib/format";
 import { MAP_HEIGHT, MAP_WIDTH, buildSessionMindmap } from "./buildSessionMindmap";
 import { CitationPopup } from "./CitationPopup";
 import { SessionEditor } from "./SessionEditor";
@@ -27,8 +27,11 @@ import { LeaveConfirmModal } from "./LeaveConfirmModal";
 import styles from "./SessionDetail.module.css";
 
 const AUTO_SAVE_MS = 30_000;
+/** 자동 저장 주기 문구 — 주기를 바꾸면 단위도 따라간다 (30초 → "30초", 60초 → "1분") */
+const AUTO_SAVE_EVERY = AUTO_SAVE_MS % 60_000 === 0 ? `${AUTO_SAVE_MS / 60_000}분` : `${AUTO_SAVE_MS / 1000}초`;
 
-type AutoSaveState = { status: "idle" | "saving" | "saved"; at: number | null };
+/** 마지막 자동 저장 결과 — 저장 요청 중에는 바꾸지 않는다 */
+type AutoSaveResult = "none" | "saved" | "failed";
 type LeaveTarget = { kind: "cancel" } | { kind: "back"; go: () => void } | { kind: "href"; href: string };
 type MapLayout = "radial" | "tree";
 
@@ -88,8 +91,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
 
   // 30초 자동 저장 — 변경이 있을 때만 저장. 저장 / 취소 버튼 옆 회색 상태 문구, 실패는 토스트로만
   const [baseline, setBaseline] = useState("");
-  const [autoSave, setAutoSave] = useState<AutoSaveState>({ status: "idle", at: null });
-  const [now, setNow] = useState(() => Date.now());
+  const [autoSave, setAutoSave] = useState<AutoSaveResult>("none");
   const savingRef = useRef(false);
   const autoSaveTick = useRef<() => void>(() => {});
 
@@ -110,13 +112,6 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     const t = setInterval(() => autoSaveTick.current(), AUTO_SAVE_MS);
     return () => clearInterval(t);
   }, [editing]);
-
-  // "저장됨 · N분 전" 갱신
-  useEffect(() => {
-    if (autoSave.status !== "saved") return;
-    const t = setInterval(() => setNow(Date.now()), 20_000);
-    return () => clearInterval(t);
-  }, [autoSave.status]);
 
   // 새로고침 · 탭 닫기 → 브라우저 기본 확인창
   useEffect(() => {
@@ -260,7 +255,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     setDraftTitle(title);
     setDraftMarkdown(markdown);
     setBaseline(JSON.stringify([title, markdown]));
-    setAutoSave({ status: "idle", at: null });
+    setAutoSave("none");
     setView("text");
     setEditing(true);
   };
@@ -270,17 +265,14 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     if (savingRef.current) return false;
     savingRef.current = true;
     const key = draftKey;
-    setAutoSave((s) => ({ ...s, status: "saving" }));
     try {
       const updated = await updateSession(detail.id, { title: draftTitle, editedMarkdown: draftMarkdown });
       setDetail(updated);
       setBaseline(key);
-      const t = Date.now();
-      setNow(t);
-      setAutoSave({ status: "saved", at: t });
+      setAutoSave("saved");
       return true;
     } catch {
-      setAutoSave((s) => ({ ...s, status: s.at ? "saved" : "idle" }));
+      setAutoSave("failed");
       toast.info(failMessage, { icon: "exclaim" });
       return false;
     } finally {
@@ -471,14 +463,14 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
             <div className={styles.actions}>
               {editing ? (
                 <>
-                  {autoSave.status !== "idle" && (
-                    <span className={styles.autoSave} role="status">
-                      <Icon name={autoSave.status === "saving" ? "refresh" : "check"} size={13} stroke={2.2} />
-                      {autoSave.status === "saving" || autoSave.at === null
-                        ? "저장 중…"
-                        : `저장됨 · ${savedAgo(autoSave.at, now)}`}
-                    </span>
-                  )}
+                  {/* 편집을 시작할 때부터 자리를 차지해 버튼이 밀리지 않게 한다 (QA-024-2) */}
+                  <span className={styles.autoSave} role="status">
+                    {autoSave === "failed"
+                      ? "저장 실패"
+                      : autoSave === "saved" && !dirty
+                        ? "저장 완료"
+                        : `${AUTO_SAVE_EVERY} 단위 자동저장`}
+                  </span>
                   <Button variant="secondary" onClick={() => requestLeave({ kind: "cancel" })}>
                     취소
                   </Button>
