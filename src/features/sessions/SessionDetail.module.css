@@ -338,3 +338,30 @@
   align-items: center;
   gap: 0 6px;
 }
+
+/*
+ * 좁은 화면 (QA-018) — 버튼 줄을 제목 아래로, 본문 → 출처 순서로 한 칸에 쌓는다.
+ * 넓은 화면은 본문·출처가 각자 스크롤하지만, 여기서는 화면 전체가 한 번에 스크롤한다.
+ * 첫 줄(본문 · 편집기 · 마인드맵)은 높이가 정해지지 않으면 마인드맵이 납작해지므로 최소 420px.
+ */
+@media (max-width: 767.98px) {
+  .page {
+    overflow-y: auto;
+  }
+  .headerRow {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .actions {
+    flex-wrap: wrap;
+  }
+  .content {
+    flex: none;
+    overflow: visible;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(420px, auto);
+  }
+  .sidebar {
+    overflow-y: visible;
+  }
+}
