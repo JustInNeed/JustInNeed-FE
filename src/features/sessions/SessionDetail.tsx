@@ -95,6 +95,19 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const savingRef = useRef(false);
   const autoSaveTick = useRef<() => void>(() => {});
 
+  // 자동 저장은 커뮤니티 카드 동기화를 미룬다 (QA-030). 편집을 "저장" 없이 끝내면(취소 · 다른 화면 · 탭 닫기)
+  // 자동 저장된 내용으로 카드를 한 번 맞춘다. 마지막으로 자동 저장한 내용, 이미 맞췄으면 null
+  const pendingCardSync = useRef<{ title: string; editedMarkdown: string } | null>(null);
+  const flushCardSync = useRef<() => void>(() => {});
+  useEffect(() => {
+    const flush = () => flushCardSync.current();
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush(); // 앱 안에서 다른 화면으로 나갈 때 (브라우저 뒤로 가기 포함)
+    };
+  }, []);
+
   // 저장 안 하고 나가기 경고
   const [leaveTarget, setLeaveTarget] = useState<LeaveTarget | null>(null);
   const [leaving, setLeaving] = useState(false);
@@ -218,6 +231,8 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     try {
       const updated = await updateSession(detail.id, body);
       setDetail(updated);
+      // 즐겨찾기 말고 다른 필드를 바꾼 저장은 BE 가 카드를 맞춘다
+      if (Object.keys(body).some((k) => k !== "isFavorite")) pendingCardSync.current = null;
       return true;
     } catch (e) {
       setDetail(prev);
@@ -260,13 +275,16 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     setEditing(true);
   };
 
-  // 편집 모드는 유지한 채 초안만 저장 (자동 저장 · 저장하고 나가기)
-  const saveDraft = async (failMessage: string): Promise<boolean> => {
+  // 편집 모드는 유지한 채 초안만 저장 (자동 저장 · 저장하고 나가기).
+  // 자동 저장(draft)은 카드 동기화를 미루고, 저장하고 나가기는 바로 맞춘다 (QA-030)
+  const saveDraft = async (failMessage: string, draft: boolean): Promise<boolean> => {
     if (savingRef.current) return false;
     savingRef.current = true;
     const key = draftKey;
+    const body = { title: draftTitle, editedMarkdown: draftMarkdown };
     try {
-      const updated = await updateSession(detail.id, { title: draftTitle, editedMarkdown: draftMarkdown });
+      const updated = await updateSession(detail.id, draft ? { ...body, draft: true } : body);
+      pendingCardSync.current = draft ? body : null;
       setDetail(updated);
       setBaseline(key);
       setAutoSave("saved");
@@ -280,12 +298,20 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     }
   };
   autoSaveTick.current = () => {
-    if (dirty) void saveDraft("자동 저장에 실패했어요. 저장 버튼을 눌러 저장해 주세요.");
+    if (dirty) void saveDraft("자동 저장에 실패했어요. 저장 버튼을 눌러 저장해 주세요.", true);
+  };
+  flushCardSync.current = () => {
+    const body = pendingCardSync.current;
+    if (!body) return;
+    pendingCardSync.current = null;
+    // 화면이 사라진 뒤에도 끝나도록 keepalive. 실패해도 다음 편집 · 저장 때 다시 맞춰진다
+    updateSession(detail.id, body, { keepalive: true }).catch(() => {});
   };
 
   const proceedLeave = (target: LeaveTarget) => {
     setLeaveTarget(null);
     setEditing(false);
+    flushCardSync.current();
     if (target.kind === "back") target.go();
     else if (target.kind === "href") router.push(target.href);
   };
@@ -293,7 +319,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const saveAndLeave = async () => {
     if (!leaveTarget) return;
     setLeaving(true);
-    const ok = await saveDraft("저장에 실패했어요. 다시 시도해 주세요.");
+    const ok = await saveDraft("저장에 실패했어요. 다시 시도해 주세요.", false);
     setLeaving(false);
     if (ok) proceedLeave(leaveTarget);
   };

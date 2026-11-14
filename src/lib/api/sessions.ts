@@ -14,8 +14,8 @@ export const getSession = (id: number) => api.get<SessionDetail>(`/sessions/${id
 
 export const getSessionMindmap = (id: number) => api.get<SessionMindmap>(`/sessions/${id}/mindmap`);
 
-export const updateSession = (id: number, body: SessionUpdateRequest) =>
-  api.patch<SessionDetail>(`/sessions/${id}`, body);
+export const updateSession = (id: number, body: SessionUpdateRequest, init?: RequestInit) =>
+  api.patch<SessionDetail>(`/sessions/${id}`, body, init);
 
 export const deleteSession = (id: number) => api.del<null>(`/sessions/${id}`);
 

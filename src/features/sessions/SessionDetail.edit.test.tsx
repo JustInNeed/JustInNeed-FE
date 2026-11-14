@@ -307,7 +307,7 @@ describe("세션 상세 — 30초 자동 저장", () => {
     g.open();
 
     await waitFor(() => expect(status()).toHaveTextContent("저장 완료"));
-    expect(patches).toEqual([{ title: ROME_DETAIL.title, editedMarkdown: `${ROME_MD}\n- 젤라또 한 번 더` }]);
+    expect(patches).toEqual([{ title: ROME_DETAIL.title, editedMarkdown: `${ROME_MD}\n- 젤라또 한 번 더`, draft: true }]);
     expect(bodyInput()).toBeInTheDocument();
   });
 
@@ -355,7 +355,7 @@ describe("세션 상세 — 30초 자동 저장", () => {
     await changeTitle(user, "로마 5박 6일");
     await tick(30_000);
     await waitFor(() => expect(patches).toHaveLength(2));
-    expect(patches[1]).toEqual({ title: "로마 5박 6일", editedMarkdown: ROME_MD });
+    expect(patches[1]).toEqual({ title: "로마 5박 6일", editedMarkdown: ROME_MD, draft: true });
   });
 
   it("자동 저장이 실패하면 '저장 실패' 문구와 토스트로 알린다", async () => {
@@ -384,6 +384,72 @@ describe("세션 상세 — 30초 자동 저장", () => {
     await waitFor(() => expect(status()).toHaveTextContent("저장 실패"));
     await tick(30_000);
     await waitFor(() => expect(status()).toHaveTextContent("저장 완료"));
+  });
+
+  describe("커뮤니티 카드 동기화는 편집을 끝낼 때 한 번 (QA-030)", () => {
+    const AUTO = { title: "로마 4박 5일", editedMarkdown: ROME_MD };
+
+    it("자동 저장 뒤 '저장' 을 누르면 draft 없는 저장 한 번으로 끝난다 (따로 맞추는 요청 없음)", async () => {
+      useFakeClock();
+      const { user, patches, unmount } = await startEditing();
+      await changeTitle(user);
+      await tick(30_000);
+      await waitFor(() => expect(patches).toEqual([{ ...AUTO, draft: true }]));
+
+      await user.click(button("저장"));
+      await waitFor(() => expect(patches).toHaveLength(2));
+      expect(patches[1]).toEqual(AUTO);
+      unmount();
+      await tick(0);
+      expect(patches).toHaveLength(2);
+    });
+
+    it("자동 저장 뒤 취소하면 자동 저장된 내용으로 카드를 맞추는 요청을 한 번 보낸다", async () => {
+      useFakeClock();
+      const { user, patches } = await startEditing();
+      await changeTitle(user);
+      await tick(30_000);
+      await waitFor(() => expect(patches).toHaveLength(1));
+
+      await user.click(button("취소"));
+      await waitFor(() => expect(patches).toHaveLength(2));
+      expect(patches[1]).toEqual(AUTO);
+    });
+
+    it("자동 저장 뒤 화면을 벗어나면(언마운트) 카드를 맞추는 요청을 보낸다", async () => {
+      useFakeClock();
+      const { user, patches, unmount } = await startEditing();
+      await changeTitle(user);
+      await tick(30_000);
+      await waitFor(() => expect(patches).toHaveLength(1));
+      // 화면 변화가 없어 waitFor 가 진짜 setInterval 로 다시 확인해야 한다
+      vi.useRealTimers();
+
+      unmount();
+      await waitFor(() => expect(patches).toHaveLength(2));
+      expect(patches[1]).toEqual(AUTO);
+    });
+
+    it("자동 저장 뒤 탭을 닫으면(pagehide) 카드를 맞추는 요청을 한 번만 보낸다", async () => {
+      useFakeClock();
+      const { user, patches } = await startEditing();
+      await changeTitle(user);
+      await tick(30_000);
+      await waitFor(() => expect(patches).toHaveLength(1));
+      // 화면 변화가 없어 waitFor 가 진짜 setInterval 로 다시 확인해야 한다
+      vi.useRealTimers();
+
+      fireEvent(window, new Event("pagehide"));
+      fireEvent(window, new Event("pagehide"));
+      await waitFor(() => expect(patches).toHaveLength(2));
+      expect(patches[1]).toEqual(AUTO);
+    });
+
+    it("자동 저장이 없었으면 취소해도 아무 요청도 보내지 않는다", async () => {
+      const { user, patches } = await startEditing();
+      await user.click(button("취소"));
+      expect(patches).toEqual([]);
+    });
   });
 
   it("편집을 끝내면 자동 저장도 멈춘다", async () => {
