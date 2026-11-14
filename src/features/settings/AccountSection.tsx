@@ -29,7 +29,8 @@ type CheckStatus = null | "checking" | "ok" | "taken" | "failed";
 
 /**
  * 계정 섹션 — 닉네임 변경, 연결된 소셜 계정, 로그아웃.
- * 중복 확인은 주입받은 함수(기본: 중복 확인 API)로 하고, 저장은 형식만 맞으면 가능하다. 확인 없이 저장한 중복은 서버 409 로 막는다.
+ * 버튼 하나로 진행한다: 중복 확인을 통과하면 같은 자리 · 같은 크기의 버튼이 "저장" 으로 바뀐다 (QA-028).
+ * 중복 확인은 주입받은 함수(기본: 중복 확인 API)로 한다. 확인 뒤 저장 사이에 다른 사람이 가져간 닉네임은 서버 409 로 막는다.
  */
 export function AccountSection({ onWithdraw, checkNickname = checkNicknameAvailable }: AccountSectionProps) {
   const { member, updateMember, logout } = usePersonal();
@@ -45,7 +46,9 @@ export function AccountSection({ onWithdraw, checkNickname = checkNicknameAvaila
   const isFormatValid = isValidNickname(nickname);
   const isChanged = nickname !== current;
   const canCheck = isChanged && isFormatValid && status !== "checking";
-  const canSave = isChanged && isFormatValid && !saving;
+  // 중복 확인을 통과해야 버튼이 "저장" 이 된다
+  const saveMode = status === "ok" && isChanged && isFormatValid;
+  const canSave = saveMode && !saving;
   const showInvalidHint = isChanged && !isFormatValid;
   const errorText = showInvalidHint
     ? NICKNAME_FORMAT_ERROR
@@ -73,8 +76,10 @@ export function AccountSection({ onWithdraw, checkNickname = checkNicknameAvaila
       setStatus(null);
       toast.success("닉네임을 변경했어요.");
     } catch (e) {
-      if (e instanceof ApiError && e.status === 409) setSaveError(e.message);
-      else toast.error(e instanceof ApiError ? e.message : "저장에 실패했습니다. 다시 시도해 주세요.");
+      if (e instanceof ApiError && e.status === 409) {
+        setSaveError(e.message);
+        setStatus(null); // 다시 중복 확인부터
+      } else toast.error(e instanceof ApiError ? e.message : "저장에 실패했습니다. 다시 시도해 주세요.");
     } finally {
       setSaving(false);
     }
@@ -100,9 +105,15 @@ export function AccountSection({ onWithdraw, checkNickname = checkNicknameAvaila
             className={inputClass}
             style={{ flex: 1 }}
           />
-          <button onClick={onCheck} disabled={!canCheck} className={`${styles.checkBtn} ${canCheck ? styles.checkBtnOn : ""}`}>
-            {status === "checking" ? "확인 중…" : "중복 확인"}
-          </button>
+          {saveMode ? (
+            <button onClick={onSave} disabled={!canSave} className={`${styles.checkBtn} ${styles.checkBtnOn}`}>
+              {saving ? "저장 중…" : "저장"}
+            </button>
+          ) : (
+            <button onClick={onCheck} disabled={!canCheck} className={`${styles.checkBtn} ${canCheck ? styles.checkBtnOn : ""}`}>
+              {status === "checking" ? "확인 중…" : "중복 확인"}
+            </button>
+          )}
         </div>
         {errorText ? (
           <FieldMessage tone="error" id="account-nickname-message">
@@ -115,11 +126,6 @@ export function AccountSection({ onWithdraw, checkNickname = checkNicknameAvaila
             </FieldMessage>
           )
         )}
-        <div className={styles.nickActions}>
-          <Button variant="primary" onClick={onSave} disabled={!canSave}>
-            {saving ? "저장 중…" : "저장"}
-          </Button>
-        </div>
       </Field>
 
       <Field label="연결된 계정" hint="회원가입 시 사용">

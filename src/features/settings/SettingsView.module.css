@@ -161,6 +161,10 @@
   align-items: stretch;
 }
 .checkBtn {
+  /* 중복 확인 · 확인 중… · 저장 · 저장 중… 이 같은 자리에서 바뀌므로 너비를 고정한다 (QA-028) */
+  min-width: 76px;
+  justify-content: center;
+  text-align: center;
   padding: 0 14px;
   font-size: 12px;
   font-weight: 600;
@@ -177,11 +181,6 @@
   background: var(--green-500);
   color: #fff;
   cursor: pointer;
-}
-.nickActions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 10px;
 }
 .providerBox {
   display: flex;
