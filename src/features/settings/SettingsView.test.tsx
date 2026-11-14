@@ -335,11 +335,18 @@ describe("설정 화면", () => {
   });
 
   describe("확장 프로그램", () => {
-    it("설정값이 없으면 세 토글이 모두 켜진 상태로 시작하고, 누르면 각각 꺼졌다 켜진다", async () => {
+    it("우클릭 컨텍스트 메뉴는 아직 구현 전이라 보이지 않는다 (QA-027)", async () => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
+      expect(screen.queryByRole("switch", { name: "우클릭 컨텍스트 메뉴" })).not.toBeInTheDocument();
+      expect(screen.getAllByRole("switch")).toHaveLength(2);
+    });
+
+    it("설정값이 없으면 두 토글이 모두 켜진 상태로 시작하고, 누르면 각각 꺼졌다 켜진다", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
 
-      for (const name of ["확장 프로그램 팝업 노출", "자동 종료 알림", "우클릭 컨텍스트 메뉴"]) {
+      for (const name of ["확장 프로그램 팝업 노출", "자동 종료 알림"]) {
         const sw = screen.getByRole("switch", { name });
         expect(sw).toHaveAttribute("aria-checked", "true");
         await user.click(sw);
@@ -356,7 +363,6 @@ describe("설정 화면", () => {
 
       expect(screen.getByRole("switch", { name: "자동 종료 알림" })).toHaveAttribute("aria-checked", "false");
       expect(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" })).toHaveAttribute("aria-checked", "true");
-      expect(screen.getByRole("switch", { name: "우클릭 컨텍스트 메뉴" })).toHaveAttribute("aria-checked", "true");
     });
 
     it("불러온 값으로 시작한다", async () => {
@@ -370,13 +376,11 @@ describe("설정 화면", () => {
 
       expect(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" })).toHaveAttribute("aria-checked", "false");
       expect(screen.getByRole("switch", { name: "자동 종료 알림" })).toHaveAttribute("aria-checked", "true");
-      expect(screen.getByRole("switch", { name: "우클릭 컨텍스트 메뉴" })).toHaveAttribute("aria-checked", "false");
     });
 
     it.each([
       ["확장 프로그램 팝업 노출", "popup-visible"],
       ["자동 종료 알림", "auto-end-notification"],
-      ["우클릭 컨텍스트 메뉴", "manual-scrap"],
     ])("%s 토글은 %s 경로로 저장한다", async (name, path) => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(screen.getByRole("button", { name: "확장 프로그램" }));

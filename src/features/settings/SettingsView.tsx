@@ -46,6 +46,9 @@ function useEditable<T>(source: T) {
   return [value, setValue] as const;
 }
 
+/** 우클릭 수동 스크랩은 확장 프로그램에 아직 없어 설정을 숨긴다. 구현되면 true 로 (QA-027) */
+const MANUAL_SCRAP_READY = false;
+
 export interface SettingsViewProps {
   /** 수집 제외 URL 목록 */
   excludedUrls: ExcludedUrl[];
@@ -278,13 +281,17 @@ export function SettingsView({
                       on={extension.autoEndNotificationEnabled}
                       onChange={(v) => saveExtension("autoEndNotificationEnabled", v)}
                     />
-                    <div className={styles.divider} />
-                    <Toggle
-                      label="우클릭 컨텍스트 메뉴"
-                      desc="텍스트 선택 후 우클릭으로 수동 스크랩"
-                      on={extension.manualScrapEnabled}
-                      onChange={(v) => saveExtension("manualScrapEnabled", v)}
-                    />
+                    {MANUAL_SCRAP_READY && (
+                      <>
+                        <div className={styles.divider} />
+                        <Toggle
+                          label="우클릭 컨텍스트 메뉴"
+                          desc="텍스트 선택 후 우클릭으로 수동 스크랩"
+                          on={extension.manualScrapEnabled}
+                          onChange={(v) => saveExtension("manualScrapEnabled", v)}
+                        />
+                      </>
+                    )}
                   </>
                 )}
               </Card>
