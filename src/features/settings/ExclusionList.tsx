@@ -20,7 +20,12 @@ const isRootDomain = (u: string) => {
   return clean.indexOf("/") === -1;
 };
 
-/** 도메인별로 묶어 보여주는 수집 제외 목록. on 항목이 있는 그룹이 위, 그룹 안에서는 상위 도메인 → on → off 순. */
+const byAlpha = (a: string, b: string) => a.localeCompare(b, "en");
+
+/**
+ * 도메인별로 묶어 보여주는 수집 제외 목록. 묶음은 도메인 알파벳 순, 묶음 안에서는 상위 도메인 → 나머지 알파벳 순.
+ * 켜짐 · 꺼짐과 추가한 순서는 순서에 영향을 주지 않는다 (QA-029).
+ */
 export function ExclusionList({ excluded, onToggle, onRemove }: ExclusionListProps) {
   const groups: { domain: string; items: ExcludedUrl[] }[] = [];
   const byDomain = new Map<string, { domain: string; items: ExcludedUrl[] }>();
@@ -34,13 +39,13 @@ export function ExclusionList({ excluded, onToggle, onRemove }: ExclusionListPro
     }
     g.items.push(it);
   });
-  groups.sort((a, b) => (a.items.some((it) => it.on) ? 0 : 1) - (b.items.some((it) => it.on) ? 0 : 1));
+  groups.sort((a, b) => byAlpha(a.domain, b.domain));
   groups.forEach((g) =>
     g.items.sort((a, b) => {
       const ra = isRootDomain(a.url) ? 0 : 1;
       const rb = isRootDomain(b.url) ? 0 : 1;
       if (ra !== rb) return ra - rb;
-      return (b.on ? 1 : 0) - (a.on ? 1 : 0);
+      return byAlpha(a.url, b.url);
     }),
   );
 

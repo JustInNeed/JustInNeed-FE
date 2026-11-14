@@ -122,18 +122,18 @@ describe("설정 화면", () => {
   });
 
   describe("수집 제외 URL 목록", () => {
-    it("도메인별로 묶고, 켜진 항목이 있는 묶음이 위 · 묶음 안에서는 상위 도메인이 먼저 온다", () => {
+    it("도메인별로 묶고 알파벳 순으로 보인다 — 꺼짐 여부와 상관없이, 묶음 안에서는 상위 도메인이 먼저 (QA-029-3)", () => {
       renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       expect(shownUrls()).toEqual([
         "instagram.com",
         "mail.google.com",
-        "youtube.com/shorts",
+        "naver.com/blog",
         "tiktok.com",
         "tistory.com",
         "tistory.com/feed",
         "tistory.com/skin",
-        "naver.com/blog",
-        "twitter.com", // 꺼진 항목만 있는 묶음은 맨 아래
+        "twitter.com", // 꺼져 있어도 알파벳 자리에
+        "youtube.com/shorts",
       ]);
       // 2개 이상인 도메인만 머리글(도메인 + 개수)을 단다
       const heads = Array.from(document.querySelectorAll(".exGroupHead"));
@@ -256,6 +256,14 @@ describe("설정 화면", () => {
       expect(within(row("example.com/path")).getByRole("checkbox")).toBeChecked();
       expect(within(row("example.com/path")).getByRole("button", { name: "삭제" })).toBeInTheDocument();
       expect(urlInput()).toHaveValue("");
+    });
+
+    it("추가한 항목도 맨 아래가 아니라 알파벳 자리에 들어간다 (QA-029-3)", async () => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      await user.type(urlInput(), "aaa.com{Enter}");
+      await waitFor(() => expect(shownUrls()[0]).toBe("aaa.com"));
+      await user.type(urlInput(), "zzz.com{Enter}");
+      await waitFor(() => expect(shownUrls().at(-1)).toBe("zzz.com"));
     });
 
     it("Enter 로도 추가된다", async () => {
