@@ -608,6 +608,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   height={MAP_HEIGHT}
                   selectedId={selectedNode}
                   onSelect={(id) => setSelectedNode((cur) => (id === cur ? null : id))}
+                  showHint={false}
                 />
                 {selectedNode && (
                   <CitationPopup

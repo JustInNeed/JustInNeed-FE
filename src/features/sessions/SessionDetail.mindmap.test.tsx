@@ -63,7 +63,8 @@ describe("세션 상세 — 줄글 / 마인드맵 탭", () => {
     await openMindmap();
     expect(nodeLabels()).toEqual(ROME_MINDMAP.nodes.map((n) => n.keyword));
     expect(map().querySelectorAll("line")).toHaveLength(ROME_MINDMAP.edges.length);
-    expect(screen.getByText("드래그로 이동 · 휠로 줌 · 노드 클릭으로 선택")).toBeInTheDocument();
+    // 조작 안내 문구는 띄우지 않는다 (QA-019-2)
+    expect(screen.queryByText("드래그로 이동 · 휠로 줌 · 노드 클릭으로 선택")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "출처 (3)" })).toBeInTheDocument();
   });
 
