@@ -8,6 +8,7 @@ import type { DayActivity, HomeData, HomeStats, TimelineSlot, WeekSession } from
 import { GraphFilterPopover } from "./GraphFilterPopover";
 import { GraphSearch } from "./GraphSearch";
 import { DEFAULT_GRAPH_FILTER, countApplied, dimmedNodeIds, relatedSession, type GraphFilter } from "./graphFilter";
+import { sessionNodeIds } from "./toHomeData";
 import { buildWeekTimeline } from "./weekTimeline";
 import styles from "./HomeView.module.css";
 
@@ -67,6 +68,9 @@ function HomeDashboard({ data }: { data: HomeData }) {
   const mindmapRef = useRef<MindmapHandle>(null);
 
   const dimmedIds = useMemo(() => dimmedNodeIds(graph, filter), [graph, filter]);
+  // 세션 노드는 처음 놓인 방향으로 약하게 붙잡아 둔다
+  const sessionIds = useMemo(() => new Set(sessionNodeIds(graph.nodes, graph.edges)), [graph]);
+  const coreId = graph.nodes.find((n) => n.group === "core")?.id;
   const matchIds = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!searchOpen || !q) return undefined;
@@ -198,6 +202,8 @@ function HomeDashboard({ data }: { data: HomeData }) {
             </div>
             <Mindmap
               ref={mindmapRef}
+              anchorIds={sessionIds}
+              centerId={coreId}
               nodes={graph.nodes}
               edges={graph.edges}
               width={1100}

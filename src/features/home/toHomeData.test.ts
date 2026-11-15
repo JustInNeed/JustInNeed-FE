@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { HomeGraphNode, HomeResponse } from "@/lib/api";
 import { EMPTY_HOME_RESPONSE, HOME_RESPONSE } from "@/test/fixtures/home";
 import { dimmedNodeIds, DEFAULT_GRAPH_FILTER } from "./graphFilter";
-import { toHomeData, toTimelineSite } from "./toHomeData";
+import { DEPTH_GRADIENT, DEPTH_SIZES, MAX_DEPTH, depthColor, toHomeData, toTimelineSite } from "./toHomeData";
 import { buildWeekTimeline } from "./weekTimeline";
 
 const CENTER = { x: 550, y: 350 };
@@ -22,9 +22,11 @@ describe("toHomeData — 노드 좌표", () => {
     expect(core).toMatchObject(CENTER);
   });
 
-  it("id · 라벨 · 크기 · 그룹은 응답 그대로 두고 응답 순서를 지킨다", () => {
+  it("id · 라벨 · 그룹은 응답 그대로 두고 응답 순서를 지킨다 (크기 · 색은 깊이로 정함)", () => {
     const { nodes } = toHomeData(HOME_RESPONSE).graph;
-    expect(nodes.map(({ id, label, size, group }) => ({ id, label, size, group }))).toEqual(HOME_RESPONSE.graph.nodes);
+    expect(nodes.map(({ id, label, group }) => ({ id, label, group }))).toEqual(
+      HOME_RESPONSE.graph.nodes.map(({ id, label, group }) => ({ id, label, group })),
+    );
   });
 
   it("그룹마다 같은 원 위에 놓고, city · logi · sub 순으로 멀어진다", () => {
@@ -197,5 +199,133 @@ describe("toHomeData — 그 외", () => {
     expect(data.graph).toEqual({ nodes: [], edges: [], nodeMeta: {}, tagGroups: [], filterTags: [] });
     expect(data.todayTimeline).toEqual([]);
     expect(data.weekActivity.days).toHaveLength(7);
+  });
+});
+
+describe("toHomeData — 세션 방향 배치", () => {
+  const n = (id: string, group: HomeGraphNode["group"]): HomeGraphNode => ({ id, label: id, size: 10, group });
+  // core ─ s1 ─ k1 ─ u1 ─ u2 (깊이 4)
+  //      │     └ k2
+  //      ├ s2 ─ k3
+  //      └ s3
+  // k2 ─ k3 은 세션을 넘는 연결
+  const nodes = [n("core", "core"), n("s1", "city"), n("s2", "city"), n("s3", "city"), n("k1", "logi"), n("k2", "logi"), n("k3", "logi"), n("u1", "sub"), n("u2", "sub")];
+  const edges: [string, string][] = [
+    ["core", "s1"], ["core", "s2"], ["core", "s3"],
+    ["s1", "k1"], ["s1", "k2"], ["s2", "k3"], ["k1", "u1"], ["u1", "u2"], ["k2", "k3"],
+  ];
+  const placed = () => {
+    const res: HomeResponse = { ...HOME_RESPONSE, graph: { ...HOME_RESPONSE.graph, nodes, edges, nodeMeta: {} } };
+    return Object.fromEntries(toHomeData(res).graph.nodes.map((p) => [p.id, p]));
+  };
+  const angleOf = (p: { x: number; y: number }) => Math.atan2(p.y - CENTER.y, p.x - CENTER.x);
+  const gap = (a: number, b: number) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+
+  it("세션은 가운데 둘레에 같은 각도로 나눠 놓고, 첫 세션은 위쪽", () => {
+    const p = placed();
+    const [a1, a2, a3] = ["s1", "s2", "s3"].map((id) => angleOf(p[id]));
+    expect(a1).toBeCloseTo(-Math.PI / 2);
+    expect(gap(a1, a2)).toBeCloseTo((2 * Math.PI) / 3);
+    expect(gap(a2, a3)).toBeCloseTo((2 * Math.PI) / 3);
+  });
+
+  it("자손은 연결 깊이마다 바깥 원에, 자기 세션 방향 안에 놓는다", () => {
+    const p = placed();
+    const r = (id: string) => radiusOf(p[id]);
+    expect(r("s1")).toBeLessThan(r("k1"));
+    expect(r("k1")).toBeLessThan(r("u1"));
+    expect(r("u1")).toBeLessThan(r("u2"));
+    const half = Math.PI / 3; // 세션 한 칸(120°)의 절반
+    for (const id of ["k1", "k2", "u1", "u2"]) expect(gap(angleOf(p[id]), angleOf(p.s1))).toBeLessThan(half);
+    expect(gap(angleOf(p.k3), angleOf(p.s2))).toBeLessThan(half);
+  });
+
+  it("세션을 넘는 연결이 있어도 먼저 닿은 세션 쪽에 둔다", () => {
+    const p = placed();
+    expect(gap(angleOf(p.k3), angleOf(p.s2))).toBeLessThan(gap(angleOf(p.k3), angleOf(p.s1)));
+  });
+
+  it("모든 노드가 Mindmap 경계 안쪽", () => {
+    Object.values(placed()).forEach((p) => expect(radiusOf(p)).toBeLessThanOrEqual(MINDMAP_MAX_RADIUS));
+  });
+});
+
+describe("toHomeData — 깊이별 크기 · 색", () => {
+  const n = (id: string, group: HomeGraphNode["group"], size = 10): HomeGraphNode => ({ id, label: id, size, group });
+  const build = (nodes: HomeGraphNode[], edges: [string, string][]) => {
+    const res: HomeResponse = { ...HOME_RESPONSE, graph: { ...HOME_RESPONSE.graph, nodes, edges, nodeMeta: {} } };
+    return Object.fromEntries(toHomeData(res).graph.nodes.map((p) => [p.id, p]));
+  };
+  // core ─ s ─ u1 ─ u2 ─ … ─ u12 (그룹은 모두 sub 여도 깊이로 구분)
+  const chain = Array.from({ length: 12 }, (_, i) => n(`u${i + 1}`, "sub", 7));
+  const chainEdges: [string, string][] = [
+    ["core", "s"],
+    ["s", "u1"],
+    ...chain.slice(1).map((c, i): [string, string] => [`u${i + 1}`, c.id]),
+  ];
+  const deep = () => build([n("core", "core", 28), n("s", "city", 16), ...chain], chainEdges);
+
+  it("깊이마다 색이 다르고, 같은 그룹(sub)이어도 깊이가 다르면 색 · 크기가 다르다", () => {
+    const p = deep();
+    const fills = ["s", ...chain.slice(0, MAX_DEPTH - 1).map((c) => c.id)].map((id) => p[id].fill);
+    expect(new Set(fills).size).toBe(MAX_DEPTH);
+    expect(p.u2.size).toBeGreaterThan(p.u3.size);
+  });
+
+  it("색은 가장 깊은 단계에 맞춰 청록 → 연노랑을 나눈다 (깊이 10 이면 10단계, 3 이면 3단계)", () => {
+    const first = DEPTH_GRADIENT[0];
+    const last = DEPTH_GRADIENT[DEPTH_GRADIENT.length - 1];
+    const p = deep();
+    expect(p.s.fill).toBe(first);
+    expect(p.u9.fill).toBe(last); // 깊이 10
+    const shallow = build(
+      [n("core", "core", 28), n("s", "city", 16), n("k", "logi", 12), n("u", "sub", 7)],
+      [["core", "s"], ["s", "k"], ["k", "u"]],
+    );
+    expect(shallow.s.fill).toBe(first);
+    expect(shallow.k.fill).toBe(DEPTH_GRADIENT[2]); // 3단계의 가운데
+    expect(shallow.u.fill).toBe(last);
+  });
+
+  it("depthColor — 단계가 하나뿐이면 청록, 범위 밖 깊이는 양 끝", () => {
+    expect(depthColor(1, 1)).toBe(DEPTH_GRADIENT[0]);
+    expect(depthColor(0, 4)).toBe(DEPTH_GRADIENT[0]);
+    expect(depthColor(9, 4)).toBe(DEPTH_GRADIENT[4]);
+    expect(depthColor(4, 4)).toBe(DEPTH_GRADIENT[4]);
+  });
+
+  it("깊이가 깊어질수록 노드가 작아진다", () => {
+    const p = deep();
+    const sizes = ["s", ...chain.slice(0, MAX_DEPTH - 1).map((c) => c.id)].map((id) => p[id].size);
+    sizes.slice(1).forEach((size, i) => expect(size).toBeLessThan(sizes[i]));
+  });
+
+  it("깊이 10 보다 깊으면 10 과 같은 색 · 크기", () => {
+    const p = deep(); // s 가 깊이 1 → u9 가 깊이 10
+    for (const id of ["u10", "u11", "u12"]) {
+      expect(p[id].fill).toBe(p.u9.fill);
+      expect(p[id].size).toBe(p.u9.size);
+    }
+  });
+
+  it("깊이별 크기는 그래프가 얕아도 커지지 않는다", () => {
+    const shallow = build([n("core", "core", 28), n("s", "city", 16), n("k", "logi", 12)], [["core", "s"], ["s", "k"]]);
+    expect(shallow.s.size).toBe(deep().s.size);
+    expect(shallow.k.size).toBe(DEPTH_SIZES[1]);
+  });
+
+  it("여러 세션에 나온 노드(BE 크기가 큰 노드)는 같은 깊이에서 조금 더 크다", () => {
+    const p = build(
+      [n("core", "core", 28), n("s", "city", 16), n("k1", "logi", 12), n("k2", "logi", 18)],
+      [["core", "s"], ["s", "k1"], ["s", "k2"]],
+    );
+    expect(p.k2.size).toBeGreaterThan(p.k1.size);
+    expect(p.k2.size).toBeLessThan(p.s.size);
+  });
+
+  it("core 는 응답 크기 그대로, 색은 지정하지 않는다", () => {
+    const p = deep();
+    expect(p.core.size).toBe(28);
+    expect(p.core.fill).toBeUndefined();
   });
 });

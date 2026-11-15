@@ -1,11 +1,23 @@
 "use client";
 
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
-import type { MindmapEdge, MindmapNode } from "@/lib/types";
+import type { MindmapEdge, MindmapGroup, MindmapNode } from "@/lib/types";
 import { treeLayout } from "./treeLayout";
 
 const MIN_ZOOM = 0.4;
 const MAX_ZOOM = 2.5;
+/** 그룹별 노드 색 (기본) */
+const DEFAULT_COLORS: Record<MindmapGroup, string> = {
+  core: "#3D8B25",
+  city: "#5FCF3E",
+  logi: "#87D448",
+  sub: "#A6E26B",
+  meta: "#A6E26B",
+};
+
+/** anchorIds 노드가 처음 방향에서 자유롭게 움직일 수 있는 각도 (±25°) */
+const ANCHOR_FREE = (25 * Math.PI) / 180;
+
 const clampZoom = (k: number) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, k));
 
 interface SimNode extends MindmapNode {
@@ -29,6 +41,10 @@ export interface MindmapProps {
   hoveredId?: string | null;
   onHover?: (id: string | null) => void;
   showLabels?: boolean;
+  /** 처음 놓인 방향(캔버스 중심 기준 각도)으로 약하게 계속 당기는 노드 — 홈은 세션 노드. 마운트 시점 기준 */
+  anchorIds?: ReadonlySet<string>;
+  /** 캔버스 가운데 근처로 세게 당기는 노드 (홈은 내 탐색). 드래그는 그대로 되고 놓으면 돌아온다 */
+  centerId?: string;
   /** 필터에서 걸러진 노드 — 흐리게 표시 */
   dimmedIds?: ReadonlySet<string>;
   /** 검색어와 일치하는 노드 — 테두리 강조, 이웃 노드와 연결선까지 강조하고 나머지는 흐리게 */
@@ -56,6 +72,8 @@ export function Mindmap({
   hoveredId,
   onHover,
   showLabels = true,
+  anchorIds,
+  centerId,
   dimmedIds,
   matchIds,
   showHint = true,
@@ -85,6 +103,15 @@ export function Mindmap({
   dragRef.current = drag;
   // 위치는 내부 상태, 라벨은 항상 props 기준 (제목을 고치면 다시 마운트하지 않아도 반영)
   const labelById = new Map(initialNodes.map((n) => [n.id, n.label]));
+  // 방향을 붙잡을 노드의 처음 각도 (마운트 시점)
+  const anchorAngles = useRef<Map<string, number> | null>(null);
+  if (anchorAngles.current === null) {
+    anchorAngles.current = new Map(
+      initialNodes
+        .filter((n) => anchorIds?.has(n.id))
+        .map((n) => [n.id, Math.atan2(n.y - height / 2, n.x - width / 2)]),
+    );
+  }
 
   // Force simulation (lightweight) — 계층형은 시뮬레이션 없이 고정
   useEffect(() => {
@@ -98,6 +125,23 @@ export function Mindmap({
       const ns = nodesRef.current.map((n) => ({ ...n }));
 
       for (const n of ns) {
+        // center — 가운데 근처로 (다른 노드에 밀려도 크게 벗어나지 않게)
+        if (n.id === centerId) {
+          n.vx += (cx - n.x) * 0.05;
+          n.vy += (cy - n.y) * 0.05;
+        }
+        // anchor — 처음 방향에서 ANCHOR_FREE 안쪽은 자유, 그보다 벗어난 만큼만 약하게 되돌린다 (반지름은 자유)
+        const anchor = anchorAngles.current?.get(n.id);
+        if (anchor !== undefined) {
+          const ax = n.x - cx;
+          const ay = n.y - cy;
+          const r = Math.sqrt(ax * ax + ay * ay) + 0.01;
+          const turn = Math.atan2(Math.sin(anchor - Math.atan2(ay, ax)), Math.cos(anchor - Math.atan2(ay, ax)));
+          const over = Math.sign(turn) * Math.max(0, Math.abs(turn) - ANCHOR_FREE);
+          const f = over * r * 0.006;
+          n.vx += (-ay / r) * f;
+          n.vy += (ax / r) * f;
+        }
         // center gravity (weak)
         n.vx += (cx - n.x) * 0.0008 * alpha;
         n.vy += (cy - n.y) * 0.0008 * alpha;
@@ -297,8 +341,7 @@ export function Mindmap({
           const opacity = isDimmed(n.id) ? 0.25 : focused ? 1 : 0.35;
           const isCore = n.group === "core";
           const isCity = n.group === "city";
-          const isLogi = n.group === "logi";
-          const fill = isCore ? "#3D8B25" : isCity ? "#5FCF3E" : isLogi ? "#87D448" : "#A6E26B";
+          const fill = n.fill ?? DEFAULT_COLORS[n.group];
           const isActive = selectedId === n.id || hoveredId === n.id || isMatch(n.id);
           // 계층형은 행 간격이 좁아 루트 외 라벨을 노드 오른쪽에
           const labelRight = layout === "tree" && !isCore;
