@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderPersonal } from "@/test/render";
@@ -60,16 +60,45 @@ describe("설정 화면", () => {
       expect(screen.queryByText("외부 플랫폼")).not.toBeInTheDocument();
     });
 
-    it("처음엔 데이터 수집이 켜져 있고, 누른 메뉴로 강조와 내용이 바뀐다", async () => {
+    it("세 범주가 한 페이지에 모두 보이고, 누른 메뉴가 강조되며 그 범주로 스크롤한다 (QA-014)", async () => {
+      const scrolled: string[] = [];
+      const spy = vi
+        .spyOn(HTMLElement.prototype, "scrollIntoView")
+        .mockImplementation(function (this: HTMLElement) {
+          scrolled.push(this.id);
+        });
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       expect(screen.getByRole("button", { name: "데이터 수집" })).toHaveClass("navBtnOn");
+      expect(screen.getByRole("heading", { level: 2, name: "데이터 수집" })).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "수집 제외 URL" })).toBeInTheDocument();
+      expect(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" })).toBeInTheDocument();
+      expect(screen.getByText("연결된 계정")).toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
       expect(screen.getByRole("button", { name: "확장 프로그램" })).toHaveClass("navBtnOn");
+      expect(screen.getByRole("button", { name: "확장 프로그램" })).toHaveAttribute("aria-current", "true");
       expect(screen.getByRole("button", { name: "데이터 수집" })).not.toHaveClass("navBtnOn");
-      expect(screen.queryByRole("heading", { name: "수집 제외 URL" })).not.toBeInTheDocument();
-      expect(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" })).toBeInTheDocument();
+      expect(scrolled).toEqual(["settings-extension"]);
+      // 다른 범주도 그대로 보인다
+      expect(screen.getByRole("heading", { name: "수집 제외 URL" })).toBeInTheDocument();
+      spy.mockRestore();
+    });
+
+    it("누른 메뉴는 스크롤이 끝나도 유지되고, 사용자가 직접 스크롤하면 다시 위치로 고른다 (QA-020-1)", async () => {
+      const spy = vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      const page = screen.getByRole("navigation").closest<HTMLElement>(".page")!;
+      const ext = screen.getByRole("button", { name: "확장 프로그램" });
+
+      await user.click(ext);
+      // 짧은 페이지라 맨 아래에 닿아도 (jsdom 은 모든 범주 위치가 0) 누른 범주가 그대로다
+      fireEvent.scroll(page);
+      expect(ext).toHaveAttribute("aria-current", "true");
+
+      fireEvent.wheel(page);
+      fireEvent.scroll(page);
+      expect(ext).not.toHaveAttribute("aria-current");
+      spy.mockRestore();
     });
 
     it("회원 탈퇴 화면에서 계정 메뉴를 다시 누르면 계정 설정으로 돌아온다", async () => {
@@ -93,18 +122,18 @@ describe("설정 화면", () => {
   });
 
   describe("수집 제외 URL 목록", () => {
-    it("도메인별로 묶고, 켜진 항목이 있는 묶음이 위 · 묶음 안에서는 상위 도메인이 먼저 온다", () => {
+    it("도메인별로 묶고 알파벳 순으로 보인다 — 꺼짐 여부와 상관없이, 묶음 안에서는 상위 도메인이 먼저 (QA-029-3)", () => {
       renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       expect(shownUrls()).toEqual([
         "instagram.com",
         "mail.google.com",
-        "youtube.com/shorts",
+        "naver.com/blog",
         "tiktok.com",
         "tistory.com",
         "tistory.com/feed",
         "tistory.com/skin",
-        "naver.com/blog",
-        "twitter.com", // 꺼진 항목만 있는 묶음은 맨 아래
+        "twitter.com", // 꺼져 있어도 알파벳 자리에
+        "youtube.com/shorts",
       ]);
       // 2개 이상인 도메인만 머리글(도메인 + 개수)을 단다
       const heads = Array.from(document.querySelectorAll(".exGroupHead"));
@@ -122,8 +151,8 @@ describe("설정 화면", () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(within(row("twitter.com")).getByRole("checkbox"));
       expect(within(row("twitter.com")).getByRole("checkbox")).toBeChecked();
-      await user.click(within(row("instagram.com")).getByRole("checkbox"));
-      expect(within(row("instagram.com")).getByRole("checkbox")).not.toBeChecked();
+      await user.click(within(row("tistory.com")).getByRole("checkbox"));
+      expect(within(row("tistory.com")).getByRole("checkbox")).not.toBeChecked();
 
       await waitFor(() => expect(saved).toHaveLength(2));
       expect(saved).toContainEqual({
@@ -134,17 +163,35 @@ describe("설정 화면", () => {
       expect(saved).toContainEqual({
         method: "PATCH",
         path: "/settings/collection/excluded-urls/selections",
-        body: { excludedUrlIds: [1], isExcluded: false },
+        body: { excludedUrlIds: [8], isExcluded: false },
       });
+    });
+
+    it("켜진 기본 URL 은 체크를 해제할 수 없다 (QA-029-4)", async () => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      const box = within(row("instagram.com")).getByRole("checkbox");
+      expect(box).toBeDisabled();
+      await user.click(box);
+      expect(box).toBeChecked();
+      expect(saved).toEqual([]);
+    });
+
+    it("예전에 꺼 둔 기본 URL 은 다시 켤 수 있고, 켜면 그때부터 해제할 수 없다 (QA-029-4)", async () => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      const box = within(row("twitter.com")).getByRole("checkbox");
+      expect(box).toBeEnabled();
+      await user.click(box);
+      expect(box).toBeChecked();
+      expect(box).toBeDisabled();
     });
 
     it("체크 저장에 실패하면 원래 값으로 돌아가고 서버 문구를 토스트로 보여준다", async () => {
       server.use(http.patch(SELECTIONS, () => fail(404, "수집 제외 URL을 찾을 수 없습니다.")));
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
-      await user.click(within(row("instagram.com")).getByRole("checkbox"));
+      await user.click(within(row("tistory.com")).getByRole("checkbox"));
 
       expect(await screen.findByText("수집 제외 URL을 찾을 수 없습니다.")).toBeInTheDocument();
-      expect(within(row("instagram.com")).getByRole("checkbox")).toBeChecked();
+      expect(within(row("tistory.com")).getByRole("checkbox")).toBeChecked();
     });
 
     it("기본 항목은 '기본' 배지만 있고 삭제할 수 없다", () => {
@@ -229,6 +276,14 @@ describe("설정 화면", () => {
       expect(urlInput()).toHaveValue("");
     });
 
+    it("추가한 항목도 맨 아래가 아니라 알파벳 자리에 들어간다 (QA-029-3)", async () => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      await user.type(urlInput(), "aaa.com{Enter}");
+      await waitFor(() => expect(shownUrls()[0]).toBe("aaa.com"));
+      await user.type(urlInput(), "zzz.com{Enter}");
+      await waitFor(() => expect(shownUrls().at(-1)).toBe("zzz.com"));
+    });
+
     it("Enter 로도 추가된다", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.type(urlInput(), "example.org{Enter}");
@@ -262,12 +317,19 @@ describe("설정 화면", () => {
       expect(saved).toHaveLength(1);
     });
 
-    it("빈 입력으로 추가하면 아무 일도 없다", async () => {
+    it("입력한 게 없으면(공백만 포함) 추가 버튼이 꺼져 있고, 입력하면 켜진다 (QA-029-1)", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
-      await user.click(addBtn());
+      expect(addBtn()).toBeDisabled();
+      await user.type(urlInput(), "   ");
+      expect(addBtn()).toBeDisabled();
+      await user.type(urlInput(), "{Enter}");
       expect(shownUrls()).toHaveLength(EXCLUDED_URLS.length);
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
       expect(saved).toEqual([]);
+
+      await user.clear(urlInput());
+      await user.type(urlInput(), "example.org");
+      expect(addBtn()).toBeEnabled();
     });
 
     it("형식이 틀리면 '올바른 URL 형식이 아니에요.' 가 뜨고, 다시 입력하면 사라진다", async () => {
@@ -306,11 +368,18 @@ describe("설정 화면", () => {
   });
 
   describe("확장 프로그램", () => {
-    it("설정값이 없으면 세 토글이 모두 켜진 상태로 시작하고, 누르면 각각 꺼졌다 켜진다", async () => {
+    it("우클릭 컨텍스트 메뉴는 아직 구현 전이라 보이지 않는다 (QA-027)", async () => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
+      expect(screen.queryByRole("switch", { name: "우클릭 컨텍스트 메뉴" })).not.toBeInTheDocument();
+      expect(screen.getAllByRole("switch")).toHaveLength(2);
+    });
+
+    it("설정값이 없으면 두 토글이 모두 켜진 상태로 시작하고, 누르면 각각 꺼졌다 켜진다", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
 
-      for (const name of ["확장 프로그램 팝업 노출", "자동 종료 알림", "우클릭 컨텍스트 메뉴"]) {
+      for (const name of ["확장 프로그램 팝업 노출", "자동 종료 알림"]) {
         const sw = screen.getByRole("switch", { name });
         expect(sw).toHaveAttribute("aria-checked", "true");
         await user.click(sw);
@@ -327,7 +396,6 @@ describe("설정 화면", () => {
 
       expect(screen.getByRole("switch", { name: "자동 종료 알림" })).toHaveAttribute("aria-checked", "false");
       expect(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" })).toHaveAttribute("aria-checked", "true");
-      expect(screen.getByRole("switch", { name: "우클릭 컨텍스트 메뉴" })).toHaveAttribute("aria-checked", "true");
     });
 
     it("불러온 값으로 시작한다", async () => {
@@ -341,13 +409,11 @@ describe("설정 화면", () => {
 
       expect(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" })).toHaveAttribute("aria-checked", "false");
       expect(screen.getByRole("switch", { name: "자동 종료 알림" })).toHaveAttribute("aria-checked", "true");
-      expect(screen.getByRole("switch", { name: "우클릭 컨텍스트 메뉴" })).toHaveAttribute("aria-checked", "false");
     });
 
     it.each([
       ["확장 프로그램 팝업 노출", "popup-visible"],
       ["자동 종료 알림", "auto-end-notification"],
-      ["우클릭 컨텍스트 메뉴", "manual-scrap"],
     ])("%s 토글은 %s 경로로 저장한다", async (name, path) => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(screen.getByRole("button", { name: "확장 프로그램" }));

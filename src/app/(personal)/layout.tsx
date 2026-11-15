@@ -8,6 +8,7 @@ import { getMe, logout, SessionExpiredError, SOCIAL_PROVIDER_LABEL, type MemberR
 import { clearTokens, getAccessToken, getRefreshToken } from "@/lib/auth/tokens";
 import { consumeAuthToast, setAuthToast } from "@/lib/auth/toast";
 import { PersonalProvider } from "@/lib/app/PersonalContext";
+import { NavHistoryProvider } from "@/lib/app/NavHistoryContext";
 import { logoutExtension, syncExtension } from "@/lib/extension";
 import styles from "./layout.module.css";
 
@@ -75,11 +76,13 @@ export default function PersonalLayout({ children }: { children: React.ReactNode
 
   return (
     <PersonalProvider member={member} updateMember={setMember} logout={onLogout}>
-      <div className={styles.shell}>
-        <Sidebar />
-        <main className={styles.main}>{children}</main>
-        {toast && <AuthToast {...toast} />}
-      </div>
+      <NavHistoryProvider>
+        <div className={styles.shell}>
+          <Sidebar />
+          <main className={styles.main}>{children}</main>
+          {toast && <AuthToast {...toast} />}
+        </div>
+      </NavHistoryProvider>
     </PersonalProvider>
   );
 }

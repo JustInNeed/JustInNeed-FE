@@ -89,7 +89,7 @@ export const HOME_RESPONSE: HomeResponse = {
       n3: { seen: "month", tags: ["항공권"], sessionId: null },
       n4: { seen: "all", tags: ["로마", "콜로세움"], sessionId: 9001 },
     },
-    tagGroups: [{ id: 1, name: "유럽 여행", tags: ["로마", "파리"] }],
+    tagGroups: [{ id: 1, tags: ["로마", "파리"] }],
     filterTags: ["로마", "파리"],
   },
   stats: {

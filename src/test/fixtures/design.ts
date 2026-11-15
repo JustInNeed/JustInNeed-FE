@@ -114,9 +114,9 @@ export const MINDMAP_NODE_META: Record<string, { seen: Exclude<GraphPeriod, "all
   reddit: { seen: "month", tags: ["유럽여행"] },
 };
 
-export const GRAPH_TAG_GROUPS: { id: number; name: string; tags: string[] }[] = [
-  { id: 1, name: "유럽 여행 준비", tags: ["로마", "파리", "콜로세움", "항공권", "숙소"] },
-  { id: 2, name: "React 학습", tags: ["React", "TypeScript", "훅", "상태관리"] },
+export const GRAPH_TAG_GROUPS: { id: number; tags: string[] }[] = [
+  { id: 1, tags: ["로마", "파리", "콜로세움", "항공권", "숙소"] },
+  { id: 2, tags: ["React", "TypeScript", "훅", "상태관리"] },
 ];
 
 export const GRAPH_FILTER_TAGS = ["로마", "파리", "항공권", "예산", "바르셀로나", "프라하"];

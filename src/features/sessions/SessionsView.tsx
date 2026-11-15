@@ -26,6 +26,9 @@ import styles from "./SessionsView.module.css";
 type ViewMode = "list" | "group";
 
 const PAGE_SIZE = 10;
+/** 분석이 끝나지 않은 세션이 있으면 이 간격으로 첫 페이지를 다시 받아 상태를 맞춘다 (QA-015) */
+const POLL_MS = 5000;
+const PENDING_STATUSES: ReadonlySet<SessionListItem["status"]> = new Set(["READY", "ANALYZING"]);
 
 export function SessionsView() {
   const router = useRouter();
@@ -35,7 +38,6 @@ export function SessionsView() {
   // 목록 — GET /sessions?page&size&favorite 로 10개씩 받아 이어 붙임
   const [sessions, setSessions] = useState<SessionListItem[]>([]);
   const [hasNext, setHasNext] = useState(false);
-  const [counts, setCounts] = useState({ total: 0, favorite: 0 });
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -76,8 +78,6 @@ export function SessionsView() {
         nextPageRef.current = 1;
         setSessions(p.sessions);
         setHasNext(p.hasNext);
-        // 개수는 필터 · 페이지와 상관없는 내 전체 기준 — 이후엔 별 토글로만 맞춘다
-        setCounts({ total: p.totalCount, favorite: p.favoriteCount });
       })
       .catch((e) => {
         if (gen === genRef.current) setListError(e instanceof ApiError ? e.message : "알 수 없는 오류가 발생했습니다.");
@@ -91,6 +91,37 @@ export function SessionsView() {
       genRef.current += 1;
     };
   }, [favOnly, listReload]);
+
+  // 분석 대기 · 분석 중 세션이 보이면 5초마다 첫 페이지를 다시 받아 상태를 맞춘다 (QA-015).
+  // 이미 불러온 카드는 같은 id 끼리 새 값으로 바꾸고, 그사이 새로 생긴 세션은 맨 앞에 붙인다. 페이지 위치는 그대로 둔다.
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
+  const hasPending = sessions.some((s) => PENDING_STATUSES.has(s.status));
+  useEffect(() => {
+    if (!hasPending || listLoading) return;
+    const timer = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      const gen = genRef.current;
+      getSessions({ page: 0, size: PAGE_SIZE, favorite: favOnly })
+        .then((p) => {
+          if (gen !== genRef.current) return;
+          const cur = sessionsRef.current;
+          const fresh = new Map(p.sessions.map((s) => [s.id, s]));
+          const statusChanged = cur.some((s) => fresh.has(s.id) && fresh.get(s.id)!.status !== s.status);
+          const known = new Set(cur.map((s) => s.id));
+          const added = p.sessions.filter((s) => !known.has(s.id));
+          if (!statusChanged && added.length === 0) return;
+          setSessions((ss) => [...added, ...ss.map((s) => fresh.get(s.id) ?? s)]);
+          groupsQuery.refetch(); // 분석이 끝나 해시태그가 붙으면 그룹 보기도 바뀐다
+        })
+        .catch(() => {
+          /* 다음 주기에 다시 시도 */
+        });
+    }, POLL_MS);
+    return () => clearInterval(timer);
+    // groupsQuery.refetch 는 매 렌더 새 함수일 수 있어 의존성에서 뺀다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPending, listLoading, favOnly]);
 
   // 다음 페이지 — 불러오는 중이면 무시. 실패하면 토스트, 다시 스크롤하면 다시 요청
   const loadMore = () => {
@@ -141,16 +172,14 @@ export function SessionsView() {
     const shift = favOnly && sessions.some((s) => s.id === id) ? -delta : 0;
     const gen = genRef.current;
     setFavorite(id, next);
-    setCounts((c) => ({ ...c, favorite: c.favorite + delta }));
     shiftRef.current += shift;
     try {
       await updateSession(id, { isFavorite: next });
       groupsQuery.refetch(); // 그룹 뷰의 즐겨찾기 표시 동기화
     } catch (e) {
       setFavorite(id, !next);
-      // 그사이 목록을 다시 받았으면 개수 · 당김은 이미 새로 맞춰져 있다
+      // 그사이 목록을 다시 받았으면 당김은 이미 새로 맞춰져 있다
       if (gen === genRef.current) {
-        setCounts((c) => ({ ...c, favorite: c.favorite - delta }));
         shiftRef.current -= shift;
       }
       toast.error(e instanceof ApiError ? e.message : "즐겨찾기 변경에 실패했습니다. 다시 시도해 주세요.");
@@ -179,9 +208,8 @@ export function SessionsView() {
         const updated = await updateTagGroup(payload.id, { hashtags: payload.hashtags });
         setGroups((gs) => gs.map((g) => (g.id === updated.id ? updated : g)));
       } else {
-        // 백엔드 name은 필수(notnull) → 화면엔 없으므로 해시태그로 자동 생성
-        const name = payload.hashtags.slice(0, 3).join(", ") || "새 그룹";
-        const created = await createTagGroup({ name, hashtags: payload.hashtags });
+        // 그룹 이름은 쓰지 않는다 (선택 값, QA-011). 그룹은 해시태그로 보여 준다
+        const created = await createTagGroup({ hashtags: payload.hashtags });
         setGroups((gs) => [...gs, created].sort((a, b) => a.position - b.position));
       }
       setCreating(false);
@@ -234,7 +262,6 @@ export function SessionsView() {
     <div className={styles.page}>
       <PageHeader
         title="세션 목록"
-        subtitle={`전체 ${counts.total}개 세션 · ${counts.favorite}개 즐겨찾기 · ${groups.length}개 그룹`}
         right={
           <div className={styles.toolbar}>
             <Button

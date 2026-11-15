@@ -1,7 +1,7 @@
 // 홈 마인드맵 주변 상호작용 — 필터 팝오버 · 검색 · 노드 선택 팝오버.
 // 마인드맵은 실제 컴포넌트를 쓰되 포스 시뮬레이션(rAF)만 멈춰서 노드를 초기 좌표에 고정한다.
 // 노드 흐림 여부는 Mindmap 이 노드 <g> 에 거는 투명도(흐림 0.25 · 보통 1)로 확인한다.
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HOME_DATA } from "@/test/fixtures/home";
 import { renderPersonal } from "@/test/render";
@@ -19,7 +19,8 @@ const DIMMED = { opacity: "0.25" };
 const NORMAL = { opacity: "1" };
 const filterButton = () => screen.getByRole("button", { name: "필터" });
 const filterDialog = () => screen.getByRole("dialog", { name: "그래프 필터" });
-const popover = () => screen.getByText("선택됨").parentElement!;
+const sessionButton = () => screen.queryByRole("button", { name: "관련 세션 보기" });
+const popover = () => sessionButton()!.parentElement!;
 
 describe("그래프 줌", () => {
   const zoomOf = () => /scale\(([\d.]+)\)/.exec(node("파리").parentElement!.getAttribute("transform")!)![1];
@@ -34,6 +35,33 @@ describe("그래프 줌", () => {
     await user.click(screen.getByRole("button", { name: "축소" }));
     await user.click(screen.getByRole("button", { name: "축소" }));
     expect(Number(zoomOf())).toBeCloseTo(1.1 / 1.2);
+  });
+
+  describe("휠 (QA-008)", () => {
+    // 노드가 그려진 영역(<g>)을 화면 x 300 ~ 700 에 있다고 둔다
+    const placeGraph = () => {
+      const graph = node("파리").parentElement!;
+      vi.spyOn(graph, "getBoundingClientRect").mockReturnValue(
+        { left: 300, right: 700, top: 0, bottom: 500, width: 400, height: 500, x: 300, y: 0, toJSON: () => ({}) } as DOMRect,
+      );
+      return (graph as unknown as SVGGElement).ownerSVGElement!;
+    };
+
+    it("노드가 그려진 가로 범위 안에서 휠을 굴리면 확대 · 축소한다", () => {
+      setup();
+      const svg = placeGraph();
+      const notCancelled = fireEvent.wheel(svg, { deltaY: 300, clientX: 500, clientY: 200 });
+      expect(notCancelled).toBe(false);
+      expect(Number(zoomOf())).toBeLessThan(1.1);
+    });
+
+    it("그 밖의 좌우 여백에서는 확대 · 축소하지 않고 페이지 스크롤을 막지 않는다", () => {
+      setup();
+      const svg = placeGraph();
+      expect(fireEvent.wheel(svg, { deltaY: 300, clientX: 100, clientY: 200 })).toBe(true);
+      expect(fireEvent.wheel(svg, { deltaY: 300, clientX: 900, clientY: 200 })).toBe(true);
+      expect(Number(zoomOf())).toBeCloseTo(1.1);
+    });
   });
 
   it("버튼을 계속 눌러도 배율이 2.5 를 넘지 않는다", async () => {
@@ -57,8 +85,11 @@ describe("그래프 필터", () => {
       "전체",
     ]);
     expect(within(dialog).getByRole("radio", { name: "전체" })).toBeChecked();
-    expect(within(dialog).getByRole("checkbox", { name: "유럽 여행 준비 노드 15" })).not.toBeChecked();
-    expect(within(dialog).getByRole("checkbox", { name: "React 학습 노드 0" })).toBeInTheDocument();
+    // 그룹은 이름이 아니라 해시태그로 보인다 — 앞 3개 + "+N" (QA-011)
+    const europe = within(dialog).getByRole("checkbox", { name: "해시태그 그룹 #로마, #파리, #콜로세움, #항공권, #숙소" });
+    expect(europe).not.toBeChecked();
+    expect(europe.parentElement).toHaveTextContent(/^#로마#파리#콜로세움\+2$/);
+    expect(within(dialog).getByRole("checkbox", { name: "해시태그 그룹 #React, #TypeScript, #훅, #상태관리" })).toBeInTheDocument();
     expect(within(dialog).getAllByRole("button", { pressed: false }).map((b) => b.textContent)).toEqual([
       "#로마",
       "#파리",
@@ -103,7 +134,7 @@ describe("그래프 필터", () => {
   it("해시태그 그룹을 고르면 그룹 태그가 붙은 노드만 남는다", async () => {
     const { user } = setup();
     await user.click(filterButton());
-    await user.click(within(filterDialog()).getByRole("checkbox", { name: /유럽 여행 준비/ }));
+    await user.click(within(filterDialog()).getByRole("checkbox", { name: /#로마, #파리, #콜로세움/ }));
     await user.click(within(filterDialog()).getByRole("button", { name: "적용" }));
 
     ["로마", "콜로세움", "파리", "비자/입국", "여행블로그"].forEach((l) => expect(node(l)).toHaveStyle(NORMAL));
@@ -115,7 +146,7 @@ describe("그래프 필터", () => {
     await user.click(filterButton());
     const dialog = filterDialog();
     await user.click(within(dialog).getByRole("radio", { name: "이번 주" }));
-    await user.click(within(dialog).getByRole("checkbox", { name: /유럽 여행 준비/ }));
+    await user.click(within(dialog).getByRole("checkbox", { name: /#로마, #파리, #콜로세움/ }));
     await user.click(within(dialog).getByRole("button", { name: "#로마" }));
     await user.click(within(dialog).getByRole("button", { name: "#파리" }));
     expect(within(dialog).getByText("3개 적용")).toBeInTheDocument();
@@ -222,6 +253,24 @@ describe("그래프 검색", () => {
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9002");
   });
 
+  it("세션 결과에 마우스를 올리거나 ↓ 로 고르면 그 세션 화면을 미리 받아 둔다 (QA-009)", async () => {
+    const { user } = setup();
+    await openSearch(user, "로마");
+    await user.hover(screen.getByRole("option", { name: /유럽 항공권 비교/ }));
+    expect(mockRouter.prefetch).toHaveBeenCalledWith("/sessions/9002");
+    await user.keyboard("{ArrowUp}{ArrowUp}");
+    expect(mockRouter.prefetch).toHaveBeenCalledWith("/sessions/9001");
+    // 노드 결과는 미리 받을 화면이 없다
+    expect(mockRouter.prefetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("세션 결과를 한 번 누르면 이동을 한 번만 요청한다 (QA-009)", async () => {
+    const { user } = setup();
+    await openSearch(user, "로마");
+    await user.click(screen.getByRole("option", { name: /유럽 항공권 비교/ }));
+    expect(mockRouter.push).toHaveBeenCalledTimes(1);
+  });
+
   it("노드 결과를 고르면 검색이 닫히고 그 노드가 선택된다", async () => {
     const { user } = setup();
     await openSearch(user, "로마");
@@ -267,13 +316,12 @@ describe("그래프 검색", () => {
 });
 
 describe("노드 선택 팝오버", () => {
-  it("노드를 누르면 연결된 노드 수와 출처 수, '관련 세션 보기'가 보인다", async () => {
+  it("노드를 누르면 제목과 '관련 세션 보기' 화살표 버튼만 보인다 ('선택됨' · 연결 수 문구 없음, QA-007)", async () => {
     const { user } = setup();
     await user.click(node("로마"));
     const pop = popover();
     expect(within(pop).getByText("로마")).toBeInTheDocument();
-    // 로마 연결 6개, 가장 잘 맞는 세션 9001 페이지 18개
-    expect(within(pop).getByText("연결된 노드 6개 · 출처 18개")).toBeInTheDocument();
+    expect(pop).toHaveTextContent(/^로마$/);
     expect(within(pop).getByRole("button", { name: "관련 세션 보기" })).toBeInTheDocument();
   });
 
@@ -284,10 +332,9 @@ describe("노드 선택 팝오버", () => {
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9007");
   });
 
-  it("맞는 세션이 없는 노드는 출처 수 없이 보이고, '관련 세션 보기'는 세션 목록으로 이동한다", async () => {
+  it("맞는 세션이 없는 노드의 '관련 세션 보기'는 세션 목록으로 이동한다", async () => {
     const { user } = setup();
     await user.click(node("짐싸기"));
-    expect(within(popover()).getByText("연결된 노드 1개")).toBeInTheDocument();
     await user.click(within(popover()).getByRole("button", { name: "관련 세션 보기" }));
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions");
   });
@@ -297,7 +344,21 @@ describe("노드 선택 팝오버", () => {
     await user.hover(node("파리"));
     expect(within(popover()).getByText("파리")).toBeInTheDocument();
     await user.unhover(node("파리"));
-    expect(screen.queryByText("선택됨")).not.toBeInTheDocument();
+    expect(sessionButton()).not.toBeInTheDocument();
+  });
+
+  it("선택한 노드를 다시 누르면 마우스가 그 노드 위에 있어도 팝업과 강조가 바로 사라진다 (QA-008)", async () => {
+    const { user } = setup();
+    await user.click(node("로마"));
+    expect(sessionButton()).toBeInTheDocument();
+    await user.click(node("로마"));
+    expect(sessionButton()).not.toBeInTheDocument();
+    expect(node("파리")).toHaveStyle(NORMAL); // 강조가 풀려 다른 노드도 보통 투명도
+
+    // 나갔다가 다시 올리면 호버 팝업은 다시 뜬다
+    await user.unhover(node("로마"));
+    await user.hover(node("로마"));
+    expect(sessionButton()).toBeInTheDocument();
   });
 
   it("선택한 노드를 다시 누르면 선택이 풀린다", async () => {
@@ -305,6 +366,6 @@ describe("노드 선택 팝오버", () => {
     await user.click(node("로마"));
     await user.click(node("로마"));
     await user.unhover(node("로마"));
-    expect(screen.queryByText("선택됨")).not.toBeInTheDocument();
+    expect(sessionButton()).not.toBeInTheDocument();
   });
 });

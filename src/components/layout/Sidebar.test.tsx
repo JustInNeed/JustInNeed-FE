@@ -158,4 +158,46 @@ describe("사이드바", () => {
       expect(within(card()).getByText("대기 중")).toBeInTheDocument();
     });
   });
+  describe("좁은 화면 서랍 메뉴 (QA-003)", () => {
+    const aside = () => document.getElementById("app-sidebar")!;
+    // 테스트 환경은 데스크톱 너비라 상단 바·닫기 버튼이 CSS 로 숨겨져 있다 → hidden 요소도 찾는다. 너비별 표시는 브라우저 촬영으로 확인
+    const menuBtn = () => screen.getByRole("button", { name: "메뉴 열기", hidden: true });
+
+    it("처음엔 닫혀 있고, 메뉴 버튼을 누르면 열린다", async () => {
+      const { user } = renderPersonal(<Sidebar />);
+      expect(aside()).not.toHaveClass("asideOpen");
+      expect(menuBtn()).toHaveAttribute("aria-expanded", "false");
+
+      await user.click(menuBtn());
+      expect(aside()).toHaveClass("asideOpen");
+      expect(menuBtn()).toHaveAttribute("aria-expanded", "true");
+    });
+
+    it("✕ 버튼, 바깥 영역, Esc 로 닫힌다", async () => {
+      const { user } = renderPersonal(<Sidebar />);
+
+      await user.click(menuBtn());
+      await user.click(screen.getByLabelText("메뉴 닫기"));
+      expect(aside()).not.toHaveClass("asideOpen");
+
+      await user.click(menuBtn());
+      await user.click(document.querySelector(".scrim")!);
+      expect(aside()).not.toHaveClass("asideOpen");
+
+      await user.click(menuBtn());
+      await user.keyboard("{Escape}");
+      expect(aside()).not.toHaveClass("asideOpen");
+    });
+
+    it("다른 화면으로 이동하면 닫힌다", async () => {
+      setMockPathname("/home");
+      const { user, rerender } = renderPersonal(<Sidebar />);
+      await user.click(menuBtn());
+      expect(aside()).toHaveClass("asideOpen");
+
+      setMockPathname("/settings");
+      rerender(<Sidebar />);
+      expect(aside()).not.toHaveClass("asideOpen");
+    });
+  });
 });

@@ -239,13 +239,13 @@
 }
 .mapGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: 14px;
   padding-bottom: 28px;
 }
 .sessionGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 14px;
   padding-bottom: 28px;
 }
@@ -346,10 +346,6 @@
 .addRow {
   display: flex;
   gap: 8px;
-}
-/* 10/10 이면 추가 버튼 비활성 */
-.addBtn:disabled {
-  opacity: 0.45;
 }
 .tagPublicRow {
   padding: 10px 0;

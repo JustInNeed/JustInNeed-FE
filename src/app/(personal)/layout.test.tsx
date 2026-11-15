@@ -225,13 +225,15 @@ describe("개인 영역 레이아웃", () => {
     );
     const { user } = renderApp(
       <PersonalLayout>
-        <AccountSection onWithdraw={vi.fn()} />
+        <AccountSection onWithdraw={vi.fn()} checkNickname={vi.fn().mockResolvedValue(true)} />
       </PersonalLayout>,
     );
     const input = await screen.findByRole("textbox");
     await user.clear(input);
     await user.type(input, "newnick");
-    await user.click(screen.getByRole("button", { name: "저장" }));
+    // 중복 확인을 통과하면 같은 버튼이 "저장" 으로 바뀐다 (QA-028)
+    await user.click(screen.getByRole("button", { name: "중복 확인" }));
+    await user.click(await screen.findByRole("button", { name: "저장" }));
 
     await vi.waitFor(() => expect(screen.getByRole("complementary")).toHaveTextContent("newnick"));
     expect(screen.getByRole("complementary")).not.toHaveTextContent("yesong");

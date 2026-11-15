@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Card, Button, HashChip, Markdown, InlineState } from "@/components/ui";
+import { Icon, Card, Button, HashChip, Markdown, InlineState, BackLink } from "@/components/ui";
+import { useNavRoot } from "@/lib/app/NavHistoryContext";
 import { Mindmap } from "@/components/mindmap/Mindmap";
 import {
   ApiError,
@@ -16,7 +17,7 @@ import {
 } from "@/lib/api";
 import { useApi } from "@/lib/hooks/useApi";
 import { useToast } from "@/lib/app/ToastContext";
-import { formatDateTime, formatDuration, formatTime, hostFromUrl, savedAgo, STATUS_LABEL, withHash } from "@/lib/format";
+import { formatDateTime, formatDuration, formatTime, hostFromUrl, STATUS_LABEL, withHash } from "@/lib/format";
 import { MAP_HEIGHT, MAP_WIDTH, buildSessionMindmap } from "./buildSessionMindmap";
 import { CitationPopup } from "./CitationPopup";
 import { SessionEditor } from "./SessionEditor";
@@ -26,9 +27,12 @@ import { LeaveConfirmModal } from "./LeaveConfirmModal";
 import styles from "./SessionDetail.module.css";
 
 const AUTO_SAVE_MS = 30_000;
+/** 자동 저장 주기 문구 — 주기를 바꾸면 단위도 따라간다 (30초 → "30초", 60초 → "1분") */
+const AUTO_SAVE_EVERY = AUTO_SAVE_MS % 60_000 === 0 ? `${AUTO_SAVE_MS / 60_000}분` : `${AUTO_SAVE_MS / 1000}초`;
 
-type AutoSaveState = { status: "idle" | "saving" | "saved"; at: number | null };
-type LeaveTarget = { kind: "cancel" } | { kind: "list" } | { kind: "href"; href: string };
+/** 마지막 자동 저장 결과 — 저장 요청 중에는 바꾸지 않는다 */
+type AutoSaveResult = "none" | "saved" | "failed";
+type LeaveTarget = { kind: "cancel" } | { kind: "back"; go: () => void } | { kind: "href"; href: string };
 type MapLayout = "radial" | "tree";
 
 const MAP_LAYOUTS: [MapLayout, string][] = [
@@ -53,6 +57,7 @@ export interface SessionDetailProps {
 
 export function SessionDetail({ sessionId }: SessionDetailProps) {
   const router = useRouter();
+  const navRoot = useNavRoot();
   const toast = useToast();
   // 주소의 id 가 양의 정수가 아니면 요청 없이 404
   const validId = Number.isInteger(sessionId) && sessionId > 0;
@@ -86,10 +91,22 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
 
   // 30초 자동 저장 — 변경이 있을 때만 저장. 저장 / 취소 버튼 옆 회색 상태 문구, 실패는 토스트로만
   const [baseline, setBaseline] = useState("");
-  const [autoSave, setAutoSave] = useState<AutoSaveState>({ status: "idle", at: null });
-  const [now, setNow] = useState(() => Date.now());
+  const [autoSave, setAutoSave] = useState<AutoSaveResult>("none");
   const savingRef = useRef(false);
   const autoSaveTick = useRef<() => void>(() => {});
+
+  // 자동 저장은 커뮤니티 카드 동기화를 미룬다 (QA-030). 편집을 "저장" 없이 끝내면(취소 · 다른 화면 · 탭 닫기)
+  // 자동 저장된 내용으로 카드를 한 번 맞춘다. 마지막으로 자동 저장한 내용, 이미 맞췄으면 null
+  const pendingCardSync = useRef<{ title: string; editedMarkdown: string } | null>(null);
+  const flushCardSync = useRef<() => void>(() => {});
+  useEffect(() => {
+    const flush = () => flushCardSync.current();
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush(); // 앱 안에서 다른 화면으로 나갈 때 (브라우저 뒤로 가기 포함)
+    };
+  }, []);
 
   // 저장 안 하고 나가기 경고
   const [leaveTarget, setLeaveTarget] = useState<LeaveTarget | null>(null);
@@ -108,13 +125,6 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     const t = setInterval(() => autoSaveTick.current(), AUTO_SAVE_MS);
     return () => clearInterval(t);
   }, [editing]);
-
-  // "저장됨 · N분 전" 갱신
-  useEffect(() => {
-    if (autoSave.status !== "saved") return;
-    const t = setInterval(() => setNow(Date.now()), 20_000);
-    return () => clearInterval(t);
-  }, [autoSave.status]);
 
   // 새로고침 · 탭 닫기 → 브라우저 기본 확인창
   useEffect(() => {
@@ -169,7 +179,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
             <InlineState kind="empty" title="볼 수 없는 세션이에요" description="비공개 세션이라 볼 수 없어요." />
           )}
         </div>
-        <Button variant="secondary" onClick={() => router.push("/sessions")}>
+        <Button variant="secondary" onClick={() => navRoot("/sessions")}>
           세션 목록으로
         </Button>
       </div>
@@ -180,7 +190,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     return (
       <div className={styles.state}>
         <p className={styles.stateError}>{error}</p>
-        <Button variant="secondary" onClick={() => router.push("/sessions")}>
+        <Button variant="secondary" onClick={() => navRoot("/sessions")}>
           세션 목록으로
         </Button>
       </div>
@@ -192,7 +202,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     if (!confirm("이 세션을 삭제할까요?")) return;
     try {
       await deleteSession(detail.id);
-      router.push("/sessions");
+      navRoot("/sessions");
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "삭제에 실패했습니다. 다시 시도해 주세요.");
     }
@@ -221,6 +231,8 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     try {
       const updated = await updateSession(detail.id, body);
       setDetail(updated);
+      // 즐겨찾기 말고 다른 필드를 바꾼 저장은 BE 가 카드를 맞춘다
+      if (Object.keys(body).some((k) => k !== "isFavorite")) pendingCardSync.current = null;
       return true;
     } catch (e) {
       setDetail(prev);
@@ -258,27 +270,27 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     setDraftTitle(title);
     setDraftMarkdown(markdown);
     setBaseline(JSON.stringify([title, markdown]));
-    setAutoSave({ status: "idle", at: null });
+    setAutoSave("none");
     setView("text");
     setEditing(true);
   };
 
-  // 편집 모드는 유지한 채 초안만 저장 (자동 저장 · 저장하고 나가기)
-  const saveDraft = async (failMessage: string): Promise<boolean> => {
+  // 편집 모드는 유지한 채 초안만 저장 (자동 저장 · 저장하고 나가기).
+  // 자동 저장(draft)은 카드 동기화를 미루고, 저장하고 나가기는 바로 맞춘다 (QA-030)
+  const saveDraft = async (failMessage: string, draft: boolean): Promise<boolean> => {
     if (savingRef.current) return false;
     savingRef.current = true;
     const key = draftKey;
-    setAutoSave((s) => ({ ...s, status: "saving" }));
+    const body = { title: draftTitle, editedMarkdown: draftMarkdown };
     try {
-      const updated = await updateSession(detail.id, { title: draftTitle, editedMarkdown: draftMarkdown });
+      const updated = await updateSession(detail.id, draft ? { ...body, draft: true } : body);
+      pendingCardSync.current = draft ? body : null;
       setDetail(updated);
       setBaseline(key);
-      const t = Date.now();
-      setNow(t);
-      setAutoSave({ status: "saved", at: t });
+      setAutoSave("saved");
       return true;
     } catch {
-      setAutoSave((s) => ({ ...s, status: s.at ? "saved" : "idle" }));
+      setAutoSave("failed");
       toast.info(failMessage, { icon: "exclaim" });
       return false;
     } finally {
@@ -286,20 +298,28 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     }
   };
   autoSaveTick.current = () => {
-    if (dirty) void saveDraft("자동 저장에 실패했어요. 저장 버튼을 눌러 저장해 주세요.");
+    if (dirty) void saveDraft("자동 저장에 실패했어요. 저장 버튼을 눌러 저장해 주세요.", true);
+  };
+  flushCardSync.current = () => {
+    const body = pendingCardSync.current;
+    if (!body) return;
+    pendingCardSync.current = null;
+    // 화면이 사라진 뒤에도 끝나도록 keepalive. 실패해도 다음 편집 · 저장 때 다시 맞춰진다
+    updateSession(detail.id, body, { keepalive: true }).catch(() => {});
   };
 
   const proceedLeave = (target: LeaveTarget) => {
     setLeaveTarget(null);
     setEditing(false);
-    if (target.kind === "list") router.push("/sessions");
+    flushCardSync.current();
+    if (target.kind === "back") target.go();
     else if (target.kind === "href") router.push(target.href);
   };
   const requestLeave = (target: LeaveTarget) => (dirty ? setLeaveTarget(target) : proceedLeave(target));
   const saveAndLeave = async () => {
     if (!leaveTarget) return;
     setLeaving(true);
-    const ok = await saveDraft("저장에 실패했어요. 다시 시도해 주세요.");
+    const ok = await saveDraft("저장에 실패했어요. 다시 시도해 주세요.", false);
     setLeaving(false);
     if (ok) proceedLeave(leaveTarget);
   };
@@ -351,9 +371,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <button onClick={() => requestLeave({ kind: "list" })} className={styles.back}>
-          ← 세션 목록
-        </button>
+        <BackLink fallback="/sessions" onNavigate={(go) => requestLeave({ kind: "back", go })} />
         <div className={styles.headerRow}>
           <div className={styles.headerMain}>
             <div className={styles.titleRow}>
@@ -398,7 +416,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
               </span>
               <span>·</span>
               <span className={styles.metaDone}>
-                <Icon name="dot" size={10} /> {STATUS_LABEL[detail.status]}
+                {STATUS_LABEL[detail.status]}
               </span>
             </div>
 
@@ -471,14 +489,14 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
             <div className={styles.actions}>
               {editing ? (
                 <>
-                  {autoSave.status !== "idle" && (
-                    <span className={styles.autoSave} role="status">
-                      <Icon name={autoSave.status === "saving" ? "refresh" : "check"} size={13} stroke={2.2} />
-                      {autoSave.status === "saving" || autoSave.at === null
-                        ? "저장 중…"
-                        : `저장됨 · ${savedAgo(autoSave.at, now)}`}
-                    </span>
-                  )}
+                  {/* 편집을 시작할 때부터 자리를 차지해 버튼이 밀리지 않게 한다 (QA-024-2) */}
+                  <span className={styles.autoSave} role="status">
+                    {autoSave === "failed"
+                      ? "저장 실패"
+                      : autoSave === "saved" && !dirty
+                        ? "저장 완료"
+                        : `${AUTO_SAVE_EVERY} 단위 자동저장`}
+                  </span>
                   <Button variant="secondary" onClick={() => requestLeave({ kind: "cancel" })}>
                     취소
                   </Button>
@@ -608,6 +626,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   height={MAP_HEIGHT}
                   selectedId={selectedNode}
                   onSelect={(id) => setSelectedNode((cur) => (id === cur ? null : id))}
+                  showHint={false}
                 />
                 {selectedNode && (
                   <CitationPopup

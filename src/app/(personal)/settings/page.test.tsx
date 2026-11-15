@@ -21,7 +21,8 @@ describe("설정 페이지", () => {
 
   it("수집 제외 URL 을 불러와 체크 상태 · 기본 배지와 함께 보여준다", async () => {
     renderPersonal(<SettingsPage />);
-    expect(screen.getByText("불러오는 중…")).toBeInTheDocument();
+    // 수집 제외 URL · 확장 프로그램 범주가 한 페이지에 같이 있어 둘 다 불러오는 중이다 (QA-014)
+    expect(within(screen.getByRole("region", { name: "데이터 수집" })).getByText("불러오는 중…")).toBeInTheDocument();
 
     const twitter = (await screen.findByText("twitter.com", { selector: ".exUrl" })).closest("label") as HTMLElement;
     expect(within(twitter).getByRole("checkbox")).not.toBeChecked();

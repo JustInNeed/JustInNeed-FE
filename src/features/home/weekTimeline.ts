@@ -1,4 +1,5 @@
 // 홈 "이번 주" 탐색 타임라인 — 최근 7일(오늘 포함)을 날짜별로 묶어 대표 해시태그 · 사이트를 뽑는다.
+// - 순서: 오늘이 맨 앞, 뒤로 갈수록 과거 (QA-006)
 // - 대표 해시태그: 그날 세션 중 등장한 세션 수가 많은 순, 같으면 더 최근 세션의 태그 우선
 // - 대표 사이트: 그날 방문 도메인 중 방문 횟수가 많은 순, 같으면 체류 시간 합이 긴 쪽 우선
 import type { TimelineSite, WeekSession } from "@/lib/viewTypes";
@@ -17,7 +18,7 @@ export interface WeekTimelineDay {
 
 export function buildWeekTimeline(sessions: WeekSession[], today = new Date()): WeekTimelineDay[] {
   const days: WeekTimelineDay[] = [];
-  for (let offset = -6; offset <= 0; offset++) {
+  for (let offset = 0; offset >= -6; offset--) {
     const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset);
     const daySessions = sessions.filter((s) => s.dayOffset === offset);
     days.push({

@@ -153,8 +153,9 @@ export const api = {
   /** 로그인 전 공개 POST — 저장된 토큰이 있어도 Authorization 을 붙이지 않고, 401 이어도 refresh 하지 않는다 */
   publicPost: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "POST", body: JSON.stringify(body) }, { auth: false }),
-  patch: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
+  /** init — 탭을 닫는 중에도 요청을 끝내야 할 때 `{ keepalive: true }` */
+  patch: <T>(path: string, body: unknown, init?: RequestInit) =>
+    request<T>(path, { ...init, method: "PATCH", body: JSON.stringify(body) }),
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
   del: <T>(path: string, body?: unknown) =>

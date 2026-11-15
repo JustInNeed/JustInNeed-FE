@@ -1,3 +1,10 @@
+/* 입력칸이 카드 높이를 채운다 — 아래가 비지 않게 (QA-019) */
+.card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .eyebrow {
   font-size: 11px;
   color: var(--ink-500);
@@ -9,6 +16,7 @@
 
 .summary {
   width: 100%;
+  flex: 1;
   margin: 0 0 8px;
   padding: 12px 14px;
   min-height: 240px;
@@ -20,7 +28,7 @@
   border-radius: 8px;
   background: var(--surface);
   outline: none;
-  resize: vertical;
+  resize: none;
   box-sizing: border-box;
 }
 .summary:focus {
@@ -28,6 +36,7 @@
 }
 
 .tip {
+  flex: none;
   font-size: 11px;
   color: var(--ink-400);
 }

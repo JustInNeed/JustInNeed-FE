@@ -8,7 +8,7 @@ import { MEMBER, NEW_MEMBER } from "@/test/fixtures/member";
 import { consumeAuthToast, setAuthToast } from "@/lib/auth/toast";
 import NicknameOnboardingPage from "./page";
 
-const input = () => screen.getByPlaceholderText("영문 3-8자");
+const input = () => screen.getByPlaceholderText("영문 3-16자");
 const nextBtn = () => screen.getByRole("button", { name: /다음|처리 중/ });
 
 /** 가입 중인 회원(닉네임 없음)으로 들어와 닉네임 단계가 뜰 때까지 기다린다 */

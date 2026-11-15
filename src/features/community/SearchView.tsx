@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Icon, Button, InlineState } from "@/components/ui";
+import { Icon, Button, InlineState, PageHeader } from "@/components/ui";
 import { MindmapPreview } from "@/components/mindmap/MindmapPreview";
 import { profilePath } from "./CommunityView";
 import type { FeedPost, SearchedProfile } from "./toCommunityData";
@@ -30,6 +30,7 @@ export function SearchView({ input, onInputChange, q, mindmaps, profiles }: Sear
 
   return (
     <div className={styles.page}>
+      <PageHeader title="검색" />
       <div className={styles.searchPageHead}>
         <div className={styles.searchBoxPlain}>
           <span className={styles.searchIcon}><Icon name="search" size={16} /></span>

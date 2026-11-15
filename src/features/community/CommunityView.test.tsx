@@ -579,6 +579,34 @@ describe("CommunityView — 상세 팝업", () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
+  it("카드는 Tab 으로 포커스되고 Enter · Space 로 팝업을 연다 (QA-017-1)", async () => {
+    server.use(http.get(SESSIONS_URL, () => ok(CARD_SESSIONS)));
+    const { user } = renderCommunity();
+    const card = feedCard(CONTENT_TITLE, region(INTEREST));
+    expect(card).toHaveAttribute("tabindex", "0");
+
+    card.focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("dialog", { name: CONTENT_TITLE })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    card.focus();
+    await user.keyboard(" ");
+    expect(screen.getByRole("dialog", { name: CONTENT_TITLE })).toBeInTheDocument();
+  });
+
+  it("카드 안 버튼에서 Enter 를 누르면 그 버튼만 동작하고 팝업은 열리지 않는다", async () => {
+    const bodies = onPatch("/community/mindmaps/12/exploring", () => ok({ exploringCount: 14, exploringByMe: true }));
+    const { user } = renderCommunity();
+    const exploring = button(feedCard(CONTENT_TITLE, region(INTEREST)), "나도 탐색중");
+    exploring.focus();
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(exploring).toHaveAttribute("aria-pressed", "true"));
+    expect(bodies).toEqual([{ exploring: true }]);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
   it("URL 만 공개한 세션은 제목 대신 안내 문구를 보여준다", async () => {
     server.use(http.get(SESSIONS_URL, () => ok(CARD_SESSIONS)));
     const { user } = renderCommunity();

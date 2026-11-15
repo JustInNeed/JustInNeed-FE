@@ -21,6 +21,11 @@
 .primary:hover:not(:disabled) {
   background: var(--green-600);
 }
+/* 누를 수 없을 때는 회색으로 (디자인 원본의 비활성 버튼과 같은 색) */
+.primary:disabled {
+  background: var(--ink-300);
+  color: var(--ink-500);
+}
 
 /* secondary — outlined surface */
 .secondary {

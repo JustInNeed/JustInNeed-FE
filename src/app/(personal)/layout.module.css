@@ -10,3 +10,15 @@
   overflow: hidden;
   position: relative;
 }
+
+/* 1024px 미만: 사이드바 대신 상단 바(52px)가 위에 오고 본문이 남은 높이를 쓴다 (QA-003) */
+@media (max-width: 1023.98px) {
+  .shell {
+    flex-direction: column;
+  }
+  .main {
+    flex: none;
+    height: calc(100vh - 52px);
+    height: calc(100dvh - 52px);
+  }
+}

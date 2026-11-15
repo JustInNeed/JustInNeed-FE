@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, Card, PageHeader, StatCard, HashChip, InlineState } from "@/components/ui";
 import { Mindmap, type MindmapHandle } from "@/components/mindmap/Mindmap";
@@ -23,7 +23,7 @@ export interface HomeViewProps {
 export function HomeView({ data, loading = false, error = null, onRetry }: HomeViewProps) {
   return (
     <div className={styles.page}>
-      <PageHeader title="홈" subtitle="당신이 탐색해 온 모든 흐름을 한눈에" />
+      <PageHeader title="홈" />
       {loading && !data ? (
         <div className={styles.state}>불러오는 중…</div>
       ) : error ? (
@@ -92,11 +92,32 @@ function HomeDashboard({ data }: { data: HomeData }) {
     return () => document.removeEventListener("mousedown", onDown);
   }, [filterOpen, searchOpen]);
 
+  // 선택한 노드를 다시 누르면 선택을 푼다. 마우스가 아직 그 노드 위라 호버로 다시 강조되지 않게,
+  // 그 노드에서 마우스가 나갈 때까지 호버를 무시한다 (QA-008)
+  // 검색에서 세션을 고르면 이동이 끝날 때까지 그 행에 "여는 중…"을 띄우고 다시 누르기를 막는다 (QA-009)
+  const [opening, startOpening] = useTransition();
+  const [openingSession, setOpeningSession] = useState<number | null>(null);
+  const openSession = (id: number) => {
+    setOpeningSession(id);
+    startOpening(() => router.push(`/sessions/${id}`));
+  };
+  const hoverMutedRef = useRef<string | null>(null);
+  const toggleSelect = (id: string) => {
+    if (selected === id) {
+      setSelected(null);
+      setHovered(null);
+      hoverMutedRef.current = id;
+    } else {
+      setSelected(id);
+    }
+  };
+  const onHoverNode = (id: string | null) => {
+    if (id === null) hoverMutedRef.current = null;
+    else if (id === hoverMutedRef.current) return;
+    setHovered(id);
+  };
   const focusId = selected || hovered;
   const focusNode = focusId ? graph.nodes.find((n) => n.id === focusId) : undefined;
-  const connected = focusNode
-    ? graph.edges.filter(([a, b]) => a === focusNode.id || b === focusNode.id).length
-    : 0;
   const focusSession = focusNode ? relatedSession(focusNode, graph.nodeMeta, sessions) : undefined;
 
   return (
@@ -131,7 +152,9 @@ function HomeDashboard({ data }: { data: HomeData }) {
                     setSelected(id);
                     closeSearch();
                   }}
-                  onSelectSession={(id) => router.push(`/sessions/${id}`)}
+                  onSelectSession={openSession}
+                  onPrefetchSession={(id) => router.prefetch(`/sessions/${id}`)}
+                  openingSessionId={opening ? openingSession : null}
                   onClose={closeSearch}
                 />
               ) : (
@@ -181,9 +204,10 @@ function HomeDashboard({ data }: { data: HomeData }) {
               height={700}
               initialZoom={GRAPH_INITIAL_ZOOM}
               selectedId={selected}
-              onSelect={(id) => setSelected((cur) => (cur === id ? null : id))}
+              onSelect={toggleSelect}
               hoveredId={hovered}
-              onHover={setHovered}
+              onHover={onHoverNode}
+              wheelZoomOverGraphOnly
               dimmedIds={dimmedIds}
               matchIds={matchIds}
               showHint={false}
@@ -192,17 +216,15 @@ function HomeDashboard({ data }: { data: HomeData }) {
         )}
         {focusNode && (
           <div className={styles.popover}>
-            <div className={styles.popEyebrow}>선택됨</div>
             <div className={styles.popTitle}>{focusNode.label}</div>
-            <div className={styles.popMeta}>
-              연결된 노드 {connected}개{focusSession && ` · 출처 ${focusSession.pageCount}개`}
-            </div>
             {/* 가장 잘 맞는 세션 상세로, 없으면 세션 목록으로 */}
             <button
               className={styles.popBtn}
               onClick={() => router.push(focusSession ? `/sessions/${focusSession.id}` : "/sessions")}
+              aria-label="관련 세션 보기"
+              title="관련 세션 보기"
             >
-              관련 세션 보기 <Icon name="chevronRight" size={12} />
+              <Icon name="arrowRight" size={14} />
             </button>
           </div>
         )}
@@ -242,9 +264,6 @@ function HomeDashboard({ data }: { data: HomeData }) {
           <div className={styles.cardHead}>
             <div>
               <h3 className={styles.cardTitle}>{range === "today" ? "오늘의 탐색 타임라인" : "이번 주 탐색 타임라인"}</h3>
-              <p className={styles.cardDesc}>
-                {range === "today" ? "시간대별 수집 해시태그 · 방문 사이트" : "요일별 대표 해시태그 · 방문 사이트"}
-              </p>
             </div>
             <div className={styles.rangeBtns}>
               <button
@@ -293,7 +312,6 @@ function StatCards({ stats }: { stats: HomeStats }) {
         label="Deep Reading"
         value={`${stats.deepReadingPct}%`}
         accent={trend(stats.deepReadingDelta)}
-        sub="지난주 대비"
       />
     </div>
   );
