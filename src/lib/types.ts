@@ -13,6 +13,8 @@ export interface MindmapNode {
   y: number;
   size: number;
   group: MindmapGroup;
+  /** 노드 색 — 없으면 그룹 기본 색 */
+  fill?: string;
   vx?: number;
   vy?: number;
 }
