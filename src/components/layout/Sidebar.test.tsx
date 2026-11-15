@@ -4,6 +4,7 @@ import { renderPersonal } from "@/test/render";
 import { setMockPathname } from "@/test/router";
 import { MEMBER } from "@/test/fixtures/member";
 import { STATUS_POLL_MS } from "@/lib/app/PersonalContext";
+import { NAV_ROOT_ATTR } from "@/lib/app/NavHistoryContext";
 import { installFakeExtension, loggedOutExtension, removeFakeExtension } from "@/test/extension";
 import { Sidebar } from "./Sidebar";
 
@@ -15,7 +16,9 @@ describe("사이드바", () => {
   describe("메뉴", () => {
     it("개인 영역 4개 · 커뮤니티 4개 메뉴가 각 화면 주소로 연결된다", () => {
       renderPersonal(<Sidebar />);
-      const links = screen.getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")]);
+      const links = within(screen.getByRole("navigation"))
+        .getAllByRole("link")
+        .map((a) => [a.textContent, a.getAttribute("href")]);
       expect(links).toEqual([
         ["홈", "/home"],
         ["분석/추천", "/analytics"],
@@ -43,6 +46,38 @@ describe("사이드바", () => {
       setMockPathname("/sessionsabc");
       renderPersonal(<Sidebar />);
       expect(activeLinks()).toEqual([]);
+    });
+  });
+
+  describe("로고 홈 링크 (QA-031)", () => {
+    // 상단 바 로고는 데스크톱 너비에서 CSS 로 숨겨져 있어 hidden 요소도 찾는다
+    const brandLinks = () => screen.getAllByRole("link", { name: "JustInNeed 홈으로 이동", hidden: true });
+
+    it("사이드바 로고와 상단 바 로고 둘 다 홈으로 가는 링크이고, 메뉴처럼 이동 기록을 비운다", () => {
+      setMockPathname("/settings");
+      renderPersonal(<Sidebar />);
+      const links = brandLinks();
+      expect(links).toHaveLength(2);
+      for (const a of links) {
+        expect(a).toHaveAttribute("href", "/home");
+        expect(a).toHaveAttribute(NAV_ROOT_ATTR);
+      }
+      expect(links.map((a) => a.closest("header, aside")?.tagName)).toEqual(["HEADER", "ASIDE"]);
+    });
+
+    it("이미 홈에서 서랍을 열고 로고를 눌러도 서랍이 닫힌다", async () => {
+      // jsdom 은 링크 이동을 지원하지 않아 기본 동작만 막는다 (전파는 그대로)
+      const prevent = (e: Event) => e.preventDefault();
+      window.addEventListener("click", prevent, true);
+      setMockPathname("/home");
+      const { user } = renderPersonal(<Sidebar />);
+      await user.click(screen.getByRole("button", { name: "메뉴 열기", hidden: true }));
+      const aside = document.getElementById("app-sidebar")!;
+      expect(aside).toHaveClass("asideOpen");
+
+      await user.click(within(aside).getByRole("link", { name: "JustInNeed 홈으로 이동" }));
+      expect(aside).not.toHaveClass("asideOpen");
+      window.removeEventListener("click", prevent, true);
     });
   });
 
