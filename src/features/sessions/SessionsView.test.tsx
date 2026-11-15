@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http } from "msw";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SessionsPage from "@/app/(personal)/sessions/page";
 import type { SessionListItem, SessionUpdateRequest } from "@/lib/api";
 import {
@@ -68,20 +68,10 @@ describe("세션 목록 — 불러오기", () => {
     expect(await screen.findByRole("heading", { level: 3, name: ROME.title })).toBeInTheDocument();
   });
 
-  it("머리말에 전체 세션 · 즐겨찾기 · 그룹 개수가 보인다", async () => {
+  it("머리말에는 제목만 있고 설명글(세션 · 즐겨찾기 · 그룹 개수)은 없다 (QA-013)", async () => {
     renderSessions();
-    expect(await screen.findByText("전체 25개 세션 · 11개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
-  });
-
-  it("머리말의 세션 · 즐겨찾기 개수는 받은 카드 수가 아니라 서버의 totalCount · favoriteCount 다", async () => {
-    server.use(
-      http.get(`${API}/sessions`, () =>
-        ok({ sessions: SESSION_LIST.slice(0, 10), hasNext: true, totalCount: 123, favoriteCount: 45 }),
-      ),
-    );
-    renderSessions();
-    expect(await screen.findByText("전체 123개 세션 · 45개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
-    expect(cardTitles()).toHaveLength(10);
+    expect(await screen.findByRole("heading", { level: 3, name: ROME.title })).toBeInTheDocument();
+    expect(screen.queryByText(/개 세션 · .*개 즐겨찾기/)).not.toBeInTheDocument();
   });
 
   it("세션이 하나도 없으면 빈 상태 안내가 보인다", async () => {
@@ -244,11 +234,10 @@ describe("세션 목록 — 상태별 카드", () => {
     );
     const failed = STATUS_SESSIONS[3];
     const { user } = renderSessions();
-    await screen.findByText("전체 5개 세션 · 2개 즐겨찾기 · 3개 그룹");
+    await screen.findByRole("heading", { level: 3, name: failed.title });
 
     await user.click(starOf(failed.title));
     expect(isFilled(starOf(failed.title))).toBe(false);
-    expect(screen.getByText("전체 5개 세션 · 1개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
     await waitFor(() => expect(patches).toEqual([["9104", { isFavorite: false }]]));
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
@@ -281,27 +270,25 @@ describe("세션 목록 — 즐겨찾기 별", () => {
     return patches;
   }
 
-  it("별을 누르면 바로 채워지고 즐겨찾기 개수가 늘며 PATCH /sessions/{id} 에 { isFavorite: true } 를 보낸다", async () => {
+  it("별을 누르면 바로 채워지고 PATCH /sessions/{id} 에 { isFavorite: true } 를 보낸다", async () => {
     const patches = onPatch((id, body) => ok(patchedSession(id, body)));
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: FLIGHTS.title });
 
     await user.click(starOf(FLIGHTS.title));
     expect(isFilled(starOf(FLIGHTS.title))).toBe(true);
-    expect(screen.getByText("전체 25개 세션 · 12개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
     await waitFor(() => expect(patches).toEqual([{ id: 9002, body: { isFavorite: true } }]));
     // 별을 눌러도 카드가 열리지 않는다
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("별을 끄면 즐겨찾기 개수가 준다", async () => {
+  it("별을 끄면 바로 비워진다", async () => {
     onPatch((id, body) => ok(patchedSession(id, body)));
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
 
     await user.click(starOf(ROME.title));
     expect(isFilled(starOf(ROME.title))).toBe(false);
-    expect(screen.getByText("전체 25개 세션 · 10개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
   });
 
   it("즐겨찾기를 바꾸면 그룹 보기의 즐겨찾기 표시도 맞추려고 그룹을 다시 불러온다", async () => {
@@ -325,7 +312,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("서버가 실패하면 별과 개수를 원래대로 되돌리고 서버 메시지를 토스트로 띄운다", async () => {
+  it("서버가 실패하면 별을 원래대로 되돌리고 서버 메시지를 토스트로 띄운다", async () => {
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
     onPatch(async () => {
@@ -337,16 +324,14 @@ describe("세션 목록 — 즐겨찾기 별", () => {
 
     await user.click(starOf(FLIGHTS.title));
     expect(isFilled(starOf(FLIGHTS.title))).toBe(true); // 응답 전 — 낙관적 반영
-    expect(screen.getByText("전체 25개 세션 · 12개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
     release();
 
     expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
     expect(isFilled(starOf(FLIGHTS.title))).toBe(false);
-    expect(screen.getByText("전체 25개 세션 · 11개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
     expect(groupCalls).toBe(1); // 실패하면 그룹은 다시 부르지 않는다
   });
 
-  it("그룹 보기에서 아직 목록에 안 불러온 세션의 별을 눌러도 바로 채워지고 개수가 늘며 PATCH 를 보낸다", async () => {
+  it("그룹 보기에서 아직 목록에 안 불러온 세션의 별을 눌러도 바로 채워지고 PATCH 를 보낸다", async () => {
     const patches = onPatch(() => ok(null));
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
@@ -357,7 +342,6 @@ describe("세션 목록 — 즐겨찾기 별", () => {
     expect(requests).toEqual([q(0)]);
     await user.click(starOf(exchange.title));
     expect(isFilled(starOf(exchange.title))).toBe(true);
-    expect(screen.getByText("전체 25개 세션 · 12개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
     await waitFor(() => expect(patches).toEqual([{ id: 9025, body: { isFavorite: true } }]));
   });
 });
@@ -505,8 +489,6 @@ describe("세션 목록 — 즐겨찾기 보기", () => {
     expect(favFilter()).toHaveClass("active");
     await waitFor(() => expect(cardTitles()).toEqual(titles(FAVORITES.slice(0, 10))));
     expect(requests).toEqual([q(0), q(0, true)]);
-    // 개수는 보기와 상관없이 그대로
-    expect(screen.getByText("전체 25개 세션 · 11개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
 
     scroll.toBottom();
     await waitFor(() => expect(cardTitles()).toEqual(titles(FAVORITES)));
@@ -549,7 +531,7 @@ describe("세션 목록 — 즐겨찾기 보기", () => {
     expect(screen.getByText("세션 카드의 별을 눌러 즐겨찾기에 추가해보세요.")).toBeInTheDocument();
   });
 
-  it("즐겨찾기 보기에서 별을 끄면 카드가 빠지고 개수가 줄며, 다음 페이지로 당겨진 세션도 빠짐없이 받는다", async () => {
+  it("즐겨찾기 보기에서 별을 끄면 카드가 빠지고, 다음 페이지로 당겨진 세션도 빠짐없이 받는다", async () => {
     // 서버 상태 — PATCH 를 반영한다
     let db = SESSION_LIST;
     requests = serveSessions(() => db);
@@ -570,7 +552,6 @@ describe("세션 목록 — 즐겨찾기 보기", () => {
 
     await user.click(starOf(ROME.title));
     expect(screen.queryByRole("heading", { level: 3, name: ROME.title })).not.toBeInTheDocument();
-    expect(screen.getByText("전체 25개 세션 · 10개 즐겨찾기 · 3개 그룹")).toBeInTheDocument();
     await waitFor(() => expect(patched).toEqual([ROME.id]));
 
     // 서버 즐겨찾기가 한 칸 당겨져 11번째가 0페이지 끝으로 왔다 → 0페이지를 다시 받아 겹치는 건 거른다
@@ -630,5 +611,71 @@ describe("세션 목록 — 해시태그(그룹) 보기 전환", () => {
     expect(screen.getByRole("button", { name: "해시태그" })).not.toHaveClass("active");
     await waitFor(() => expect(cardTitles()).toEqual(titles(FAVORITES.slice(0, 10))));
     expect(requests).toEqual([q(0), q(0, true)]);
+  });
+});
+
+describe("분석 중 세션 자동 새로고침 (QA-015)", () => {
+  const analyzing: SessionListItem = {
+    id: 9301,
+    title: "분석 중인 세션",
+    startedAt: "2026-04-28T10:00:00",
+    endedAt: "2026-04-28T10:30:00",
+    pageCount: 3,
+    status: "ANALYZING",
+    isFavorite: false,
+    isPublic: false,
+    tags: [],
+  };
+  const done: SessionListItem = { ...analyzing, status: "COMPLETED", tags: ["라멘"] };
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("분석 중 세션이 있으면 5초마다 다시 받아, 분석이 끝나면 카드가 완료 상태로 바뀐다", async () => {
+    let list = [analyzing];
+    const requests = serveSessions(() => list);
+    renderSessions();
+    await screen.findByRole("heading", { level: 3, name: analyzing.title });
+    expect(within(card(analyzing.title)).getByText("분석 중")).toBeInTheDocument();
+    expect(requests).toHaveLength(1);
+
+    await vi.advanceTimersByTimeAsync(5000);
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(within(card(analyzing.title)).getByText("분석 중")).toBeInTheDocument();
+
+    list = [done];
+    await vi.advanceTimersByTimeAsync(5000);
+    await waitFor(() => expect(within(card(done.title)).getByText("#라멘")).toBeInTheDocument());
+    expect(within(card(done.title)).queryByText("분석 중")).not.toBeInTheDocument();
+
+    // 분석 중 세션이 없어지면 더 받지 않는다
+    const after = requests.length;
+    await vi.advanceTimersByTimeAsync(15000);
+    expect(requests).toHaveLength(after);
+  });
+
+  it("그사이 새로 등록된 세션은 목록 맨 앞에 붙는다", async () => {
+    const newcomer: SessionListItem = { ...analyzing, id: 9302, title: "방금 끝난 세션", status: "READY" };
+    let list = [analyzing];
+    serveSessions(() => list);
+    renderSessions();
+    await screen.findByRole("heading", { level: 3, name: analyzing.title });
+
+    list = [newcomer, analyzing];
+    await vi.advanceTimersByTimeAsync(5000);
+    await screen.findByRole("heading", { level: 3, name: newcomer.title });
+    expect(cardTitles().slice(0, 2)).toEqual([newcomer.title, analyzing.title]);
+  });
+
+  it("완료된 세션만 있으면 다시 받지 않는다", async () => {
+    const requests = serveSessions([done]);
+    renderSessions();
+    await screen.findByRole("heading", { level: 3, name: done.title });
+    await vi.advanceTimersByTimeAsync(15000);
+    expect(requests).toHaveLength(1);
   });
 });

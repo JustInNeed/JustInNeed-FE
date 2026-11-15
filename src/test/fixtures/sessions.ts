@@ -167,14 +167,12 @@ export function sessionPage(
 /** 백엔드처럼 그룹 해시태그를 하나라도 가진 세션을 묶어 TagGroupResponse 를 만든다 */
 export function tagGroup(
   id: number,
-  name: string,
   hashtags: string[],
   position: number,
   sessions: SessionListItem[] = SESSION_LIST,
 ): TagGroup {
   return {
     id,
-    name,
     hashtags,
     position,
     sessions: sessions.filter((s) => s.tags.some((t) => hashtags.includes(t))),
@@ -183,9 +181,9 @@ export function tagGroup(
 
 /** 로마(1개 세션) · 항공권/예산(7개 세션) · 세션이 없는 React 그룹 */
 export const TAG_GROUPS: TagGroup[] = [
-  tagGroup(1, "로마, 콜로세움", ["로마", "콜로세움"], 0),
-  tagGroup(2, "항공권, 예산", ["항공권", "예산"], 1),
-  tagGroup(3, "React, TypeScript", ["React", "TypeScript"], 2),
+  tagGroup(1, ["로마", "콜로세움"], 0),
+  tagGroup(2, ["항공권", "예산"], 1),
+  tagGroup(3, ["React", "TypeScript"], 2),
 ];
 
 // ---------- 세션 상세 (GET /sessions/{id}) ----------

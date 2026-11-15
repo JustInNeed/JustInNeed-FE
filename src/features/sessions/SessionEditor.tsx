@@ -9,7 +9,7 @@ export interface SessionEditorProps {
 
 export function SessionEditor({ value, onChange }: SessionEditorProps) {
   return (
-    <Card style={{ padding: 28, overflowY: "auto" }}>
+    <Card className={styles.card} style={{ padding: 28 }}>
       <div className={styles.eyebrow}>본문 (마크다운)</div>
 
       <textarea

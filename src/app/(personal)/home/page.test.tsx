@@ -17,8 +17,8 @@ const mockHome = (body: HomeResponse = HOME_RESPONSE) => server.use(http.get(`${
 const dashboard = async () => screen.findByText("누적 노드");
 const statCard = (label: string) => screen.getByText(label).parentElement!;
 const node = (label: string) => screen.getByText(label, { selector: "text" }).parentElement!;
-const popover = () => screen.getByText("선택됨").parentElement!;
-const relatedButton = () => within(popover()).getByRole("button", { name: "관련 세션 보기" });
+const relatedButton = () => screen.getByRole("button", { name: "관련 세션 보기" });
+const popover = () => relatedButton().parentElement!;
 const slot = (label: string) => screen.getByText(label).closest<HTMLElement>(".slot")!;
 const chipsIn = (el: HTMLElement) => within(el).queryAllByRole("button").map((b) => b.textContent);
 const sitesIn = (el: HTMLElement) => Array.from(el.querySelectorAll(".site")).map((s) => s.lastChild?.textContent);
@@ -106,7 +106,7 @@ describe("홈 페이지 — 응답 표시", () => {
 
     expect(statCard("누적 노드")).toHaveTextContent("218+12해시태그 47개");
     expect(statCard("이번 주 세션")).toHaveTextContent("14+3평균 42분 / 세션");
-    expect(statCard("Deep Reading")).toHaveTextContent("68%↑ 8%지난주 대비");
+    expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading68%↑ 8%$/);
 
     expect(screen.getByText("10.25 — 10.31")).toBeInTheDocument();
     // 오늘(토)로 끝나는 최근 7일 — 받은 순서 그대로
@@ -134,14 +134,13 @@ describe("홈 페이지 — 응답 표시", () => {
     expect(chipsIn(slot("21:10 — 진행 중"))).toEqual(["#파리"]);
   });
 
-  it("마인드맵에 노드가 그려지고, 노드를 누르면 연결 수와 출처 수가 보인다", async () => {
+  it("마인드맵에 노드가 그려지고, 노드를 누르면 제목과 '관련 세션 보기' 버튼이 보인다", async () => {
     const { user } = renderPersonal(<HomePage />);
     await dashboard();
 
     expect(node("내 탐색").getAttribute("transform")).toBe("translate(550,350)");
     await user.click(node("로마"));
-    // 로마 연결 2개, sessionId 9002 세션 페이지 11개
-    expect(within(popover()).getByText("연결된 노드 2개 · 출처 11개")).toBeInTheDocument();
+    expect(within(popover()).getByText("로마")).toBeInTheDocument();
   });
 
   it("30일 지난 노드(seen: all)는 기간 '이번 달'에선 흐려지고 '전체'에선 그대로 보인다", async () => {
@@ -167,7 +166,7 @@ describe("홈 페이지 — 응답 표시", () => {
     await dashboard();
     await user.click(screen.getByRole("button", { name: "필터" }));
     const dialog = screen.getByRole("dialog", { name: "그래프 필터" });
-    expect(within(dialog).getByRole("checkbox", { name: "유럽 여행 노드 3" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("checkbox", { name: "해시태그 그룹 #로마, #파리" })).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "#파리" }));
     await user.click(within(dialog).getByRole("button", { name: "적용" }));
 

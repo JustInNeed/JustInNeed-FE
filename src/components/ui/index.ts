@@ -7,6 +7,8 @@ export type { HashChipProps, HashChipSize } from "./HashChip";
 export { Button } from "./Button";
 export type { ButtonProps, ButtonVariant } from "./Button";
 export { PageHeader } from "./PageHeader";
+export { BackLink } from "./BackLink";
+export type { BackLinkProps } from "./BackLink";
 export type { PageHeaderProps } from "./PageHeader";
 export { Markdown } from "./Markdown";
 export type { MarkdownProps } from "./Markdown";

@@ -17,7 +17,6 @@ export interface GraphNodeMeta {
 
 export interface GraphTagGroup {
   id: number;
-  name: string;
   tags: string[]; // '#' 없는 raw
 }
 
@@ -168,7 +167,7 @@ export interface HomeStats {
   deepReadingDelta: number;
 }
 
-/** 이번 주 활동 막대 — 오늘로 끝나는 최근 7일의 요일별 탐색 시간 (오래된 날부터) */
+/** 이번 주 활동 막대 — 일요일 시작 주(일 ~ 토)의 요일별 탐색 시간. 오늘 이후 요일은 0분 */
 export interface DayActivity {
   day: string; // "월"
   minutes: number;

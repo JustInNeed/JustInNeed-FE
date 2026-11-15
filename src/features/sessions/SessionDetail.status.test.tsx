@@ -26,6 +26,11 @@ describe("세션 상세 — 분석 완료 전 · 실패 상태 화면", () => {
     expect(screen.getByText(copy)).toBeInTheDocument();
   });
 
+  it.each(STATUSES)("$label 상태 문구 앞에 점 아이콘이 없다 (QA-024-1)", async ({ label, detail }) => {
+    await renderDetail(detail);
+    expect(screen.getByText(label).querySelector("svg")).toBeNull();
+  });
+
   it.each(STATUSES)("$label 세션에는 본문 화면의 요소가 하나도 없다", async ({ detail }) => {
     await renderDetail(detail);
     for (const name of ["즐겨찾기", "비공개", "공개", "편집", "추가", "줄글 보기", "마인드맵 보기"]) {

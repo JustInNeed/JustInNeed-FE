@@ -20,7 +20,7 @@ describe("홈 대시보드", () => {
     renderPersonal(<HomeView data={HOME_DATA} />);
     expect(statCard("누적 노드")).toHaveTextContent("218+12해시태그 47개");
     expect(statCard("이번 주 세션")).toHaveTextContent("14+3평균 42분 / 세션");
-    expect(statCard("Deep Reading")).toHaveTextContent("68%↑ 8%지난주 대비");
+    expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading68%↑ 8%$/);
   });
 
   it("지난주보다 줄었으면 감소로, 변화가 없으면 증감 없이 보인다", () => {
@@ -80,6 +80,7 @@ describe("홈 대시보드", () => {
   it("오늘의 탐색 타임라인에 시간대별 해시태그와 방문 사이트가 보인다", () => {
     renderPersonal(<HomeView data={HOME_DATA} />);
     expect(screen.getByRole("heading", { name: "오늘의 탐색 타임라인" })).toBeInTheDocument();
+    expect(screen.queryByText("시간대별 수집 해시태그 · 방문 사이트")).not.toBeInTheDocument(); // QA-010
     expect(screen.getByRole("button", { name: "오늘" })).toHaveAttribute("aria-pressed", "true");
     const times = HOME_DATA.todayTimeline.map((s) => s.time);
     expect(times).toHaveLength(5);
@@ -104,12 +105,18 @@ describe("홈 대시보드", () => {
       await user.click(screen.getByRole("button", { name: "이번 주" }));
 
       expect(screen.getByRole("heading", { name: "이번 주 탐색 타임라인" })).toBeInTheDocument();
-      expect(screen.getByText("요일별 대표 해시태그 · 방문 사이트")).toBeInTheDocument();
+      // 카드 제목 아래 설명 문구는 두지 않는다 (QA-010)
+      expect(screen.queryByText("요일별 대표 해시태그 · 방문 사이트")).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "이번 주" })).toHaveAttribute("aria-pressed", "true");
       const labels = ["4/20 (월)", "4/21 (화)", "4/22 (수)", "4/23 (목)", "4/24 (금)", "4/25 (토)", "4/26 (일)"];
       labels.forEach((l) => expect(screen.getByText(l)).toBeInTheDocument());
       expect(within(daySlot("4/26 (일)")).getByText("오늘")).toBeInTheDocument();
       expect(within(daySlot("4/25 (토)")).queryByText("오늘")).not.toBeInTheDocument();
+      // 오늘이 맨 위, 아래로 갈수록 과거 (QA-006)
+      const order = labels.map((l) => screen.getByText(l));
+      for (let i = 1; i < order.length; i++) {
+        expect(order[i].compareDocumentPosition(order[i - 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      }
     });
 
     it("기록이 없는 날은 '기록 없음'으로 보인다", async () => {
@@ -184,7 +191,7 @@ describe("홈 데이터 없음 · 불러오기 실패", () => {
       const { user } = renderPersonal(<HomeView data={EMPTY_HOME_DATA} />);
       expect(statCard("누적 노드")).toHaveTextContent(/^누적 노드0해시태그 0개$/);
       expect(statCard("이번 주 세션")).toHaveTextContent(/^이번 주 세션0평균 0분 \/ 세션$/);
-      expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading0%지난주 대비$/);
+      expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading0%$/);
 
       expect(screen.getByRole("status")).toHaveTextContent("아직 그래프로 그릴 노드가 없어요.");
       expect(screen.queryByRole("button", { name: "필터" })).not.toBeInTheDocument();

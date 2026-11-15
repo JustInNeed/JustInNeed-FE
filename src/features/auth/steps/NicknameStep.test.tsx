@@ -5,7 +5,7 @@ import { API, fail, ok, server } from "@/test/msw/server";
 import { renderApp } from "@/test/render";
 import { NicknameStep, type NicknameStepProps } from "./NicknameStep";
 
-const input = () => screen.getByPlaceholderText("영문 3-8자");
+const input = () => screen.getByPlaceholderText("영문 3-16자");
 const checkBtn = () => screen.getByRole("button", { name: /중복 확인|확인 중/ });
 const nextBtn = () => screen.getByRole("button", { name: /다음|처리 중/ });
 const step = (label: string) => screen.getByLabelText(label);
@@ -36,7 +36,7 @@ describe("가입 > 닉네임 단계", () => {
   it("형식이 틀리면 형식 오류 문구가 뜨고 중복 확인을 누를 수 없다", async () => {
     const { user } = renderStep();
     await user.type(input(), "1ab");
-    expect(screen.getByText("영문으로 시작하는 3-8자(영문·숫자)로 입력해주세요.")).toBeInTheDocument();
+    expect(screen.getByText("영문으로 시작하는 3-16자(영문·숫자)로 입력해주세요.")).toBeInTheDocument();
     expect(checkBtn()).toBeDisabled();
   });
 

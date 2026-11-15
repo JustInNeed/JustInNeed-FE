@@ -9,10 +9,41 @@
   gap: 24px;
   max-width: 960px;
 }
+/* 목차는 스크롤해도 따라온다 (QA-014 A안) */
 .nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+/* 모든 범주를 한 페이지에 쌓는다 */
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-margin-top: 24px;
+}
+.section > :last-child {
+  margin-bottom: 0;
+}
+/* 범주 사이 구분선 — 위 범주와 간격을 두고 선을 긋는다 (QA-020) */
+.section + .section {
+  border-top: 1px solid var(--line);
+  padding-top: 28px;
+}
+.sectionTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-700);
 }
 .navBtn {
   padding: 10px 12px;
@@ -130,6 +161,10 @@
   align-items: stretch;
 }
 .checkBtn {
+  /* 중복 확인 · 확인 중… · 저장 · 저장 중… 이 같은 자리에서 바뀌므로 너비를 고정한다 (QA-028) */
+  min-width: 76px;
+  justify-content: center;
+  text-align: center;
   padding: 0 14px;
   font-size: 12px;
   font-weight: 600;
@@ -146,11 +181,6 @@
   background: var(--green-500);
   color: #fff;
   cursor: pointer;
-}
-.nickActions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 10px;
 }
 .providerBox {
   display: flex;
@@ -262,4 +292,21 @@
   font-size: 13px;
   color: var(--ink-500);
   text-align: center;
+}
+
+/* 좁은 화면 — 목차를 본문 위 가로 줄로 올리고 본문을 한 칸으로 (QA-018) */
+@media (max-width: 767.98px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .nav {
+    position: static;
+    flex-direction: row;
+    gap: 4px;
+    overflow-x: auto;
+  }
+  .navBtn {
+    white-space: nowrap;
+  }
 }

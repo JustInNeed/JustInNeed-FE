@@ -9,6 +9,15 @@ import { AccountSection } from "./AccountSection";
 const nicknameInput = () => screen.getByRole("textbox");
 const checkBtn = () => screen.getByRole("button", { name: /중복 확인|확인 중/ });
 const saveBtn = () => screen.getByRole("button", { name: /저장/ });
+const noSaveBtn = () => expect(screen.queryByRole("button", { name: /저장/ })).not.toBeInTheDocument();
+
+/** 새 닉네임을 넣고 중복 확인을 통과시켜 버튼이 "저장" 으로 바뀐 상태 */
+async function renderReadyToSave(value: string) {
+  const result = await renderWithNickname(value, vi.fn().mockResolvedValue(true));
+  await result.user.click(checkBtn());
+  await screen.findByRole("button", { name: "저장" });
+  return result;
+}
 
 /** 닉네임 입력칸을 비우고 새 값을 입력한 상태로 렌더 */
 async function renderWithNickname(value: string, checkNickname?: (n: string) => Promise<boolean>) {
@@ -49,19 +58,32 @@ describe("설정 > 계정", () => {
   });
 
   describe("닉네임 입력 · 중복 확인", () => {
-    it("현재 닉네임이 채워져 있고, 그대로면 중복 확인 · 저장이 꺼져 있다", () => {
+    it("현재 닉네임이 채워져 있고, 그대로면 중복 확인이 꺼져 있고 저장 버튼은 없다", () => {
       renderPersonal(<AccountSection onWithdraw={vi.fn()} />);
       expect(nicknameInput()).toHaveValue("yesong");
       expect(checkBtn()).toBeDisabled();
-      expect(saveBtn()).toBeDisabled();
+      noSaveBtn();
     });
 
     it("형식이 틀리면 형식 안내가 뜨고 중복 확인 · 저장이 꺼진다", async () => {
       await renderWithNickname("1ab");
-      expect(screen.getByRole("alert")).toHaveTextContent("영문으로 시작하는 3-8자(영문·숫자)로 입력해주세요.");
+      expect(screen.getByRole("alert")).toHaveTextContent("영문으로 시작하는 3-16자(영문·숫자)로 입력해주세요.");
       expect(nicknameInput()).toHaveAttribute("aria-invalid", "true");
       expect(checkBtn()).toBeDisabled();
-      expect(saveBtn()).toBeDisabled();
+      noSaveBtn();
+    });
+
+    it("16자까지는 쓸 수 있고, 17자째도 입력은 막지 않고 형식 안내를 띄운다", async () => {
+      const { user } = await renderWithNickname("abcdefghijklmnop");
+      expect(nicknameInput()).toHaveValue("abcdefghijklmnop");
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(checkBtn()).toBeEnabled();
+
+      await user.type(nicknameInput(), "q");
+      expect(nicknameInput()).toHaveValue("abcdefghijklmnopq");
+      expect(screen.getByRole("alert")).toHaveTextContent("영문으로 시작하는 3-16자(영문·숫자)로 입력해주세요.");
+      expect(checkBtn()).toBeDisabled();
+      noSaveBtn();
     });
 
     it("쓸 수 있는 닉네임이면 '사용 가능한 닉네임입니다.' 가 뜬다", async () => {
@@ -136,9 +158,29 @@ describe("설정 > 계정", () => {
   });
 
   describe("닉네임 저장 (PATCH /members/me/nickname)", () => {
-    it("중복 확인을 하지 않아도 형식이 맞으면 저장 버튼이 켜진다 (중복은 서버 409 로 막는다)", async () => {
-      await renderWithNickname("newnick");
-      expect(saveBtn()).toBeEnabled();
+    it("중복 확인 전에는 저장할 수 없고, 통과하면 같은 버튼이 '저장' 으로 바뀐다 (QA-028)", async () => {
+      const { user } = await renderWithNickname("newnick", vi.fn().mockResolvedValue(true));
+      noSaveBtn();
+      const btn = checkBtn();
+      await user.click(btn);
+      expect(await screen.findByRole("button", { name: "저장" })).toBeEnabled();
+      // 버튼은 하나뿐이다 (따로 놓인 저장 버튼 없음)
+      expect(screen.queryByRole("button", { name: /중복 확인/ })).not.toBeInTheDocument();
+    });
+
+    it("이미 쓰는 닉네임이면 버튼은 '중복 확인' 그대로다", async () => {
+      const { user } = await renderWithNickname("admin", vi.fn().mockResolvedValue(false));
+      await user.click(checkBtn());
+      await screen.findByRole("alert");
+      expect(checkBtn()).toHaveTextContent("중복 확인");
+      noSaveBtn();
+    });
+
+    it("통과한 뒤 입력을 바꾸면 다시 '중복 확인' 으로 돌아간다", async () => {
+      const { user } = await renderReadyToSave("newnick");
+      await user.type(nicknameInput(), "2");
+      expect(checkBtn()).toBeEnabled();
+      noSaveBtn();
     });
 
     it("성공하면 새 닉네임을 보내고, 받은 회원 정보로 updateMember 를 부른 뒤 성공 토스트를 띄운다", async () => {
@@ -150,7 +192,7 @@ describe("설정 > 계정", () => {
           return ok(updated);
         }),
       );
-      const { user, updateMember } = await renderWithNickname("newnick");
+      const { user, updateMember } = await renderReadyToSave("newnick");
       await user.click(saveBtn());
 
       expect(await screen.findByText("닉네임을 변경했어요.")).toBeInTheDocument();
@@ -158,14 +200,22 @@ describe("설정 > 계정", () => {
       expect(updateMember).toHaveBeenCalledWith(updated);
     });
 
-    it("409 면 입력칸 아래에 서버의 중복 메시지가 뜨고 회원 정보는 그대로다", async () => {
+    it("저장 중에는 버튼이 '저장 중…' 으로 꺼진다", async () => {
+      server.use(http.patch(`${API}/members/me/nickname`, () => new Promise(() => {})));
+      const { user } = await renderReadyToSave("newnick");
+      await user.click(saveBtn());
+      expect(screen.getByRole("button", { name: "저장 중…" })).toBeDisabled();
+    });
+
+    it("409 면 입력칸 아래에 서버의 중복 메시지가 뜨고, 버튼은 '중복 확인' 으로 돌아가며 회원 정보는 그대로다", async () => {
       server.use(http.patch(`${API}/members/me/nickname`, () => fail(409, "이미 사용 중인 닉네임입니다.")));
-      const { user, updateMember } = await renderWithNickname("admin");
+      const { user, updateMember } = await renderReadyToSave("admin");
       await user.click(saveBtn());
 
       expect(await screen.findByRole("alert")).toHaveTextContent("이미 사용 중인 닉네임입니다.");
       expect(nicknameInput()).toHaveAttribute("aria-invalid", "true");
       expect(updateMember).not.toHaveBeenCalled();
+      expect(checkBtn()).toHaveTextContent("중복 확인");
 
       // 입력을 바꾸면 서버 오류도 지워진다
       await user.type(nicknameInput(), "2");
@@ -174,7 +224,7 @@ describe("설정 > 계정", () => {
 
     it("그 밖의 실패는 서버 메시지를 오류 토스트로 띄운다", async () => {
       server.use(http.patch(`${API}/members/me/nickname`, () => fail(500, "서버 오류가 발생했습니다.")));
-      const { user, updateMember } = await renderWithNickname("newnick");
+      const { user, updateMember } = await renderReadyToSave("newnick");
       await user.click(saveBtn());
 
       expect(await screen.findByRole("alert")).toHaveTextContent("서버 오류가 발생했습니다.");

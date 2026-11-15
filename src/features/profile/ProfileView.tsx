@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Button, InlineState } from "@/components/ui";
+import { Icon, Button, InlineState, BackLink } from "@/components/ui";
 import { MindmapCard } from "@/components/mindmap/MindmapCard";
 import { MindmapDetailModal } from "@/components/mindmap/MindmapDetailModal";
 import { MindmapFullView } from "@/components/mindmap/MindmapFullView";
@@ -370,6 +370,7 @@ function ProfileScreen({
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
+        <BackLink />
         <div className={styles.head}>
           <div className={styles.avatar}>{profile.avatar}</div>
           <div className={styles.headMain}>

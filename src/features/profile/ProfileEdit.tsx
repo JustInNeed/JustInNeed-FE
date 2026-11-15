@@ -8,7 +8,7 @@ import { MAX_HASHTAGS, validateHashtag } from "@/lib/hashtag";
 import { ApiError, SessionExpiredError, updateMyProfile, updateNickname } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
 import { useToast } from "@/lib/app/ToastContext";
-import { NICKNAME_FORMAT_ERROR, NICKNAME_HINT, NICKNAME_MAX_LENGTH, isValidNickname } from "@/lib/nickname";
+import { NICKNAME_FORMAT_ERROR, NICKNAME_HINT, isValidNickname } from "@/lib/nickname";
 import type { NodeVisibility, ProfileData, ProfileHashtagSetting } from "@/lib/viewTypes";
 import { ProfileList } from "./ProfileList";
 import { toMyProfileUpdate } from "./toProfilePage";
@@ -152,7 +152,6 @@ export function ProfileEdit({ profile, hashtags: initialHashtags, pinnedSessions
                 setName(e.target.value);
                 setNameError(null);
               }}
-              maxLength={NICKNAME_MAX_LENGTH}
               aria-invalid={nameErrorText ? true : undefined}
               aria-describedby={nameErrorText ? "profile-nickname-error" : undefined}
               className={inputClass}

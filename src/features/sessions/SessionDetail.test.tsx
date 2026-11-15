@@ -34,6 +34,8 @@ describe("세션 상세 — 보기", () => {
     expect(screen.getByText("1시간 34분")).toBeInTheDocument();
     expect(screen.getByText("18개 페이지")).toBeInTheDocument();
     expect(screen.getByText("분석 완료")).toBeInTheDocument();
+    // QA-024-1: 상태 문구 앞 점 아이콘 없이 글자만
+    expect(screen.getByText("분석 완료").querySelector("svg")).toBeNull();
   });
 
   it("해시태그가 # 를 붙여 순서대로 보이고, 하나씩 지우는 버튼이 있다", async () => {
