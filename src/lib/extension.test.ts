@@ -6,6 +6,7 @@ import { setTokens } from "@/lib/auth/tokens";
 import {
   CONNECT_TIMEOUT_MS,
   EXTENSION_ID,
+  RECORD_TIMEOUT_MS,
   ExtensionMissingError,
   REPLY_TIMEOUT_MS,
   connectExtension,
@@ -13,6 +14,8 @@ import {
   getExtensionStatus,
   logoutExtension,
   markConnectAfterLogin,
+  startRecording,
+  stopRecording,
 } from "./extension";
 
 /** POST /auth/extension-code — 받은 Authorization 을 모아 두고 코드를 준다 */
@@ -37,8 +40,24 @@ describe("크롬 확장 연결 도구", () => {
   describe("상태 묻기", () => {
     it("확장이 답하면 로그인 여부 · 회원 id · 버전을 돌려주고, 고정 ID 로 JIN_STATUS 를 보낸다", async () => {
       const sent = installFakeExtension(() => ({ loggedIn: true, memberId: 12, version: "0.1.0" }));
-      expect(await getExtensionStatus()).toEqual({ loggedIn: true, memberId: 12, version: "0.1.0" });
+      expect(await getExtensionStatus()).toEqual({ loggedIn: true, memberId: 12, version: "0.1.0", recording: null, startedAt: null });
       expect(sent).toEqual([{ extensionId: EXTENSION_ID, message: { type: "JIN_STATUS" } }]);
+    });
+
+    it("수집 상태를 알려 주는 확장이면 기록 중 여부와 시작 시각도 돌려준다", async () => {
+      installFakeExtension(() => ({ loggedIn: true, memberId: 12, version: "0.3.2", recording: true, startedAt: 1_700_000_000_000 }));
+      expect(await getExtensionStatus()).toEqual({
+        loggedIn: true,
+        memberId: 12,
+        version: "0.3.2",
+        recording: true,
+        startedAt: 1_700_000_000_000,
+      });
+    });
+
+    it("기록 중이 아니면 시작 시각은 null", async () => {
+      installFakeExtension(() => ({ loggedIn: true, memberId: 12, version: "0.3.2", recording: false, startedAt: null }));
+      expect(await getExtensionStatus()).toMatchObject({ recording: false, startedAt: null });
     });
 
     it("chrome.runtime 이 없으면(확장 없음 · 크롬 아님) null", async () => {
@@ -115,6 +134,42 @@ describe("크롬 확장 연결 도구", () => {
       const p = connectExtension();
       const caught = p.catch((e: unknown) => e);
       await vi.advanceTimersByTimeAsync(CONNECT_TIMEOUT_MS);
+      expect(await caught).toEqual(new Error("확장 프로그램이 응답하지 않아요. 잠시 뒤 다시 시도해 주세요."));
+    });
+  });
+
+  describe("수집 시작 · 종료", () => {
+    it("JIN_START 를 보내고 확장이 알려 준 기록 상태를 돌려준다", async () => {
+      const sent = installFakeExtension(() => ({ ok: true, recording: true, startedAt: 1_000 }));
+      expect(await startRecording()).toEqual({ recording: true, startedAt: 1_000 });
+      expect(sent).toEqual([{ extensionId: EXTENSION_ID, message: { type: "JIN_START" } }]);
+    });
+
+    it("JIN_STOP 을 보내고 멈춘 상태를 돌려준다", async () => {
+      const sent = installFakeExtension(() => ({ ok: true, recording: false, startedAt: null }));
+      expect(await stopRecording()).toEqual({ recording: false, startedAt: null });
+      expect(sent.map((s) => s.message)).toEqual([{ type: "JIN_STOP" }]);
+    });
+
+    it("확장이 로그인 안 됨(no-login)으로 거절하면 알아볼 수 있는 문구로 바꿔 던진다", async () => {
+      installFakeExtension(() => ({ ok: false, why: "no-login" }));
+      await expect(startRecording()).rejects.toThrow("확장 프로그램에 로그인이 필요해요.");
+    });
+
+    it("모르는 거절 이유는 확장이 준 글자 그대로 던진다 (옛 확장: 모르는 메시지)", async () => {
+      installFakeExtension((m) => ({ ok: false, why: `모르는 메시지: ${m.type}` }));
+      await expect(stopRecording()).rejects.toThrow("모르는 메시지: JIN_STOP");
+    });
+
+    it("확장이 없으면 응답하지 않는다는 문구로 던진다", async () => {
+      await expect(startRecording()).rejects.toThrow("확장 프로그램이 응답하지 않아요. 잠시 뒤 다시 시도해 주세요.");
+    });
+
+    it("확장이 RECORD_TIMEOUT_MS 안에 답하지 않으면 응답하지 않는다는 문구로 던진다", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      installFakeExtension(() => NO_REPLY);
+      const caught = startRecording().catch((e: unknown) => e);
+      await vi.advanceTimersByTimeAsync(RECORD_TIMEOUT_MS);
       expect(await caught).toEqual(new Error("확장 프로그램이 응답하지 않아요. 잠시 뒤 다시 시도해 주세요."));
     });
   });

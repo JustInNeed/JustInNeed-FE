@@ -1,5 +1,6 @@
 // 크롬 확장(JustInNeed 실사용 버전)과 말하는 단일 지점.
-// - 메시지 규약은 확장 레포 service/bg-auth.js 와 같다: JIN_STATUS · JIN_CONNECT · JIN_LOGOUT
+// - 메시지 규약은 확장 레포 service/bg-auth.js 와 같다: JIN_STATUS · JIN_CONNECT · JIN_LOGOUT · JIN_START · JIN_STOP
+//   (JIN_STATUS 의 recording · startedAt 과 JIN_START · JIN_STOP 은 확장 #81. 그 전 확장은 모른다 → recording null)
 // - 확장은 웹 토큰을 같이 쓰지 않는다 (refresh 토큰이 1회용이라 나눠 쓰면 서로를 로그아웃시킴).
 //   웹이 연결 코드(POST /auth/extension-code)를 받아 넘기면 확장이 자기 전용 토큰으로 바꾼다
 // - 확장이 없거나(설치 안 함 · 꺼짐 · 크롬이 아님) 응답이 없으면 "없음"으로 본다. 웹은 확장 없이도 그대로 동작해야 한다
@@ -14,6 +15,8 @@ export const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID ?? "pgmclbgdbai
 // 연결 한도를 넘겨도 확장은 하던 연결을 마저 끝낸다 — 웹은 기다리기만 그만두고 [다시 시도]를 보여 준다
 export const REPLY_TIMEOUT_MS = 5_000;
 export const CONNECT_TIMEOUT_MS = 90_000;
+// 기록 시작 · 종료는 확장 엔진의 줄(serial)에 서서, 기록 조각을 보내는 중이면 잠깐 밀릴 수 있다
+export const RECORD_TIMEOUT_MS = 15_000;
 
 // 로그인 화면을 거쳐 돌아올 때 연결 페이지로 다시 오라는 표시 (탭마다 · OAuth 이동 동안 유지되는 sessionStorage)
 const CONNECT_AFTER_LOGIN_KEY = "jin_extension_connect";
@@ -22,7 +25,22 @@ export interface ExtensionStatus {
   loggedIn: boolean;
   memberId: number | null;
   version: string;
+  /** 기록 중인지. 수집 상태를 알려 주지 않는 옛 확장이면 null */
+  recording: boolean | null;
+  /** 기록을 시작한 시각(ms). 기록 중이 아니거나 모르면 null */
+  startedAt: number | null;
 }
+
+/** 기록 시작 · 종료 뒤의 확장 기록 상태 */
+export interface RecordingState {
+  recording: boolean;
+  startedAt: number | null;
+}
+
+// 확장이 거절 이유로 주는 짧은 코드 → 사용자 문구. 모르는 건 확장이 준 글자 그대로 보여 준다
+const WHY_TEXT: Record<string, string> = {
+  "no-login": "확장 프로그램에 로그인이 필요해요.",
+};
 
 /** 확장이 설치돼 있지 않음 (또는 꺼짐 · 크롬이 아님) */
 export class ExtensionMissingError extends Error {
@@ -38,6 +56,8 @@ interface Reply {
   loggedIn?: boolean;
   memberId?: number | null;
   version?: string;
+  recording?: boolean;
+  startedAt?: number | null;
 }
 
 interface ChromeRuntime {
@@ -77,7 +97,35 @@ function send(message: Record<string, unknown>, timeoutMs = REPLY_TIMEOUT_MS): P
 export async function getExtensionStatus(): Promise<ExtensionStatus | null> {
   const r = await send({ type: "JIN_STATUS" });
   if (!r || typeof r.loggedIn !== "boolean") return null;
-  return { loggedIn: r.loggedIn, memberId: r.memberId ?? null, version: r.version ?? "" };
+  const recording = typeof r.recording === "boolean" ? r.recording : null;
+  return {
+    loggedIn: r.loggedIn,
+    memberId: r.memberId ?? null,
+    version: r.version ?? "",
+    recording,
+    startedAt: recording && typeof r.startedAt === "number" ? r.startedAt : null,
+  };
+}
+
+// 기록 시작 · 종료 공통. 답이 없으면 "응답하지 않아요", 거절이면 확장이 준 이유(아는 코드는 문구로 바꿔서) Error
+async function recordCommand(type: "JIN_START" | "JIN_STOP"): Promise<RecordingState> {
+  const r = await send({ type }, RECORD_TIMEOUT_MS);
+  if (!r) throw new Error("확장 프로그램이 응답하지 않아요. 잠시 뒤 다시 시도해 주세요.");
+  if (!r.ok || typeof r.recording !== "boolean") {
+    const why = r.why ? (WHY_TEXT[r.why] ?? r.why) : null;
+    throw new Error(why || (type === "JIN_START" ? "수집을 시작하지 못했어요." : "수집을 종료하지 못했어요."));
+  }
+  return { recording: r.recording, startedAt: r.recording && typeof r.startedAt === "number" ? r.startedAt : null };
+}
+
+/** 확장 기록을 시작한다. 이미 기록 중이면 그 상태 그대로. 실패하면 Error(사용자에게 보여 줄 문구) */
+export function startRecording(): Promise<RecordingState> {
+  return recordCommand("JIN_START");
+}
+
+/** 확장 기록을 멈춘다. 이미 멈췄으면 그 상태 그대로. 실패하면 Error(사용자에게 보여 줄 문구) */
+export function stopRecording(): Promise<RecordingState> {
+  return recordCommand("JIN_STOP");
 }
 
 /**
