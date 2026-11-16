@@ -39,10 +39,9 @@ async function renderGroups() {
 }
 
 const sections = () => Array.from(document.querySelectorAll<HTMLElement>(".group"));
+// 그룹 머리 해시태그는 보기만 하는 칩(글자)이라 .chip 으로 찾는다 (QA-039)
 const headTags = (section: HTMLElement) =>
-  within(section.querySelector<HTMLElement>(".groupTags")!)
-    .getAllByRole("button")
-    .map((b) => b.textContent);
+  Array.from(section.querySelector<HTMLElement>(".groupTags")!.querySelectorAll(".chip"), (c) => c.textContent);
 const sectionHeads = () => sections().map(headTags);
 const sectionOf = (tag: string) => sections().find((s) => headTags(s).includes(`#${tag}`))!;
 

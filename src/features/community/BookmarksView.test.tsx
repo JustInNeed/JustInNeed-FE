@@ -100,8 +100,8 @@ describe("BookmarksView — 탭 · 목록", () => {
     await user.click(tab(/^해시태그 묶음/));
     expect(bundleTitles()).toEqual(["미술관 모음", "미술관 모음", "#호스텔 #무료투어"]);
     const first = document.querySelector<HTMLElement>(".bundleCard")!;
-    ["#루브르", "#오르세"].forEach((t) => expect(within(first).getByRole("button", { name: t })).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: "#호스텔" })).toBeNull();
+    ["#루브르", "#오르세"].forEach((t) => expect(within(first).getByText(t)).toBeInTheDocument());
+    expect(screen.queryByText("#호스텔")).toBeNull();
   });
 
   it("이름이 같은 묶음이어도 누른 묶음만 해제한다", async () => {

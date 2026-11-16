@@ -101,7 +101,7 @@ describe("세션 목록 — 카드", () => {
     expect(rome.getByText("1시간 34분")).toBeInTheDocument();
     expect(rome.getByText("18개 URL")).toBeInTheDocument();
     expect(rome.getByText("2026-04-26")).toBeInTheDocument();
-    expect(rome.getAllByRole("button", { name: /^#/ }).map((b) => b.textContent)).toEqual([
+    expect(rome.getAllByText(/^#/).map((b) => b.textContent)).toEqual([
       "#로마",
       "#콜로세움",
       "#바티칸",
@@ -114,7 +114,7 @@ describe("세션 목록 — 카드", () => {
   it("해시태그가 4개를 넘으면 앞의 4개만 보인다", async () => {
     renderSessions();
     await screen.findByRole("heading", { level: 3, name: MANY_TAGS_SESSION.title });
-    const chips = within(card(MANY_TAGS_SESSION.title)).getAllByRole("button", { name: /^#/ });
+    const chips = Array.from(card(MANY_TAGS_SESSION.title).querySelectorAll(".chip"));
     expect(chips.map((b) => b.textContent)).toEqual(["#리스본", "#포르투", "#에그타르트", "#트램"]);
   });
 
@@ -582,9 +582,7 @@ describe("세션 목록 — 즐겨찾기 보기", () => {
 describe("세션 목록 — 해시태그(그룹) 보기 전환", () => {
   const sectionHeads = () =>
     Array.from(document.querySelectorAll<HTMLElement>(".groupTags")).map((el) =>
-      within(el)
-        .getAllByRole("button")
-        .map((b) => b.textContent),
+      Array.from(el.querySelectorAll(".chip"), (c) => c.textContent),
     );
 
   it("해시태그를 누르면 그룹 보기로 바뀌고, 다시 누르면 목록으로 돌아온다", async () => {

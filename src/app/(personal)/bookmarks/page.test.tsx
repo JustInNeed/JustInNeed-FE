@@ -384,7 +384,7 @@ describe("/bookmarks 페이지 — 되돌리기", () => {
     );
     await waitFor(() => expect(document.querySelectorAll(".bundleCard")).toHaveLength(3));
     const first = document.querySelector<HTMLElement>(".bundleCard")!;
-    expect(within(first).getByRole("button", { name: "#프라도" })).toBeInTheDocument();
+    expect(within(first).getByText("#프라도")).toBeInTheDocument();
     await user.click(within(first).getByRole("button", { name: "북마크 해제" }));
     await waitFor(() => expect(calls.deleted).toEqual([String(SAME_NAME_BUNDLE.bookmarkId), "700"]));
   });

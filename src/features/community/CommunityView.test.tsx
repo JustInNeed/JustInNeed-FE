@@ -99,7 +99,7 @@ describe("CommunityView — 추천 피드", () => {
     expect(c.getByText("2026-10-30")).toBeInTheDocument();
     expect(c.getByText("노드 14")).toBeInTheDocument();
     expect(c.getByText(/프라하 → 비엔나/)).toBeInTheDocument();
-    ["#프라하", "#동유럽"].forEach((tag) => expect(c.getByRole("button", { name: tag })).toBeInTheDocument());
+    ["#프라하", "#동유럽"].forEach((tag) => expect(c.getByText(tag)).toBeInTheDocument());
     expect(button(card, "좋아요")).toHaveTextContent("28");
     expect(button(card, "북마크")).toHaveTextContent("9");
     expect(button(card, "나도 탐색중")).toHaveTextContent("나도 탐색중 12");

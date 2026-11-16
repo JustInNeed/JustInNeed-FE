@@ -8,6 +8,16 @@
   white-space: nowrap;
 }
 
+/* 글자(span)로 그릴 때 버튼 기본 모양과 맞춘다 (QA-039) */
+.static {
+  display: inline-block;
+  box-sizing: border-box;
+  line-height: normal;
+  letter-spacing: normal;
+  text-align: center;
+  cursor: default;
+}
+
 .sm {
   padding: 3px 9px;
   font-size: 11px;

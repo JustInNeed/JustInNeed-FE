@@ -20,7 +20,8 @@ const node = (label: string) => screen.getByText(label, { selector: "text" }).pa
 const relatedButton = () => screen.getByRole("button", { name: "관련 세션 보기" });
 const popover = () => relatedButton().parentElement!;
 const slot = (label: string) => screen.getByText(label).closest<HTMLElement>(".slot")!;
-const chipsIn = (el: HTMLElement) => within(el).queryAllByRole("button").map((b) => b.textContent);
+// 보기만 하는 해시태그 칩은 글자(span.chip)라 클래스로 찾는다 (QA-039)
+const chipsIn = (el: HTMLElement) => Array.from(el.querySelectorAll(".chip"), (c) => c.textContent);
 const sitesIn = (el: HTMLElement) => Array.from(el.querySelectorAll(".site")).map((s) => s.lastChild?.textContent);
 
 describe("홈 페이지 — 불러오기", () => {
