@@ -251,6 +251,17 @@ describe("해시태그 그룹 만들기", () => {
     expect(document.querySelector(".modal")).not.toBeInTheDocument();
     expect(bodies).toEqual([]);
   });
+
+  it("Esc 를 누르면 취소처럼 아무 요청 없이 닫힌다 (QA-040)", async () => {
+    const bodies = onCreate(() => ok(null));
+    const { user } = await renderGroups();
+    await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
+    await serverTagsLoaded();
+    await user.click(editorTag("로마"));
+    await user.keyboard("{Escape}");
+    expect(document.querySelector(".modal")).not.toBeInTheDocument();
+    expect(bodies).toEqual([]);
+  });
 });
 
 describe("해시태그 그룹 수정", () => {

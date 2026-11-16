@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon, Button } from "@/components/ui";
 import type { TagGroup } from "@/lib/api";
 import { MAX_HASHTAGS } from "@/lib/hashtag";
@@ -48,6 +48,15 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
     setDragIdx(null);
     setDragOverIdx(null);
   };
+
+  // Esc 로 닫는다 — 취소와 같이 고르던 해시태그는 저장하지 않는다 (QA-040)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onCancel]);
 
   const q = query.replace(/^#/, "").toLowerCase();
   const visibleTags = q ? allTags.filter((t) => t.toLowerCase().includes(q)) : allTags;
