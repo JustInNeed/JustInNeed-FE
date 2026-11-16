@@ -257,7 +257,9 @@ function HomeDashboard({ data }: { data: HomeData }) {
               <div className={styles.topTags}>
                 {data.topTags.map((r) => (
                   <div key={r.tag} className={styles.topTagRow}>
-                    <span className={styles.topTagName}>{r.tag}</span>
+                    <span className={styles.topTagName} title={r.tag}>
+                      {r.tag}
+                    </span>
                     <span className={styles.topTagCount}>{r.count}</span>
                   </div>
                 ))}

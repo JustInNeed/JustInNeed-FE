@@ -77,6 +77,15 @@ describe("홈 대시보드", () => {
     ]);
   });
 
+  it("상위 해시태그 이름은 칸보다 길면 말줄임되므로 마우스를 올리면 전체 이름이 보인다 (QA-034)", () => {
+    const topTags = [{ tag: "#반려견행동교정훈련법정리", count: 14 }, ...HOME_DATA.topTags.slice(1)];
+    renderPersonal(<HomeView data={{ ...HOME_DATA, topTags }} />);
+    const name = within(card("상위 해시태그")).getByText("#반려견행동교정훈련법정리");
+    expect(name).toHaveClass("topTagName");
+    expect(name).toHaveAttribute("title", "#반려견행동교정훈련법정리");
+    expect(name.parentElement).toHaveTextContent(/^#반려견행동교정훈련법정리14$/);
+  });
+
   it("오늘의 탐색 타임라인에 시간대별 해시태그와 방문 사이트가 보인다", () => {
     renderPersonal(<HomeView data={HOME_DATA} />);
     expect(screen.getByRole("heading", { name: "오늘의 탐색 타임라인" })).toBeInTheDocument();
