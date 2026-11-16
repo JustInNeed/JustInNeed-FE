@@ -361,6 +361,16 @@
   .grid {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* 통계 카드: 첫 칸(누적 노드)은 한 줄 전체, 나머지 두 칸은 아래 한 줄에 (QA-036 나안) */
+  .stats {
+    flex-wrap: wrap;
+  }
+  .stats > * {
+    flex: 1 1 0;
+  }
+  .stats > :first-child {
+    flex-basis: 100%;
+  }
   /* 요일 7칸이 카드 안에 들어가게 칸 간격 · 시간 글자를 줄인다 (QA-034) */
   .bars {
     gap: 4px;
