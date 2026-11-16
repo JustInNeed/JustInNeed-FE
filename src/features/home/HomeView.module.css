@@ -361,6 +361,12 @@
   .grid {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* 마인드맵: 영역을 정사각형(높이 = 너비)으로 낮추고 처음부터 조금 확대해 그린다 (QA-036 다안, HomeView GRAPH_INITIAL_ZOOM_NARROW).
+     높이를 고정값으로 두면 너비가 넓은 쪽(400~767px)에서 그래프가 커져 위아래 노드가 잘린다 */
+  .graphBox {
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
   /* 통계 카드: 첫 칸(누적 노드)은 한 줄 전체, 나머지 두 칸은 아래 한 줄에 (QA-036 나안) */
   .stats {
     flex-wrap: wrap;

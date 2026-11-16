@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HOME_DATA } from "@/test/fixtures/home";
 import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
-import { HomeView } from "./HomeView";
+import { GRAPH_INITIAL_ZOOM_NARROW, HomeView } from "./HomeView";
 
 beforeEach(() => {
   vi.spyOn(window, "requestAnimationFrame").mockReturnValue(0);
@@ -24,6 +24,18 @@ const popover = () => sessionButton()!.parentElement!;
 
 describe("그래프 줌", () => {
   const zoomOf = () => /scale\(([\d.]+)\)/.exec(node("파리").parentElement!.getAttribute("transform")!)![1];
+
+  it("좁은 화면(768px 미만)에서는 배율 1.7 로 시작한다 (QA-036)", () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...original(query), matches: query === "(max-width: 767.98px)" })) as typeof window.matchMedia;
+    try {
+      setup();
+      expect(Number(zoomOf())).toBeCloseTo(GRAPH_INITIAL_ZOOM_NARROW);
+      expect(GRAPH_INITIAL_ZOOM_NARROW).toBe(1.7);
+    } finally {
+      window.matchMedia = original;
+    }
+  });
 
   it("기본 배율 1.1 로 시작하고 + · - 버튼이 배율을 바꾼다", async () => {
     const { user } = setup();

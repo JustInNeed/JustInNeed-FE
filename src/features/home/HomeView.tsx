@@ -47,7 +47,20 @@ export function HomeView({ data, loading = false, error = null, onRetry }: HomeV
 }
 
 const GRAPH_INITIAL_ZOOM = 1.1;
+/**
+ * 좁은 화면(768px 미만)의 처음 배율. 그래프 영역은 정사각형으로 낮춘다 (HomeView.module.css).
+ * 정사각형이면 너비와 상관없이 노드(중심에서 반지름 290 안)가 영역의 약 90% 를 채우고, 라벨을 읽을 수 있다 (QA-036 다안, 확대를 약하게).
+ * 마인드맵은 끌기가 마우스만 되므로 휴대폰에서도 끌지 않고 다 보이게 둔다.
+ */
+export const GRAPH_INITIAL_ZOOM_NARROW = 1.7;
+const NARROW_QUERY = "(max-width: 767.98px)";
 const GRAPH_ZOOM_STEP = 1.2;
+
+/** 처음 배율 — 그래프를 처음 그릴 때의 화면 너비로 정한다 (그 뒤 창 크기를 바꿔도 그대로, +/- 로 조절) */
+function initialGraphZoom() {
+  const narrow = typeof window !== "undefined" && window.matchMedia?.(NARROW_QUERY).matches;
+  return narrow ? GRAPH_INITIAL_ZOOM_NARROW : GRAPH_INITIAL_ZOOM;
+}
 
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? String(n) : undefined);
 const trend = (n: number) => (n > 0 ? `↑ ${n}%` : n < 0 ? `↓ ${-n}%` : undefined);
@@ -66,6 +79,7 @@ function HomeDashboard({ data }: { data: HomeData }) {
   const [query, setQuery] = useState("");
   const toolsRef = useRef<HTMLDivElement>(null);
   const mindmapRef = useRef<MindmapHandle>(null);
+  const [initialZoom] = useState(initialGraphZoom);
 
   const dimmedIds = useMemo(() => dimmedNodeIds(graph, filter), [graph, filter]);
   // 세션 노드는 처음 놓인 방향으로 약하게 붙잡아 둔다
@@ -222,7 +236,7 @@ function HomeDashboard({ data }: { data: HomeData }) {
               edges={graph.edges}
               width={1100}
               height={700}
-              initialZoom={GRAPH_INITIAL_ZOOM}
+              initialZoom={initialZoom}
               selectedId={selected}
               onSelect={toggleSelect}
               hoveredId={hovered}
