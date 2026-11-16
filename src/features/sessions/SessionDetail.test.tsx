@@ -15,6 +15,15 @@ const isFilled = (el: HTMLElement) => el.querySelector("path")?.getAttribute("fi
 /** 제목 아래 해시태그 (드래그 가능한 칩) */
 const tagChips = () => screen.queryAllByTitle("드래그로 순서 변경");
 const tagTexts = () => tagChips().map((c) => c.textContent);
+/** 보기 중 해시태그 (글자 칩) */
+const viewTagTexts = () => Array.from(document.querySelectorAll(".tags .chip"), (c) => c.textContent);
+const ROME_MD = ROME_DETAIL.summary!.markdown;
+/** 편집을 눌러 해시태그를 바꿀 수 있는 상태로 (QA-041) */
+async function renderEditing(...args: Parameters<typeof renderDetail>) {
+  const view = await renderDetail(...args);
+  await view.user.click(screen.getByRole("button", { name: "편집" }));
+  return view;
+}
 
 const ROME_TAGS = ["#로마", "#콜로세움", "#바티칸", "#먹거리"];
 /** 백엔드 ErrorCode.INVALID_HASHTAG */
@@ -38,10 +47,12 @@ describe("세션 상세 — 보기", () => {
     expect(screen.getByText("분석 완료").querySelector("svg")).toBeNull();
   });
 
-  it("해시태그가 # 를 붙여 순서대로 보이고, 하나씩 지우는 버튼이 있다", async () => {
+  it("해시태그가 # 를 붙여 순서대로 보이고, 보기 중에는 지우기 · 추가 · 끌어 옮기기가 없다 (QA-041)", async () => {
     await renderDetail();
-    expect(tagTexts()).toEqual(ROME_TAGS);
-    for (const t of ROME_TAGS) expect(screen.getByRole("button", { name: `${t} 삭제` })).toBeInTheDocument();
+    expect(viewTagTexts()).toEqual(ROME_TAGS);
+    for (const t of ROME_TAGS) expect(screen.queryByRole("button", { name: `${t} 삭제` })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "추가" })).not.toBeInTheDocument();
+    expect(tagChips()).toHaveLength(0);
   });
 
   it("즐겨찾기 별은 채워져 있고, 비공개 세션이면 '비공개' 로 보인다", async () => {
@@ -197,7 +208,7 @@ describe("세션 상세 — 즐겨찾기 · 공개", () => {
   });
 });
 
-describe("세션 상세 — 해시태그 추가", () => {
+describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
   const popover = () => screen.getByText("해시태그 추가").closest<HTMLElement>(".popover")!;
   const input = () => screen.getByPlaceholderText("예: 로마");
   const openPicker = async (user: ReturnType<typeof renderPersonal>["user"]) => {
@@ -206,33 +217,42 @@ describe("세션 상세 — 해시태그 추가", () => {
   };
 
   it("추가를 누르면 입력창에 포커스가 간 팝오버가 열리고 규칙 안내가 보인다", async () => {
-    const { user } = await renderDetail();
+    const { user } = await renderEditing();
     const pop = await openPicker(user);
     expect(input()).toHaveFocus();
     expect(within(pop).getByText("Enter로 추가 · 한글/영문/숫자, 최대 10자")).toBeInTheDocument();
     expect(within(pop).getByRole("button", { name: "추가" })).toBeDisabled();
   });
 
-  it("입력하고 Enter 를 누르면 PATCH 에 기존 태그 뒤에 붙인 목록을 보내고 팝오버를 닫는다", async () => {
-    const { user, patches } = await renderDetail();
+  it("Enter 로 넣으면 바로 저장하지 않고 초안 태그 뒤에 붙고, 저장할 때 제목 · 본문과 함께 PATCH 로 간다", async () => {
+    const { user, patches } = await renderEditing();
     await openPicker(user);
     await user.type(input(), "트레비{Enter}");
 
     expect(screen.queryByText("해시태그 추가")).not.toBeInTheDocument();
     expect(tagTexts()).toEqual([...ROME_TAGS, "#트레비"]);
-    await waitFor(() => expect(patches).toEqual([{ tags: ["로마", "콜로세움", "바티칸", "먹거리", "트레비"] }]));
+    expect(patches).toEqual([]);
+
+    await user.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() =>
+      expect(patches).toEqual([
+        { title: ROME_DETAIL.title, editedMarkdown: ROME_MD, tags: ["로마", "콜로세움", "바티칸", "먹거리", "트레비"] },
+      ]),
+    );
+    expect(viewTagTexts()).toEqual([...ROME_TAGS, "#트레비"]);
   });
 
-  it("앞의 # 와 사이 공백은 빼고 저장하고, 추가 버튼으로도 넣을 수 있다", async () => {
-    const { user, patches } = await renderDetail();
+  it("앞의 # 와 사이 공백은 빼고 넣고, 추가 버튼으로도 넣을 수 있다", async () => {
+    const { user, patches } = await renderEditing();
     const pop = await openPicker(user);
     await user.type(input(), "#트레비 분수");
     await user.click(within(pop).getByRole("button", { name: "추가" }));
-    await waitFor(() => expect(patches).toEqual([{ tags: ["로마", "콜로세움", "바티칸", "먹거리", "트레비분수"] }]));
+    await user.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(patches[0]?.tags).toEqual(["로마", "콜로세움", "바티칸", "먹거리", "트레비분수"]));
   });
 
-  it("10자를 넘으면 오류를 보여 주고 저장하지 않는다, 다시 입력하면 오류가 사라진다", async () => {
-    const { user, patches } = await renderDetail();
+  it("10자를 넘으면 오류를 보여 주고 넣지 않는다, 다시 입력하면 오류가 사라진다", async () => {
+    const { user, patches } = await renderEditing();
     const pop = await openPicker(user);
     await user.type(input(), "가나다라마바사아자차카{Enter}");
     expect(within(pop).getByText("최대 10자까지 입력할 수 있어요.")).toBeInTheDocument();
@@ -244,14 +264,14 @@ describe("세션 상세 — 해시태그 추가", () => {
   });
 
   it("입력창은 12자에서 더 받지 않는다", async () => {
-    const { user } = await renderDetail();
+    const { user } = await renderEditing();
     await openPicker(user);
     await user.type(input(), "가나다라마바사아자차카타파하");
     expect(input()).toHaveValue("가나다라마바사아자차카타");
   });
 
   it("이미 있는 태그면 '이미 추가된 해시태그입니다.' 를 보여 준다", async () => {
-    const { user, patches } = await renderDetail();
+    const { user, patches } = await renderEditing();
     const pop = await openPicker(user);
     await user.type(input(), "#로마{Enter}");
     expect(within(pop).getByText("이미 추가된 해시태그입니다.")).toBeInTheDocument();
@@ -259,7 +279,7 @@ describe("세션 상세 — 해시태그 추가", () => {
   });
 
   it("특수문자가 있으면 한글 · 영문 · 숫자만 된다고 알려 준다", async () => {
-    const { user } = await renderDetail();
+    const { user } = await renderEditing();
     const pop = await openPicker(user);
     await user.type(input(), "로마!{Enter}");
     expect(within(pop).getByText("한글·영문·숫자만 사용할 수 있어요.")).toBeInTheDocument();
@@ -267,71 +287,83 @@ describe("세션 상세 — 해시태그 추가", () => {
 
   it("이미 10개면 더 추가할 수 없다고 알려 준다", async () => {
     const ten = Array.from({ length: 10 }, (_, i) => `태그${i}`);
-    const { user } = await renderDetail({ ...ROME_DETAIL, tags: ten });
+    const { user } = await renderEditing({ ...ROME_DETAIL, tags: ten });
     const pop = await openPicker(user);
     await user.type(input(), "새태그{Enter}");
     expect(within(pop).getByText("해시태그는 최대 10개까지 추가할 수 있어요.")).toBeInTheDocument();
   });
 
-  it("Esc 를 누르면 저장하지 않고 닫는다", async () => {
-    const { user, patches } = await renderDetail();
+  it("Esc 를 누르면 넣지 않고 닫는다", async () => {
+    const { user, patches } = await renderEditing();
     await openPicker(user);
     await user.type(input(), "트레비");
     await user.keyboard("{Escape}");
     expect(screen.queryByText("해시태그 추가")).not.toBeInTheDocument();
+    expect(tagTexts()).toEqual(ROME_TAGS);
     expect(patches).toEqual([]);
   });
 
   it("팝오버 바깥을 누르면 닫히고, 안쪽을 누르면 그대로다", async () => {
-    const { user } = await renderDetail();
+    const { user } = await renderEditing();
     const pop = await openPicker(user);
     await user.click(within(pop).getByText("해시태그 추가"));
     expect(screen.getByText("해시태그 추가")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("heading", { level: 1 }));
+    await user.click(screen.getByText(/개 페이지/));
     expect(screen.queryByText("해시태그 추가")).not.toBeInTheDocument();
   });
 
-  it("취소를 누르면 닫힌다", async () => {
-    const { user } = await renderDetail();
+  it("팝오버의 취소를 누르면 닫힌다", async () => {
+    const { user } = await renderEditing();
     const pop = await openPicker(user);
     await user.click(within(pop).getByRole("button", { name: "취소" }));
     expect(screen.queryByText("해시태그 추가")).not.toBeInTheDocument();
   });
 
-  it("추가 저장에 실패하면 태그를 되돌리고 토스트를 띄운다", async () => {
-    const { user } = await renderDetail(ROME_DETAIL, () => fail(400, INVALID_HASHTAG));
+  it("저장에 실패하면 토스트를 띄우고 편집 모드에 남아 넣은 태그를 지킨다", async () => {
+    const { user } = await renderEditing(ROME_DETAIL, () => fail(400, INVALID_HASHTAG));
     await openPicker(user);
     await user.type(input(), "트레비{Enter}");
+    await user.click(screen.getByRole("button", { name: "저장" }));
     expect(await screen.findByText(INVALID_HASHTAG)).toBeInTheDocument();
-    expect(tagTexts()).toEqual(ROME_TAGS);
+    expect(tagTexts()).toEqual([...ROME_TAGS, "#트레비"]);
+    expect(screen.getByPlaceholderText("세션 제목")).toBeInTheDocument();
   });
 });
 
-describe("세션 상세 — 해시태그 삭제 · 순서", () => {
-  it("× 를 누르면 그 태그만 빠진 목록을 PATCH 로 보낸다", async () => {
-    const { user, patches } = await renderDetail();
+describe("세션 상세 — 해시태그 삭제 · 순서 (편집 중, QA-041)", () => {
+  it("× 를 누르면 초안에서만 빠지고, 저장할 때 그 태그만 빠진 목록을 보낸다", async () => {
+    const { user, patches } = await renderEditing();
     await user.click(screen.getByRole("button", { name: "#콜로세움 삭제" }));
     expect(tagTexts()).toEqual(["#로마", "#바티칸", "#먹거리"]);
-    await waitFor(() => expect(patches).toEqual([{ tags: ["로마", "바티칸", "먹거리"] }]));
+    expect(patches).toEqual([]);
+
+    await user.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(patches[0]?.tags).toEqual(["로마", "바티칸", "먹거리"]));
+    expect(viewTagTexts()).toEqual(["#로마", "#바티칸", "#먹거리"]);
   });
 
-  it("삭제 저장에 실패하면 태그를 되살리고 토스트를 띄운다", async () => {
-    const g = gate();
-    const { user } = await renderDetail(ROME_DETAIL, async () => {
-      await g.opened;
-      return fail(500, SERVER_ERROR);
-    });
+  it("태그를 바꾼 채 취소하면 경고하고, '저장 안 하고 나가기' 면 원래 태그로 돌아간다", async () => {
+    const { user, patches } = await renderEditing();
     await user.click(screen.getByRole("button", { name: "#콜로세움 삭제" }));
-    expect(tagTexts()).toEqual(["#로마", "#바티칸", "#먹거리"]);
-    g.open();
+    await user.click(screen.getByRole("button", { name: "취소" }));
+    const dialog = screen.getByRole("dialog", { name: "저장하지 않은 변경 사항이 있어요" });
+    await user.click(within(dialog).getByRole("button", { name: "저장 안 하고 나가기" }));
 
-    expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
-    expect(tagTexts()).toEqual(ROME_TAGS);
+    expect(viewTagTexts()).toEqual(ROME_TAGS);
+    expect(patches).toEqual([]);
   });
 
-  it("태그를 끌어 다른 태그 위에 놓으면 바뀐 순서로 PATCH 를 보낸다", async () => {
-    const { patches } = await renderDetail();
+  it("제목 · 본문만 바꿔 저장하면 태그는 보내지 않는다", async () => {
+    const { user, patches } = await renderEditing();
+    await user.type(screen.getByPlaceholderText("세션 제목"), "!");
+    await user.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(patches).toHaveLength(1));
+    expect(patches[0]).not.toHaveProperty("tags");
+  });
+
+  it("태그를 끌어 다른 태그 위에 놓으면 초안 순서가 바뀌고, 저장할 때 그 순서로 보낸다", async () => {
+    const { user, patches } = await renderEditing();
     const [first, , third] = tagChips();
     const dataTransfer = { effectAllowed: "" };
     fireEvent.dragStart(first, { dataTransfer });
@@ -341,11 +373,13 @@ describe("세션 상세 — 해시태그 삭제 · 순서", () => {
     fireEvent.drop(third, { dataTransfer });
 
     expect(tagTexts()).toEqual(["#콜로세움", "#바티칸", "#로마", "#먹거리"]);
-    await waitFor(() => expect(patches).toEqual([{ tags: ["콜로세움", "바티칸", "로마", "먹거리"] }]));
+    expect(patches).toEqual([]);
+    await user.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(patches[0]?.tags).toEqual(["콜로세움", "바티칸", "로마", "먹거리"]));
   });
 
-  it("제자리에 놓으면 아무 요청도 보내지 않는다", async () => {
-    const { patches } = await renderDetail();
+  it("제자리에 놓으면 아무것도 바뀌지 않는다", async () => {
+    const { patches } = await renderEditing();
     const [first] = tagChips();
     const dataTransfer = { effectAllowed: "" };
     fireEvent.dragStart(first, { dataTransfer });

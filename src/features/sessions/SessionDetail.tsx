@@ -84,10 +84,12 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const [mapOpened, setMapOpened] = useState(false);
   const mapQuery = useApi<SessionMindmap>(() => getSessionMindmap(sessionId), [sessionId], { enabled: mapOpened });
 
-  // edit mode — 제목 + 본문(markdown) 편집
+  // edit mode — 제목 + 본문(markdown) + 해시태그 편집.
+  // 해시태그도 제목 · 본문처럼 초안에서 바꾸고 "저장"(· 자동 저장)할 때 함께 저장한다. 취소하면 버린다 (QA-041)
   const [editing, setEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftMarkdown, setDraftMarkdown] = useState("");
+  const [draftTags, setDraftTags] = useState<string[]>([]);
 
   // 30초 자동 저장 — 변경이 있을 때만 저장. 저장 / 취소 버튼 옆 회색 상태 문구, 실패는 토스트로만
   const [baseline, setBaseline] = useState("");
@@ -117,7 +119,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const [tagDragIdx, setTagDragIdx] = useState<number | null>(null);
   const [tagOverIdx, setTagOverIdx] = useState<number | null>(null);
 
-  const draftKey = JSON.stringify([draftTitle, draftMarkdown]);
+  const draftKey = JSON.stringify([draftTitle, draftMarkdown, draftTags]);
   const dirty = editing && draftKey !== baseline;
 
   useEffect(() => {
@@ -243,22 +245,19 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
 
   const toggleFavorite = () => persist({ isFavorite: !detail.isFavorite }, { isFavorite: !detail.isFavorite });
   const togglePublic = () => persist({ isPublic: !detail.isPublic }, { isPublic: !detail.isPublic });
+  // 해시태그 추가 · 삭제 · 순서 변경은 편집 초안만 바꾼다 (QA-041)
   const addTag = (raw: string) => {
-    const next = [...detail.tags, raw];
     setShowTagPicker(false);
-    persist({ tags: next }, { tags: next });
+    setDraftTags((tags) => [...tags, raw]);
   };
-  const removeTag = (tag: string) => {
-    const next = detail.tags.filter((t) => t !== tag);
-    persist({ tags: next }, { tags: next });
-  };
+  const removeTag = (tag: string) => setDraftTags((tags) => tags.filter((t) => t !== tag));
 
   const onTagDrop = (i: number) => {
     if (tagDragIdx !== null && tagDragIdx !== i) {
-      const next = [...detail.tags];
+      const next = [...draftTags];
       const [moved] = next.splice(tagDragIdx, 1);
       next.splice(i, 0, moved);
-      persist({ tags: next }, { tags: next });
+      setDraftTags(next);
     }
     setTagDragIdx(null);
     setTagOverIdx(null);
@@ -269,7 +268,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     const markdown = detail.summary?.markdown ?? "";
     setDraftTitle(title);
     setDraftMarkdown(markdown);
-    setBaseline(JSON.stringify([title, markdown]));
+    setDraftTags(detail.tags);
+    setShowTagPicker(false);
+    setBaseline(JSON.stringify([title, markdown, detail.tags]));
     setAutoSave("none");
     setView("text");
     setEditing(true);
@@ -277,13 +278,16 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
 
   // 편집 모드는 유지한 채 초안만 저장 (자동 저장 · 저장하고 나가기).
   // 자동 저장(draft)은 카드 동기화를 미루고, 저장하고 나가기는 바로 맞춘다 (QA-030)
+  // 해시태그는 바뀌었을 때만 보낸다 — 태그가 오면 BE 가 커뮤니티 카드를 바로 맞춘다
+  const tagsChanged = JSON.stringify(draftTags) !== JSON.stringify(detail.tags);
   const saveDraft = async (failMessage: string, draft: boolean): Promise<boolean> => {
     if (savingRef.current) return false;
     savingRef.current = true;
     const key = draftKey;
     const body = { title: draftTitle, editedMarkdown: draftMarkdown };
+    const withTags = tagsChanged ? { ...body, tags: draftTags } : body;
     try {
-      const updated = await updateSession(detail.id, draft ? { ...body, draft: true } : body);
+      const updated = await updateSession(detail.id, draft ? { ...withTags, draft: true } : withTags);
       pendingCardSync.current = draft ? body : null;
       setDetail(updated);
       setBaseline(key);
@@ -354,10 +358,11 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     savingRef.current = true;
     try {
       const ok = await persist(
-        { title: draftTitle, editedMarkdown: draftMarkdown },
+        { title: draftTitle, editedMarkdown: draftMarkdown, ...(tagsChanged ? { tags: draftTags } : {}) },
         {
           title: draftTitle,
           summary: detail.summary ? { ...detail.summary, markdown: draftMarkdown } : { markdown: draftMarkdown },
+          tags: draftTags,
         },
       );
       if (ok) setEditing(false);
@@ -420,10 +425,11 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
               </span>
             </div>
 
+            {/* 해시태그 × · 추가 · 끌어서 순서 바꾸기는 편집 중에만 (QA-041) */}
             <div className={styles.tags}>
-              {detail.isOwner ? (
+              {detail.isOwner && editing ? (
                 <>
-                  {detail.tags.map((h, i) => (
+                  {draftTags.map((h, i) => (
                     <span
                       key={h}
                       draggable
@@ -472,7 +478,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                     </button>
                     {showTagPicker && (
                       <AddHashtagPopover
-                        existing={detail.tags}
+                        existing={draftTags}
                         onClose={() => setShowTagPicker(false)}
                         onAdd={addTag}
                       />
