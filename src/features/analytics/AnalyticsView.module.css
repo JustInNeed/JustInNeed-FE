@@ -25,6 +25,13 @@
 .card {
   padding: 22px;
 }
+/* 두 칸일 때 칸마다 카드를 위로 붙여 쌓는다 — 옆 카드 높이 때문에 생기던 빈 공간 없앰 (QA-032 A안) */
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
 .cardHead {
   display: flex;
   align-items: center;
@@ -315,6 +322,22 @@
 @media (max-width: 767.98px) {
   .grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+  /* 한 칸일 때는 칸 묶음을 풀고 원래 순서(탐색 성향 → 읽기 행동 분포 → 카테고리 → 시간대)로 쌓는다 (QA-032) */
+  .col {
+    display: contents;
+  }
+  .orderExploration {
+    order: 1;
+  }
+  .orderReading {
+    order: 2;
+  }
+  .orderCategories {
+    order: 3;
+  }
+  .orderTime {
+    order: 4;
   }
   /* 오른쪽 아래 넘김 점 자리(80px)를 비우는 대신 아래 여백으로 */
   .bannerBody {

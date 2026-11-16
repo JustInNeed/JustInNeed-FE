@@ -167,6 +167,22 @@ describe("롤링 배너", () => {
 });
 
 describe("분석 카드", () => {
+  it("두 칸 배치에서 칸마다 카드를 이어 쌓는다 — 왼쪽 탐색 성향 · 카테고리, 오른쪽 읽기 행동 분포 · 시간대 (QA-032)", () => {
+    setup();
+    const columnOf = (title: string) => cardOf(title).parentElement!;
+    const titlesIn = (col: HTMLElement) => Array.from(col.querySelectorAll("h3")).map((h) => h.textContent);
+    expect(columnOf("탐색 성향")).toHaveClass("col");
+    expect(titlesIn(columnOf("탐색 성향"))).toEqual(["탐색 성향", "카테고리별 방문 비율"]);
+    expect(titlesIn(columnOf("읽기 행동 분포"))).toEqual(["읽기 행동 분포", "시간대별 탐색 패턴"]);
+    // 한 칸(좁은 화면)일 때 원래 순서로 놓기 위한 순서 클래스
+    expect(["탐색 성향", "읽기 행동 분포", "카테고리별 방문 비율", "시간대별 탐색 패턴"].map((t) => cardOf(t).className.match(/order\w+/)?.[0])).toEqual([
+      "orderExploration",
+      "orderReading",
+      "orderCategories",
+      "orderTime",
+    ]);
+  });
+
   it("탐색 성향 통계와 분석 · 추천 문구가 보인다", () => {
     setup();
     const card = cardOf("탐색 성향");

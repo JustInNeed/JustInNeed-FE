@@ -94,78 +94,85 @@ function AnalyticsBody({ cards, tips, random }: { cards: AnalyticsCards; tips: B
         random={random}
       />
 
-      <Card className={styles.card}>
-        <div className={styles.cardHead}>
-          <h3 className={styles.cardTitle}>탐색 성향</h3>
-          <span className={styles.cardSub}>매일 업데이트</span>
-        </div>
-        <CardContent card={cards.exploration}>
-          {(exploration) => (
-            <>
-              <ExplorationStats exploration={exploration} />
-              <AnalysisRecBox note={exploration.note} />
-            </>
-          )}
-        </CardContent>
-      </Card>
+      {/* 두 칸일 때 칸마다 카드를 위로 붙여 쌓는다 — 옆 카드 높이 때문에 생기던 빈 공간을 없앤다 (QA-032 A안).
+          왼쪽: 탐색 성향 → 카테고리, 오른쪽: 읽기 행동 분포 → 시간대. 한 칸(768px 미만)일 때는 order 로 원래 순서대로 */}
+      <div className={styles.col}>
+        <Card className={`${styles.card} ${styles.orderExploration}`}>
+          <div className={styles.cardHead}>
+            <h3 className={styles.cardTitle}>탐색 성향</h3>
+            <span className={styles.cardSub}>매일 업데이트</span>
+          </div>
+          <CardContent card={cards.exploration}>
+            {(exploration) => (
+              <>
+                <ExplorationStats exploration={exploration} />
+                <AnalysisRecBox note={exploration.note} />
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card className={styles.card}>
-        <div className={styles.cardHead}>
-          <h3 className={styles.cardTitle}>읽기 행동 분포</h3>
-          <span className={styles.cardSub}>최근 7일 · 세션별 집중도</span>
-        </div>
-        <CardContent card={cards.readingBehavior}>
-          {({ shares, note }) => (
-            <>
-              <ReadingBehaviorBar shares={shares} />
-              <AnalysisRecBox note={note} />
-            </>
-          )}
-        </CardContent>
-      </Card>
+        <Card className={`${styles.card} ${styles.orderCategories}`}>
+          <div className={styles.cardHead}>
+            <h3 className={styles.cardTitle}>카테고리별 방문 비율</h3>
+            <span className={styles.cardSub}>최근 7일</span>
+          </div>
+          <CardContent card={cards.categories}>
+            {({ categories, note }) => (
+              <>
+                {categories.map((c) => (
+                  <div key={c.name} className={styles.catRow}>
+                    <div className={styles.catHead}>
+                      <span className={styles.catName}>{c.name}</span>
+                      <span className={styles.catMeta}>{c.pct}% · {c.count}회</span>
+                    </div>
+                    <div className={styles.catTrack}>
+                      <div className={styles.catBar} style={{ width: `${c.pct}%` }} />
+                    </div>
+                  </div>
+                ))}
+                <AnalysisRecBox note={note} />
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card className={styles.card}>
-        <div className={styles.cardHead}>
-          <h3 className={styles.cardTitle}>카테고리별 방문 비율</h3>
-          <span className={styles.cardSub}>최근 7일</span>
-        </div>
-        <CardContent card={cards.categories}>
-          {({ categories, note }) => (
-            <>
-              {categories.map((c) => (
-                <div key={c.name} className={styles.catRow}>
-                  <div className={styles.catHead}>
-                    <span className={styles.catName}>{c.name}</span>
-                    <span className={styles.catMeta}>{c.pct}% · {c.count}회</span>
-                  </div>
-                  <div className={styles.catTrack}>
-                    <div className={styles.catBar} style={{ width: `${c.pct}%` }} />
-                  </div>
+      </div>
+
+      <div className={styles.col}>
+        <Card className={`${styles.card} ${styles.orderReading}`}>
+          <div className={styles.cardHead}>
+            <h3 className={styles.cardTitle}>읽기 행동 분포</h3>
+            <span className={styles.cardSub}>최근 7일 · 세션별 집중도</span>
+          </div>
+          <CardContent card={cards.readingBehavior}>
+            {({ shares, note }) => (
+              <>
+                <ReadingBehaviorBar shares={shares} />
+                <AnalysisRecBox note={note} />
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className={`${styles.card} ${styles.orderTime}`}>
+          <div className={styles.cardHead}>
+            <h3 className={styles.cardTitle}>시간대별 탐색 패턴</h3>
+            <span className={styles.cardSub}>최근 7일</span>
+          </div>
+          <CardContent card={cards.timePatterns}>
+            {({ surfing, focus, note }) => (
+              <>
+                <div className={styles.heatmaps}>
+                  <HeatBlock data={surfing} label="활동이 많은 시간" sub="본 분량 기준" rgb="100,116,139" />
+                  <HeatBlock data={focus} label="정독 비율" sub="Deep + Reading" rgb="95,207,62" />
                 </div>
-              ))}
-              <AnalysisRecBox note={note} />
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className={styles.card}>
-        <div className={styles.cardHead}>
-          <h3 className={styles.cardTitle}>시간대별 탐색 패턴</h3>
-          <span className={styles.cardSub}>최근 7일</span>
-        </div>
-        <CardContent card={cards.timePatterns}>
-          {({ surfing, focus, note }) => (
-            <>
-              <div className={styles.heatmaps}>
-                <HeatBlock data={surfing} label="활동이 많은 시간" sub="본 분량 기준" rgb="100,116,139" />
-                <HeatBlock data={focus} label="정독 비율" sub="Deep + Reading" rgb="95,207,62" />
-              </div>
-              <AnalysisRecBox note={note} />
-            </>
-          )}
-        </CardContent>
-      </Card>
+                <AnalysisRecBox note={note} />
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
