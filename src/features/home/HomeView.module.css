@@ -357,4 +357,12 @@
   .grid {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* 요일 7칸이 카드 안에 들어가게 칸 간격 · 시간 글자를 줄인다 (QA-034) */
+  .bars {
+    gap: 4px;
+  }
+  .barValue {
+    font-size: 10px;
+    letter-spacing: -0.02em;
+  }
 }
