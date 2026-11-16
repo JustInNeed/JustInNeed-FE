@@ -195,6 +195,22 @@ describe("그래프 필터", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(filterButton()).toHaveAttribute("aria-expanded", "false");
   });
+
+  it("Esc 를 누르면 고르던 조건은 적용하지 않고 닫히며, 포커스가 필터 버튼으로 돌아온다 (QA-035)", async () => {
+    const { user } = setup();
+    await user.click(filterButton());
+    await user.click(within(filterDialog()).getByRole("button", { name: "#바르셀로나" }));
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(filterButton()).toHaveAttribute("aria-expanded", "false");
+    expect(filterButton()).toHaveFocus();
+    expect(filterButton()).not.toHaveClass("iconBtnOn");
+    expect(node("로마")).toHaveStyle(NORMAL);
+
+    await user.click(filterButton());
+    expect(within(filterDialog()).getByRole("button", { name: "#바르셀로나" })).toHaveAttribute("aria-pressed", "false");
+  });
 });
 
 describe("그래프 검색", () => {

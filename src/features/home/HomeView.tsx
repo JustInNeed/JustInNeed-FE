@@ -96,6 +96,19 @@ function HomeDashboard({ data }: { data: HomeData }) {
     return () => document.removeEventListener("mousedown", onDown);
   }, [filterOpen, searchOpen]);
 
+  // 필터 팝오버는 Esc 로도 닫는다 — 고르던 건 적용하지 않고, 포커스는 필터 버튼으로 (QA-035). 검색은 GraphSearch 가 Esc 를 처리한다
+  const filterBtnRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!filterOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setFilterOpen(false);
+      filterBtnRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [filterOpen]);
+
   // 선택한 노드를 다시 누르면 선택을 푼다. 마우스가 아직 그 노드 위라 호버로 다시 강조되지 않게,
   // 그 노드에서 마우스가 나갈 때까지 호버를 무시한다 (QA-008)
   // 검색에서 세션을 고르면 이동이 끝날 때까지 그 행에 "여는 중…"을 띄우고 다시 누르기를 막는다 (QA-009)
@@ -135,6 +148,7 @@ function HomeDashboard({ data }: { data: HomeData }) {
           <>
             <div className={styles.graphTools} ref={toolsRef}>
               <button
+                ref={filterBtnRef}
                 className={`${styles.iconBtn} ${filterActive ? styles.iconBtnOn : ""}`}
                 aria-label="필터"
                 aria-expanded={filterOpen}
