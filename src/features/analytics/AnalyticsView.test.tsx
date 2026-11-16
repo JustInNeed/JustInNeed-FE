@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { UseApiResult } from "@/lib/hooks/useApi";
 import {
@@ -111,6 +111,40 @@ describe("롤링 배너", () => {
     act(() => vi.advanceTimersByTime(5000));
     expect(screen.getByText("이번 주 인사이트")).toBeInTheDocument();
     expect(dot(1)).toHaveAttribute("aria-current", "true");
+  });
+
+  it("마우스를 배너에 올려 두면 넘어가지 않고, 떼면 5초 뒤 다시 넘어간다 (QA-037)", () => {
+    vi.useFakeTimers();
+    setup();
+    const banner = screen.getByText("이번 주 인사이트").closest<HTMLElement>(".banner")!;
+
+    fireEvent.mouseEnter(banner);
+    act(() => vi.advanceTimersByTime(12000));
+    expect(screen.getByText("이번 주 인사이트")).toBeInTheDocument();
+
+    fireEvent.mouseLeave(banner);
+    act(() => vi.advanceTimersByTime(4999));
+    expect(screen.getByText("이번 주 인사이트")).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByText("오늘의 웹 서핑 팁")).toBeInTheDocument();
+  });
+
+  it("키보드 포커스가 배너 안 점에 있으면 넘어가지 않고, 포커스가 배너 밖으로 나가면 다시 넘어간다 (QA-037)", () => {
+    vi.useFakeTimers();
+    setup();
+    act(() => dot(2).focus());
+    expect(screen.getByText("이번 주 인사이트")).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(12000));
+    expect(screen.getByText("이번 주 인사이트")).toBeInTheDocument();
+
+    // 배너 안에서 다른 점으로 옮겨도 멈춘 채
+    act(() => dot(3).focus());
+    act(() => vi.advanceTimersByTime(6000));
+    expect(screen.getByText("이번 주 인사이트")).toBeInTheDocument();
+
+    act(() => dot(3).blur());
+    act(() => vi.advanceTimersByTime(5000));
+    expect(screen.getByText("오늘의 웹 서핑 팁")).toBeInTheDocument();
   });
 
   it("이번 주 세션이 없으면 인사이트 없이 팁 · 추천 두 장만 보여준다", () => {
