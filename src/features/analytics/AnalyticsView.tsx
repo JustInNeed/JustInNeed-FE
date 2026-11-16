@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Icon, Card, PageHeader, InlineState, type IconName } from "@/components/ui";
 import type {
   AnalysisNote,
@@ -347,7 +347,8 @@ function RollingBanner({ sessions, tips, recs, random }: RollingBannerProps) {
             className={styles.dot}
             aria-label={`슬라이드 ${idx + 1}`}
             aria-current={idx === current}
-            style={{ width: idx === current ? 20 : 6, background: idx === current ? "var(--green-600)" : "var(--green-200)" }}
+            // 버튼은 누를 수 있는 투명한 영역, 보이는 점은 .dot::before 가 이 색으로 그린다 (QA-037)
+            style={{ width: idx === current ? 20 : 6, ["--dot-color" as string]: idx === current ? "var(--green-600)" : "var(--green-200)" } as CSSProperties}
           />
         ))}
       </div>
