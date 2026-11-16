@@ -131,6 +131,23 @@ describe("세션 목록 — 카드", () => {
     expect(isFilled(starOf(FLIGHTS.title))).toBe(false);
   });
 
+  it("별 · 머리말 보기 버튼은 켜짐 상태를 aria-pressed 로 알린다 (QA-039)", async () => {
+    const { user } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: ROME.title });
+    expect(starOf(ROME.title)).toHaveAttribute("aria-pressed", "true");
+    expect(starOf(FLIGHTS.title)).toHaveAttribute("aria-pressed", "false");
+
+    expect(favFilter()).toHaveAttribute("aria-pressed", "false");
+    await user.click(favFilter());
+    expect(favFilter()).toHaveAttribute("aria-pressed", "true");
+
+    const groupBtn = screen.getByText("해시태그", { selector: "button" });
+    expect(groupBtn).toHaveAttribute("aria-pressed", "false");
+    await user.click(groupBtn);
+    expect(groupBtn).toHaveAttribute("aria-pressed", "true");
+    expect(favFilter()).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("카드를 누르면 그 세션 상세로 이동한다", async () => {
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: FLIGHTS.title });

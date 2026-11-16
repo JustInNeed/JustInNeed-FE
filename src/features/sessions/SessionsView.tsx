@@ -267,6 +267,7 @@ export function SessionsView() {
             <Button
               variant="secondary"
               active={favOnly && view === "list"}
+              aria-pressed={favOnly && view === "list"}
               onClick={() => {
                 setView("list");
                 setFavOnly((v) => !v);
@@ -278,6 +279,7 @@ export function SessionsView() {
             <Button
               variant="secondary"
               active={view === "group"}
+              aria-pressed={view === "group"}
               onClick={() => setView((v) => (v === "group" ? "list" : "group"))}
             >
               해시태그

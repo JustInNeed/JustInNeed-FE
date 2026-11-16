@@ -46,6 +46,7 @@ export function SessionCard({ session, onClick, onToggleFavorite, marks }: Sessi
               onToggleFavorite(session.id);
             }}
             aria-label="즐겨찾기"
+            aria-pressed={session.isFavorite}
           >
             <Icon name={session.isFavorite ? "starFilled" : "star"} size={16} />
           </button>
