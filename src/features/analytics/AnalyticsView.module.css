@@ -17,7 +17,8 @@
 .grid {
   padding: 0 28px 28px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* 히트맵 최소 너비 때문에 한 칸이 넓어지지 않게 minmax(0, …) — 768px 에서 325 · 372px 로 갈리던 것 (QA-038) */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-items: start;
 }
@@ -279,7 +280,7 @@
 }
 .heatGrid {
   display: grid;
-  grid-template-columns: 20px repeat(8, 1fr);
+  grid-template-columns: 20px repeat(8, minmax(0, 1fr));
   gap: 3px;
 }
 .heatAxis {
@@ -309,8 +310,5 @@
   }
   .banner {
     padding-bottom: 36px;
-  }
-  .heatGrid {
-    grid-template-columns: 20px repeat(8, minmax(0, 1fr));
   }
 }
