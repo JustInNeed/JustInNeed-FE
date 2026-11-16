@@ -252,6 +252,27 @@ describe("해시태그 그룹 만들기", () => {
     expect(bodies).toEqual([]);
   });
 
+  it("편집기는 제목이 붙은 대화상자이고, Tab · Shift+Tab 이 창 안에서만 돈다 (QA-040)", async () => {
+    const { user } = await renderGroups();
+    await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
+    await serverTagsLoaded();
+    const dialog = screen.getByRole("dialog", { name: "새 그룹 만들기" });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+
+    // 처음엔 검색 칸 → Tab 을 넉넉히 눌러도 창 밖으로 나가지 않는다
+    expect(within(dialog).getByPlaceholderText("해시태그 검색")).toHaveFocus();
+    for (let i = 0; i < 60; i++) {
+      await user.tab();
+      expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    }
+    // 첫 버튼(닫기)에서 Shift+Tab 은 마지막 버튼(취소, "그룹 만들기"는 비활성)으로
+    within(dialog).getByRole("button", { name: "닫기" }).focus();
+    await user.tab({ shift: true });
+    expect(within(dialog).getByRole("button", { name: "취소" })).toHaveFocus();
+    await user.tab();
+    expect(within(dialog).getByRole("button", { name: "닫기" })).toHaveFocus();
+  });
+
   it("Esc 를 누르면 취소처럼 아무 요청 없이 닫힌다 (QA-040)", async () => {
     const bodies = onCreate(() => ok(null));
     const { user } = await renderGroups();
