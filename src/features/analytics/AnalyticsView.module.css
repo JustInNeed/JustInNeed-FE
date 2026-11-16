@@ -172,15 +172,18 @@
   font-size: 12px;
   font-weight: 600;
 }
+/* 점은 6px 이지만 누를 수 있는 영역은 둘레 여백(위아래 9 · 좌우 3)까지 넓힌다. 보이는 위치 · 간격(6px)은 그대로 (QA-037) */
 .dots {
   position: absolute;
-  bottom: 16px;
-  right: 20px;
+  bottom: 7px;
+  right: 17px;
   display: flex;
-  gap: 6px;
 }
 .dot {
+  box-sizing: content-box;
   height: 6px;
+  padding: 9px 3px;
+  background-clip: content-box;
   border-radius: 999px;
   transition: all 0.25s;
 }
