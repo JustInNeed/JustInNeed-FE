@@ -41,9 +41,9 @@ const BUNDLE_NAME_MAX_LENGTH = 30;
 const BUNDLE_FORM_BUTTON = { padding: "6px 12px" };
 
 /** 세션 탭 — 내 프로필은 공개 · 비공개 전부, 다른 사용자는 공개 세션 전부. 프로필과 따로 받는다 */
-export interface ProfileSessionsSection extends ProfileListSection {
+export type ProfileSessionsSection = ProfileListSection & {
   sessions: MySession[];
-}
+};
 
 export interface ProfileViewProps {
   /** 다른 사용자 id. 없으면 내 프로필 */

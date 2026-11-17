@@ -16,6 +16,7 @@ import {
   type SessionListItem,
 } from "@/lib/api";
 import { useApi } from "@/lib/hooks/useApi";
+import type { ProfileListSection } from "./ProfileList";
 import { toFullMindmap, toMyProfileMindmap, toProfileMindmap, toSession } from "./toProfilePage";
 
 const CARD_PAGE_SIZE = 12;
@@ -36,12 +37,12 @@ export function useCommunityProfile(userId: number | null, enabled: boolean) {
   return { ...query, notFound: !!query.error && errorStatus === 404 };
 }
 
-/** 페이지를 이어 붙이는 목록. 실패하면 그 페이지만 다시 받는다 */
+/** 페이지를 이어 붙이는 목록 (더 보기). 실패하면 그 페이지만 다시 받는다 */
 function usePagedList<T extends { id: string | number }>(
   fetchPage: (page: number) => Promise<{ items: T[]; hasNext: boolean }>,
   deps: unknown[],
   enabled: boolean,
-) {
+): { items: T[]; section: ProfileListSection } {
   const [page, setPage] = useState(0);
   const [items, setItems] = useState<T[]>([]);
   const { data, error, loading, refetch } = useApi(() => fetchPage(page), [...deps, page], { enabled });
@@ -54,15 +55,36 @@ function usePagedList<T extends { id: string | number }>(
 
   const hasNext = data?.hasNext ?? false;
   const onLoadMore = useCallback(() => setPage((p) => p + 1), []);
-  return { items, section: { loading, error, onRetry: refetch, hasNext, onLoadMore } };
+  return { items, section: { kind: "more", loading, error, onRetry: refetch, hasNext, onLoadMore } };
+}
+
+/** 페이지 번호로 한 페이지씩 보여주는 목록. 다음 페이지를 받는 동안·실패해도 보던 페이지는 그대로 둔다 */
+function usePagedPages<T>(
+  fetchPage: (page: number) => Promise<{ items: T[]; totalPages: number }>,
+  deps: unknown[],
+  enabled: boolean,
+): { items: T[]; section: ProfileListSection } {
+  const [page, setPage] = useState(0);
+  const [shown, setShown] = useState<{ items: T[]; totalPages: number }>({ items: [], totalPages: 0 });
+  const { data, error, loading, refetch } = useApi(() => fetchPage(page), [...deps, page], { enabled });
+
+  useEffect(() => {
+    if (data) setShown(data);
+  }, [data]);
+
+  const onPageChange = useCallback((next: number) => setPage(next), []);
+  return {
+    items: shown.items,
+    section: { kind: "pages", loading, error, onRetry: refetch, page, totalPages: shown.totalPages, onPageChange },
+  };
 }
 
 /** 다른 사용자의 마인드맵 탭 카드 */
 export function useProfileCards(userId: number | null, enabled: boolean) {
-  const { items, section } = usePagedList(
+  const { items, section } = usePagedPages(
     async (page) => {
-      const { mindmaps, hasNext } = await getProfileCards(userId!, page, CARD_PAGE_SIZE);
-      return { items: mindmaps.map(toProfileMindmap), hasNext };
+      const { mindmaps, totalPages } = await getProfileCards(userId!, page, CARD_PAGE_SIZE);
+      return { items: mindmaps.map(toProfileMindmap), totalPages };
     },
     [userId],
     enabled,
@@ -72,10 +94,10 @@ export function useProfileCards(userId: number | null, enabled: boolean) {
 
 /** 다른 사용자의 세션 탭 — 공개 세션 전부, 핀고정이 먼저 */
 export function useSharedSessions(userId: number | null, enabled: boolean) {
-  return usePagedList(
+  return usePagedPages(
     async (page) => {
-      const { sessions, hasNext } = await getSharedSessions(userId!, page, SESSION_PAGE_SIZE);
-      return { items: sessions.map(toSession), hasNext };
+      const { sessions, totalPages } = await getSharedSessions(userId!, page, SESSION_PAGE_SIZE);
+      return { items: sessions.map(toSession), totalPages };
     },
     [userId],
     enabled,
@@ -84,10 +106,10 @@ export function useSharedSessions(userId: number | null, enabled: boolean) {
 
 /** 내 마인드맵 탭 카드 — 비공개 포함, 핀고정이 먼저 */
 export function useMyCards() {
-  const { items, section } = usePagedList(
+  const { items, section } = usePagedPages(
     async (page) => {
-      const { mindmaps, hasNext } = await getMyCards(page, CARD_PAGE_SIZE);
-      return { items: mindmaps.map(toMyProfileMindmap), hasNext };
+      const { mindmaps, totalPages } = await getMyCards(page, CARD_PAGE_SIZE);
+      return { items: mindmaps.map(toMyProfileMindmap), totalPages };
     },
     [],
     true,
@@ -95,14 +117,26 @@ export function useMyCards() {
   return { cards: items, section };
 }
 
-/** 내 세션 — 세션 탭은 전부, 프로필 수정의 핀고정 후보는 공개 세션만 */
-export function useMySessions(publicOnly = false) {
+/** 내 세션 탭 — 공개 · 비공개 전부, 페이지 번호로 */
+export function useMySessions() {
+  return usePagedPages(
+    async (page) => {
+      const { sessions, totalPages } = await getMySessions(page, SESSION_PAGE_SIZE);
+      return { items: sessions, totalPages };
+    },
+    [],
+    true,
+  );
+}
+
+/** 프로필 수정의 핀고정 후보 — 공개 세션만. 고정 순서를 받은 세션 안에서 찾으므로 더 보기로 이어 붙인다 */
+export function useMyPinCandidates() {
   return usePagedList(
     async (page) => {
-      const { sessions, hasNext } = await getMySessions(page, SESSION_PAGE_SIZE, publicOnly);
+      const { sessions, hasNext } = await getMySessions(page, SESSION_PAGE_SIZE, true);
       return { items: sessions, hasNext };
     },
-    [publicOnly],
+    [],
     true,
   );
 }

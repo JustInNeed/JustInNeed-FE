@@ -38,7 +38,7 @@ function serveSessions(...pages: CommunitySharedSession[][]) {
       const url = new URL(request.url);
       queries.push(url.search);
       const page = Number(url.searchParams.get("page"));
-      return ok({ sessions: pages[page], hasNext: page + 1 < pages.length });
+      return ok({ sessions: pages[page], hasNext: page + 1 < pages.length, totalPages: pages.length });
     }),
   );
   return queries;
@@ -109,19 +109,21 @@ describe("다른 사용자 프로필 세션 탭", () => {
     expect(stat("공유 세션")).toBe("25");
   });
 
-  it("더 보기를 누르면 2페이지를 이어 붙이고, 겹치는 세션은 한 번만 보인다", async () => {
+  // QA-044-1
+  it("페이지 번호를 누르면 그 페이지 세션만 보이고 더 보기는 없다", async () => {
     serveProfile();
-    const queries = serveSessions([PINNED, PLAIN], [PLAIN, LATER]);
+    const queries = serveSessions([PINNED, PLAIN], [LATER]);
     const { user } = renderPersonal(<OtherProfile id="7" />);
 
     await openTab(user);
     await sessionCard(PLAIN.title!);
-    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    expect(screen.queryByRole("button", { name: "더 보기" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "2페이지" }));
     await sessionCard(LATER.title!);
 
-    expect(titles()).toEqual([PINNED.title, PLAIN.title, LATER.title]);
+    expect(titles()).toEqual([LATER.title]);
     expect(queries).toEqual(["?page=0&size=12", "?page=1&size=12"]);
-    expect(screen.queryByRole("button", { name: "더 보기" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "2페이지" })).toHaveAttribute("aria-current", "page");
   });
 
   it("세션을 못 받아도 프로필 · 마인드맵은 그대로이고 세션 탭에서 다시 시도한다", async () => {
@@ -144,7 +146,7 @@ describe("다른 사용자 프로필 세션 탭", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("다음 페이지를 못 받아도 받은 세션은 그대로이고 그 페이지만 다시 받는다", async () => {
+  it("다른 페이지를 못 받아도 보던 세션은 그대로이고 그 페이지만 다시 받는다", async () => {
     serveProfile();
     const requested: (string | null)[] = [];
     let broken = true;
@@ -153,16 +155,18 @@ describe("다른 사용자 프로필 세션 탭", () => {
         const page = new URL(request.url).searchParams.get("page");
         requested.push(page);
         if (page === "1" && broken) return fail(500, SERVER_ERROR);
-        return page === "0" ? ok({ sessions: [PINNED], hasNext: true }) : ok({ sessions: [LATER], hasNext: false });
+        return page === "0"
+          ? ok({ sessions: [PINNED], hasNext: true, totalPages: 2 })
+          : ok({ sessions: [LATER], hasNext: false, totalPages: 2 });
       }),
     );
     const { user } = renderPersonal(<OtherProfile id="7" />);
 
     await openTab(user);
     await sessionCard(PINNED.title!);
-    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await user.click(screen.getByRole("button", { name: "다음" }));
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("세션을 더 불러오지 못했어요.");
+    expect(alert).toHaveTextContent("세션을 불러오지 못했어요.");
     expect(titles()).toEqual([PINNED.title]);
 
     broken = false;

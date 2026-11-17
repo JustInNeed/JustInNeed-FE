@@ -133,10 +133,11 @@ describe("/profile/[id] 페이지", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("카드가 더 있으면 더 보기로 다음 페이지를 이어 붙이고, 겹치는 카드는 한 번만 보인다", async () => {
+  // QA-044-1
+  it("카드가 더 있으면 페이지 번호로 다음 페이지 카드만 보여준다", async () => {
     const pages = [
-      { mindmaps: [apiCard({ mindmapId: 1, title: "첫 카드" }), apiCard({ mindmapId: 2, title: "둘째 카드" })], hasNext: true },
-      { mindmaps: [apiCard({ mindmapId: 2, title: "둘째 카드" }), apiCard({ mindmapId: 3, title: "셋째 카드" })], hasNext: false },
+      { mindmaps: [apiCard({ mindmapId: 1, title: "첫 카드" }), apiCard({ mindmapId: 2, title: "둘째 카드" })], hasNext: true, totalPages: 2 },
+      { mindmaps: [apiCard({ mindmapId: 3, title: "셋째 카드" })], hasNext: false, totalPages: 2 },
     ];
     server.use(
       http.get(`${API}/community/profiles/7`, () => ok(API_PROFILE)),
@@ -147,14 +148,15 @@ describe("/profile/[id] 페이지", () => {
     const { user } = renderPersonal(await page("7"));
 
     await screen.findByText("첫 카드");
-    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    expect(screen.queryByRole("button", { name: "더 보기" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "2페이지" }));
 
     expect(await screen.findByText("셋째 카드")).toBeInTheDocument();
-    expect(screen.getAllByText("둘째 카드")).toHaveLength(1);
-    expect(screen.queryByRole("button", { name: "더 보기" })).not.toBeInTheDocument();
+    expect(screen.queryByText("첫 카드")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "2페이지" })).toHaveAttribute("aria-current", "page");
   });
 
-  it("다음 페이지를 못 받아도 받은 카드는 그대로이고 그 페이지만 다시 받는다", async () => {
+  it("다른 페이지를 못 받아도 보던 카드는 그대로이고 그 페이지만 다시 받는다", async () => {
     const requested: (string | null)[] = [];
     let broken = true;
     server.use(
@@ -163,15 +165,15 @@ describe("/profile/[id] 페이지", () => {
         const p = new URL(request.url).searchParams.get("page");
         requested.push(p);
         if (p === "1" && broken) return fail(500, SERVER_ERROR);
-        return ok({ mindmaps: [apiCard({ mindmapId: Number(p) + 1, title: `카드 ${p}` })], hasNext: p === "0" });
+        return ok({ mindmaps: [apiCard({ mindmapId: Number(p) + 1, title: `카드 ${p}` })], hasNext: p === "0", totalPages: 2 });
       }),
     );
     const { user } = renderPersonal(await page("7"));
 
     await screen.findByText("카드 0");
-    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await user.click(screen.getByRole("button", { name: "다음" }));
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("마인드맵을 더 불러오지 못했어요.");
+    expect(alert).toHaveTextContent("마인드맵을 불러오지 못했어요.");
     expect(screen.getByText("카드 0")).toBeInTheDocument();
 
     broken = false;

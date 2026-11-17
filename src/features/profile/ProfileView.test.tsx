@@ -64,12 +64,15 @@ function serveMyDetail() {
   );
 }
 
-const sessionsSection = (over: Partial<ProfileSessionsSection> = {}): ProfileSessionsSection => ({
+type PagedSessions = Extract<ProfileSessionsSection, { kind: "pages" }>;
+const sessionsSection = (over: Partial<PagedSessions> = {}): PagedSessions => ({
+  kind: "pages",
   loading: false,
   error: null,
   onRetry: vi.fn(),
-  hasNext: false,
-  onLoadMore: vi.fn(),
+  page: 0,
+  totalPages: 1,
+  onPageChange: vi.fn(),
   sessions: MY_SESSIONS,
   ...over,
 });
@@ -193,9 +196,9 @@ describe("내 프로필", () => {
     expect(screen.queryByText(/핀고정하면/)).not.toBeInTheDocument();
   });
 
-  it("세션 탭은 받는 중 · 실패 · 더 보기를 스스로 보여준다", async () => {
+  it("세션 탭은 받는 중 · 실패 · 페이지 번호를 스스로 보여준다", async () => {
     const onRetry = vi.fn();
-    const onLoadMore = vi.fn();
+    const onPageChange = vi.fn();
     const { user, rerender } = renderMine(MY_PROFILE_PAGE, sessionsSection({ sessions: [], loading: true }));
     await user.click(screen.getByRole("button", { name: "세션" }));
     expect(screen.getByText("불러오는 중…")).toBeInTheDocument();
@@ -205,12 +208,24 @@ describe("내 프로필", () => {
     await user.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(onRetry).toHaveBeenCalledOnce();
 
-    rerender(<ProfileView data={MY_PROFILE_PAGE} sessionsSection={sessionsSection({ hasNext: true, onLoadMore })} />);
-    await user.click(screen.getByRole("button", { name: "더 보기" }));
-    expect(onLoadMore).toHaveBeenCalledOnce();
+    // QA-044-1: 더 보기 대신 페이지 번호. 지금 페이지는 aria-current, 한 페이지뿐이면 번호가 없다
+    rerender(<ProfileView data={MY_PROFILE_PAGE} sessionsSection={sessionsSection({ totalPages: 3, onPageChange })} />);
+    expect(screen.queryByRole("button", { name: "더 보기" })).not.toBeInTheDocument();
+    const pager = screen.getByRole("navigation", { name: "세션 목록 페이지" });
+    expect(within(pager).getByRole("button", { name: "1페이지" })).toHaveAttribute("aria-current", "page");
+    expect(within(pager).getByRole("button", { name: "이전" })).toBeDisabled();
+    expect(within(pager).getAllByRole("button", { name: /^\d+페이지$/ })).toHaveLength(3);
+    expect(pager).not.toHaveTextContent("/"); // "1 / 3 페이지" 문구는 없다
+    await user.click(within(pager).getByRole("button", { name: "3페이지" }));
+    expect(onPageChange).toHaveBeenLastCalledWith(2);
+    await user.click(within(pager).getByRole("button", { name: "다음" }));
+    expect(onPageChange).toHaveBeenLastCalledWith(1);
 
-    rerender(<ProfileView data={MY_PROFILE_PAGE} sessionsSection={sessionsSection({ error: SERVER_ERROR })} />);
-    expect(screen.getByRole("alert")).toHaveTextContent("세션을 더 불러오지 못했어요.");
+    rerender(<ProfileView data={MY_PROFILE_PAGE} sessionsSection={sessionsSection({ totalPages: 1 })} />);
+    expect(screen.queryByRole("navigation", { name: "세션 목록 페이지" })).not.toBeInTheDocument();
+
+    rerender(<ProfileView data={MY_PROFILE_PAGE} sessionsSection={sessionsSection({ error: SERVER_ERROR, totalPages: 3, page: 1 })} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("세션을 불러오지 못했어요.");
     expect(sessionCardTitles()).toEqual(MY_SESSIONS.map((s) => s.title)); // 받아 둔 세션은 그대로
   });
 

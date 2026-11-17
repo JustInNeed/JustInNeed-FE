@@ -12,7 +12,7 @@ import { NICKNAME_FORMAT_ERROR, NICKNAME_HINT, isValidNickname } from "@/lib/nic
 import type { NodeVisibility, ProfileData, ProfileHashtagSetting } from "@/lib/viewTypes";
 import { ProfileList } from "./ProfileList";
 import { toMyProfileUpdate } from "./toProfilePage";
-import { useMySessions } from "./useProfileRemote";
+import { useMyPinCandidates } from "./useProfileRemote";
 import styles from "./Profile.module.css";
 
 export interface ProfileEditProps {
@@ -47,7 +47,7 @@ export function ProfileEdit({ profile, hashtags: initialHashtags, pinnedSessions
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [unpinTarget, setUnpinTarget] = useState<number | null>(null);
-  const { items: candidates, section: candidatesSection } = useMySessions(true);
+  const { items: candidates, section: candidatesSection } = useMyPinCandidates();
   // 규칙이 생기기 전 닉네임도 안 바꾸면 그대로 둘 수 있다
   const nameInvalid = name !== (member.nickname ?? "") && !isValidNickname(name);
   const nameErrorText = nameInvalid ? NICKNAME_FORMAT_ERROR : nameError;
