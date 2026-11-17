@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "lint:css": "stylelint \"src/**/*.css\"",
+    "visual:shoot": "playwright test -c playwright.visual.config.ts",
+    "visual:compare": "node visual/compare.mjs",
     "api:types": "openapi-typescript https://raw.githubusercontent.com/JustInNeed/JustInNeed-BE/main/openapi.json -o src/lib/api/schema.gen.ts"
   },
   "dependencies": {
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
+    "@playwright/test": "1.65.0",
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.3.0",
@@ -38,6 +41,8 @@
     "lint-staged": "^15.5.2",
     "msw": "2.10.4",
     "openapi-typescript": "7.13.0",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
     "stylelint": "^16.26.1",
     "typescript": "^5.6.0",
     "vitest": "3.2.4"
