@@ -63,7 +63,8 @@ function initialGraphZoom() {
 }
 
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? String(n) : undefined);
-const trend = (n: number) => (n > 0 ? `↑ ${n}%` : n < 0 ? `↓ ${-n}%` : undefined);
+// Deep Reading 증감은 이번 7일과 지난 7일 비율의 차이라 %p 로 적는다 (QA-047)
+const trend = (n: number) => (n > 0 ? `↑ ${n}%p` : n < 0 ? `↓ ${-n}%p` : undefined);
 
 function HomeDashboard({ data }: { data: HomeData }) {
   const { graph, sessions } = data;
@@ -348,6 +349,7 @@ function StatCards({ stats }: { stats: HomeStats }) {
         label="Deep Reading"
         value={`${stats.deepReadingPct}%`}
         accent={trend(stats.deepReadingDelta)}
+        sub="지난주 대비"
       />
     </div>
   );
