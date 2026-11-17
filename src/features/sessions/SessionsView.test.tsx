@@ -411,6 +411,42 @@ describe("세션 목록 — 무한 스크롤", () => {
     expect(requests).toEqual([]); // 덮어쓴 응답만 썼고 다음 페이지는 요청하지 않았다
   });
 
+  it("끝 안내에 이어서 내 전체 세션 · 즐겨찾기 · 그룹 개수를 보여 준다 (REC-10-1)", async () => {
+    server.use(
+      http.get(`${API}/sessions`, () =>
+        ok({ sessions: SESSION_LIST.slice(0, 10), hasNext: false, totalCount: 42, favoriteCount: 7 }),
+      ),
+    );
+    renderSessions();
+    await screen.findByText(END);
+    expect(await screen.findByText(`전체 42개 세션 · 7개 즐겨찾기 · ${TAG_GROUPS.length}개 그룹`)).toBeInTheDocument();
+  });
+
+  it("별을 켜면 끝 안내의 즐겨찾기 개수가 바로 늘고, 저장에 실패하면 되돌린다", async () => {
+    const list = SESSION_LIST.slice(0, 10);
+    const target = list.find((s) => !s.isFavorite)!;
+    const favorites = list.filter((s) => s.isFavorite).length;
+    const countText = (n: number) => `전체 10개 세션 · ${n}개 즐겨찾기 · ${TAG_GROUPS.length}개 그룹`;
+    let failNext = false;
+    server.use(
+      http.get(`${API}/sessions`, () =>
+        ok({ sessions: list, hasNext: false, totalCount: 10, favoriteCount: favorites }),
+      ),
+      http.patch(`${API}/sessions/:id`, () => (failNext ? fail(500, SERVER_ERROR) : ok(null))),
+    );
+    const { user } = renderSessions();
+    await screen.findByText(countText(favorites));
+
+    await user.click(starOf(target.title));
+    expect(screen.getByText(countText(favorites + 1))).toBeInTheDocument();
+
+    // 다시 눌러 끄는 저장이 실패하면 별과 개수가 모두 켠 상태로 돌아온다
+    failNext = true;
+    await user.click(starOf(target.title));
+    await waitFor(() => expect(isFilled(starOf(target.title))).toBe(true));
+    expect(screen.getByText(countText(favorites + 1))).toBeInTheDocument();
+  });
+
   it("스크롤이 80% 지점에 못 미치면 다음 페이지를 요청하지 않는다", async () => {
     const { scroll } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });

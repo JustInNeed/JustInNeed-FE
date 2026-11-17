@@ -38,6 +38,8 @@ export function SessionsView() {
   // 목록 — GET /sessions?page&size&favorite 로 10개씩 받아 이어 붙임
   const [sessions, setSessions] = useState<SessionListItem[]>([]);
   const [hasNext, setHasNext] = useState(false);
+  // 목록 끝 문구 뒤에 붙이는 개수 — 필터 · 페이지와 상관없는 내 전체 기준 (REC-10-1)
+  const [counts, setCounts] = useState({ total: 0, favorite: 0 });
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -78,6 +80,7 @@ export function SessionsView() {
         nextPageRef.current = 1;
         setSessions(p.sessions);
         setHasNext(p.hasNext);
+        setCounts({ total: p.totalCount, favorite: p.favoriteCount });
       })
       .catch((e) => {
         if (gen === genRef.current) setListError(e instanceof ApiError ? e.message : "알 수 없는 오류가 발생했습니다.");
@@ -105,6 +108,7 @@ export function SessionsView() {
       getSessions({ page: 0, size: PAGE_SIZE, favorite: favOnly })
         .then((p) => {
           if (gen !== genRef.current) return;
+          setCounts({ total: p.totalCount, favorite: p.favoriteCount });
           const cur = sessionsRef.current;
           const fresh = new Map(p.sessions.map((s) => [s.id, s]));
           const statusChanged = cur.some((s) => fresh.has(s.id) && fresh.get(s.id)!.status !== s.status);
@@ -172,14 +176,16 @@ export function SessionsView() {
     const shift = favOnly && sessions.some((s) => s.id === id) ? -delta : 0;
     const gen = genRef.current;
     setFavorite(id, next);
+    setCounts((c) => ({ ...c, favorite: c.favorite + delta }));
     shiftRef.current += shift;
     try {
       await updateSession(id, { isFavorite: next });
       groupsQuery.refetch(); // 그룹 뷰의 즐겨찾기 표시 동기화
     } catch (e) {
       setFavorite(id, !next);
-      // 그사이 목록을 다시 받았으면 당김은 이미 새로 맞춰져 있다
+      // 그사이 목록을 다시 받았으면 개수 · 당김은 이미 새로 맞춰져 있다
       if (gen === genRef.current) {
+        setCounts((c) => ({ ...c, favorite: c.favorite - delta }));
         shiftRef.current -= shift;
       }
       toast.error(e instanceof ApiError ? e.message : "즐겨찾기 변경에 실패했습니다. 다시 시도해 주세요.");
@@ -319,7 +325,12 @@ export function SessionsView() {
               {loadingMore ? (
                 <p className={styles.end}>불러오는 중…</p>
               ) : (
-                !hasNext && <p className={styles.end}>모든 기록을 확인했습니다.</p>
+                !hasNext && (
+                  <p className={styles.end}>
+                    <span>모든 기록을 확인했습니다.</span>{" "}
+                    <span>{`전체 ${counts.total}개 세션 · ${counts.favorite}개 즐겨찾기 · ${groups.length}개 그룹`}</span>
+                  </p>
+                )
               )}
             </>
           )
