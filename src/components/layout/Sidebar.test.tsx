@@ -5,7 +5,7 @@ import { setMockPathname } from "@/test/router";
 import { MEMBER } from "@/test/fixtures/member";
 import { STATUS_POLL_MS } from "@/lib/app/PersonalContext";
 import { NAV_ROOT_ATTR } from "@/lib/app/NavHistoryContext";
-import { installFakeExtension, loggedOutExtension, removeFakeExtension } from "@/test/extension";
+import { installFakeExtension, loggedOutExtension, NO_REPLY, removeFakeExtension } from "@/test/extension";
 import { Sidebar } from "./Sidebar";
 
 const activeLinks = () => Array.from(document.querySelectorAll(".navItemActive")).map((el) => el.textContent);
@@ -14,7 +14,7 @@ afterEach(() => vi.useRealTimers());
 
 describe("사이드바", () => {
   describe("메뉴", () => {
-    it("개인 영역 4개 · 커뮤니티 4개 메뉴가 각 화면 주소로 연결된다", () => {
+    it("[X-COM-01 S1·S2] 개인 영역 4개 · 커뮤니티 4개 메뉴가 각 화면 주소로 연결된다", () => {
       renderPersonal(<Sidebar />);
       const links = within(screen.getByRole("navigation"))
         .getAllByRole("link")
@@ -36,7 +36,7 @@ describe("사이드바", () => {
       ["/settings", "설정"],
       ["/sessions/12", "세션 목록"],
       ["/profile/someone", "마이프로필"],
-    ])("현재 경로가 %s 면 '%s' 만 강조된다", (path, label) => {
+    ])("[X-COM-01 S2·S3·R1] 현재 경로가 %s 면 '%s' 만 강조된다", (path, label) => {
       setMockPathname(path);
       renderPersonal(<Sidebar />);
       expect(activeLinks()).toEqual([label]);
@@ -53,7 +53,7 @@ describe("사이드바", () => {
     // 상단 바 로고는 데스크톱 너비에서 CSS 로 숨겨져 있어 hidden 요소도 찾는다
     const brandLinks = () => screen.getAllByRole("link", { name: "JustInNeed 홈으로 이동", hidden: true });
 
-    it("사이드바 로고와 상단 바 로고 둘 다 홈으로 가는 링크이고, 메뉴처럼 이동 기록을 비운다", () => {
+    it("[X-COM-04 S3] 사이드바 로고와 상단 바 로고 둘 다 홈으로 가는 링크이고, 메뉴처럼 이동 기록을 비운다", () => {
       setMockPathname("/settings");
       renderPersonal(<Sidebar />);
       const links = brandLinks();
@@ -82,7 +82,7 @@ describe("사이드바", () => {
   });
 
   describe("회원 · 로그아웃", () => {
-    it("로그인한 회원의 닉네임과 첫 글자 아바타가 보인다", () => {
+    it("[X-COM-02 S1] 로그인한 회원의 닉네임과 첫 글자 아바타가 보인다", () => {
       renderPersonal(<Sidebar />);
       expect(screen.getByText("yesong")).toBeInTheDocument();
       expect(screen.getByText("Y")).toHaveClass("avatar");
@@ -121,13 +121,20 @@ describe("사이드바", () => {
 
     afterEach(() => removeFakeExtension());
 
-    it("확장이 없으면 '연결 안 됨' 이고 시작 버튼이 없다", async () => {
+    it("[X-COM-03 S1] 확장이 아직 답하지 않았으면 '확인 중' 이고 시작 버튼이 없다", async () => {
+      installFakeExtension(() => NO_REPLY);
+      renderPersonal(<Sidebar />);
+      expect(within(card()).getByText("확인 중")).toBeInTheDocument();
+      expect(within(card()).queryByRole("button", { name: "수집 시작" })).not.toBeInTheDocument();
+    });
+
+    it("[X-COM-03 S2] 확장이 없으면 '연결 안 됨' 이고 시작 버튼이 없다", async () => {
       renderPersonal(<Sidebar />);
       expect(await within(card()).findByText("연결 안 됨")).toBeInTheDocument();
       expect(within(card()).queryByRole("button")).toBeNull();
     });
 
-    it("확장이 로그아웃이면 '로그인 필요' 와 연결 페이지 링크를 보여 준다", async () => {
+    it("[X-COM-03 S3] 확장이 로그아웃이면 '로그인 필요' 와 연결 페이지 링크를 보여 준다", async () => {
       installFakeExtension(loggedOutExtension());
       renderPersonal(<Sidebar />);
       expect(await within(card()).findByText("로그인 필요")).toBeInTheDocument();
@@ -147,7 +154,7 @@ describe("사이드바", () => {
       expect(within(card()).queryByRole("button")).toBeNull();
     });
 
-    it("확장이 기록 중이면 확장이 시작한 시각 기준 경과 시간을 1초마다 늘린다", async () => {
+    it("[X-COM-03 S5] 확장이 기록 중이면 확장이 시작한 시각 기준 경과 시간을 1초마다 늘린다", async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       recorder({ recording: true, startedAt: Date.now() - 125_000 });
       renderPersonal(<Sidebar />);
@@ -158,7 +165,7 @@ describe("사이드바", () => {
       expect(within(card()).getByRole("button", { name: "수집 종료" })).toBeInTheDocument();
     });
 
-    it("수집 시작 · 종료 버튼은 확장에 JIN_START · JIN_STOP 을 보내고 답대로 카드를 바꾼다", async () => {
+    it("[X-COM-03 S4·S5] 수집 시작 · 종료 버튼은 확장에 JIN_START · JIN_STOP 을 보내고 답대로 카드를 바꾼다", async () => {
       const sent = recorder({ recording: false, startedAt: null });
       const { user } = renderPersonal(<Sidebar />);
       await user.click(await within(card()).findByRole("button", { name: "수집 시작" }));
@@ -170,7 +177,8 @@ describe("사이드바", () => {
       expect(sent.map((s) => s.message.type).filter((t) => t !== "JIN_STATUS")).toEqual(["JIN_START", "JIN_STOP"]);
     });
 
-    it("확장 팝업에서 켜는 등 확장 쪽 상태가 바뀌면 다음 물음 때 카드가 따라간다", async () => {
+    it("[X-COM-03 R1] 확장 팝업에서 켜는 등 확장 쪽 상태가 바뀌면 다음 물음(3초 이내) 때 카드가 따라간다", async () => {
+      expect(STATUS_POLL_MS).toBeLessThanOrEqual(3_000);
       vi.useFakeTimers({ shouldAdvanceTime: true });
       const state = { recording: false, startedAt: null as number | null };
       recorder(state);
@@ -198,7 +206,7 @@ describe("사이드바", () => {
     // 테스트 환경은 데스크톱 너비라 상단 바·닫기 버튼이 CSS 로 숨겨져 있다 → hidden 요소도 찾는다. 너비별 표시는 브라우저 촬영으로 확인
     const menuBtn = () => screen.getByRole("button", { name: "메뉴 열기", hidden: true });
 
-    it("처음엔 닫혀 있고, 메뉴 버튼을 누르면 열린다", async () => {
+    it("[X-COM-04 S1] 처음엔 닫혀 있고, 메뉴 버튼을 누르면 열린다", async () => {
       const { user } = renderPersonal(<Sidebar />);
       expect(aside()).not.toHaveClass("asideOpen");
       expect(menuBtn()).toHaveAttribute("aria-expanded", "false");
@@ -208,7 +216,7 @@ describe("사이드바", () => {
       expect(menuBtn()).toHaveAttribute("aria-expanded", "true");
     });
 
-    it("✕ 버튼, 바깥 영역, Esc 로 닫힌다", async () => {
+    it("[X-COM-04 S2] ✕ 버튼, 바깥 영역, Esc 로 닫힌다", async () => {
       const { user } = renderPersonal(<Sidebar />);
 
       await user.click(menuBtn());
@@ -224,7 +232,7 @@ describe("사이드바", () => {
       expect(aside()).not.toHaveClass("asideOpen");
     });
 
-    it("다른 화면으로 이동하면 닫힌다", async () => {
+    it("[X-COM-04 S2] 다른 화면으로 이동하면 닫힌다", async () => {
       setMockPathname("/home");
       const { user, rerender } = renderPersonal(<Sidebar />);
       await user.click(menuBtn());

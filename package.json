@@ -14,7 +14,8 @@
     "lint:css": "stylelint \"src/**/*.css\"",
     "visual:shoot": "playwright test -c playwright.visual.config.ts",
     "visual:compare": "node visual/compare.mjs",
-    "api:types": "openapi-typescript https://raw.githubusercontent.com/JustInNeed/JustInNeed-BE/main/openapi.json -o src/lib/api/schema.gen.ts"
+    "api:types": "openapi-typescript https://raw.githubusercontent.com/JustInNeed/JustInNeed-BE/main/openapi.json -o src/lib/api/schema.gen.ts",
+    "req:coverage": "node scripts/requirements/coverage.mjs"
   },
   "dependencies": {
     "next": "^15.5.0",

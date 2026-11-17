@@ -70,7 +70,22 @@ describe("개인 영역 레이아웃", () => {
       expect(consumeAuthToast()).toEqual({ kind: "expired" });
     });
 
-    it("닉네임이 있는 회원이면 사이드바와 화면 본문을 그린다", async () => {
+    it("[X-COM-02 R1] 회원 정보를 받기 전에는 사이드바 · 본문을 그리지 않고, 받은 뒤 닉네임과 함께 그린다", async () => {
+      let answer: () => void = () => {};
+      server.use(
+        http.get(`${API}/members/me`, () => new Promise<Response>((resolve) => (answer = () => resolve(ok(MEMBER))))),
+      );
+      renderLayout();
+      await act(async () => {});
+      expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+      expect(screen.queryByText("본문")).not.toBeInTheDocument();
+
+      await act(async () => answer());
+      expect(await screen.findByText("본문")).toBeInTheDocument();
+      expect(screen.getByRole("complementary")).toHaveTextContent("yesong");
+    });
+
+    it("[X-COM-02 S1] 닉네임이 있는 회원이면 사이드바와 화면 본문을 그린다", async () => {
       await openAsMember();
       expect(screen.getByRole("complementary")).toHaveTextContent("yesong");
       expect(within(screen.getByRole("main")).getByText("본문")).toBeInTheDocument();
