@@ -351,8 +351,6 @@ export interface Source {
 }
 
 export interface SessionSummary {
-  /** @deprecated 본문 markdown으로 통합됨 — 화면에서 사용하지 않음 (백엔드 컬럼 제거 예정). */
-  heading?: string;
   markdown: string;
 }
 
