@@ -1,0 +1,4 @@
+# 정책 #15 브랜치 · 이슈 번호 → #14 전체 테스트 + 타입 검사
+node scripts/hooks/pre-push.mjs "$1"
+npm test
+npm run typecheck
