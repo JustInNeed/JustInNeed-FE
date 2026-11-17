@@ -200,7 +200,8 @@
 .topTags {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* 긴 해시태그가 칸을 넓히지 않게 minmax(0, …) (QA-034) */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px 24px;
   align-content: space-around;
 }
@@ -208,9 +209,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   font-size: 12px;
 }
 .topTagName {
+  min-width: 0;
   font-weight: 600;
   color: var(--green-800);
   overflow: hidden;
@@ -218,6 +221,7 @@
   white-space: nowrap;
 }
 .topTagCount {
+  flex: none;
   color: var(--ink-500);
   font-weight: 500;
 }
@@ -356,5 +360,29 @@
 @media (max-width: 767.98px) {
   .grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+  /* 마인드맵: 영역을 정사각형(높이 = 너비)으로 낮추고 처음부터 조금 확대해 그린다 (QA-036 다안, HomeView GRAPH_INITIAL_ZOOM_NARROW).
+     높이를 고정값으로 두면 너비가 넓은 쪽(400~767px)에서 그래프가 커져 위아래 노드가 잘린다 */
+  .graphBox {
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+  /* 통계 카드: 첫 칸(누적 노드)은 한 줄 전체, 나머지 두 칸은 아래 한 줄에 (QA-036 나안) */
+  .stats {
+    flex-wrap: wrap;
+  }
+  .stats > * {
+    flex: 1 1 0;
+  }
+  .stats > :first-child {
+    flex-basis: 100%;
+  }
+  /* 요일 7칸이 카드 안에 들어가게 칸 간격 · 시간 글자를 줄인다 (QA-034) */
+  .bars {
+    gap: 4px;
+  }
+  .barValue {
+    font-size: 10px;
+    letter-spacing: -0.02em;
   }
 }

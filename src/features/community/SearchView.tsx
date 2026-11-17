@@ -65,7 +65,8 @@ export function SearchView({ input, onInputChange, q, mindmaps, profiles }: Sear
         ) : tab.status === "error" ? (
           <InlineState kind="error" title={tab.error ?? "검색 결과를 불러오지 못했어요."} onRetry={tab.retry} />
         ) : tab.items.length === 0 ? (
-          <InlineState kind="empty" title="검색 결과가 없어요" description="다른 해시태그로 검색해 보세요." />
+          // 둘러보기 검색바 드롭다운과 같은 문구 (QA-050)
+          <InlineState kind="empty" title="일치하는 결과가 없어요." description="다른 해시태그로 검색해보세요." />
         ) : filter === "mindmap" ? (
           <div className={styles.mapGrid}>
             {mindmaps.items.map((post) => (

@@ -1,11 +1,16 @@
 import type { ReactNode } from "react";
 import { Icon, Button } from "@/components/ui";
 import { hostFromUrl } from "@/lib/format";
-import type { SessionMapNode } from "./buildSessionMindmap";
 import styles from "./CitationPopup.module.css";
 
+/** 세션 마인드맵 노드와 프로필 전체 마인드맵 노드가 같이 쓴다 — 키워드와 근거 원문만 있으면 된다 */
+export interface CitationNode {
+  label: string;
+  citation: { title?: string | null; url: string; excerpt: string } | null;
+}
+
 export interface CitationPopupProps {
-  node: SessionMapNode | undefined;
+  node: CitationNode | undefined;
   onClose: () => void;
 }
 

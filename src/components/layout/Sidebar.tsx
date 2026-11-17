@@ -64,6 +64,7 @@ const SECTIONS: NavSection[] = [
  * 1024px 이상: 왼쪽 고정 사이드바.
  * 1024px 미만: 사이드바를 숨기고 상단 바(메뉴 버튼 + 로고)를 띄운다. 메뉴 버튼을 누르면 사이드바가 왼쪽에서 서랍처럼 덮어서 열린다 (QA-003 A안).
  * 서랍은 ✕, 바깥 영역, Esc, 메뉴 이동으로 닫힌다. 너비에 따른 표시 전환은 CSS(@media)만으로 한다.
+ * 사이드바 · 상단 바의 로고 영역은 홈으로 가는 링크다 (QA-031). 메뉴의 "홈" 과 같이 이동 기록을 비운다.
  */
 export function Sidebar() {
   const pathname = usePathname();
@@ -95,10 +96,12 @@ export function Sidebar() {
         >
           <Icon name="menu" size={18} />
         </button>
-        <div className={styles.topbarLogo}>
-          <Icon name="sprout" size={16} stroke={2} />
-        </div>
-        <span className={styles.topbarName}>JustInNeed</span>
+        <Link href="/home" className={styles.topbarBrand} aria-label="JustInNeed 홈으로 이동" {...{ [NAV_ROOT_ATTR]: "" }}>
+          <span className={styles.topbarLogo}>
+            <Icon name="sprout" size={16} stroke={2} />
+          </span>
+          <span className={styles.topbarName}>JustInNeed</span>
+        </Link>
       </header>
 
       {open && (
@@ -116,13 +119,22 @@ export function Sidebar() {
           .join(" ")}
       >
         <div className={styles.brand}>
-          <div className={styles.logo}>
-            <Icon name="sprout" size={20} stroke={2} />
-          </div>
-          <div>
-            <div className={styles.brandName}>JustInNeed</div>
-            <div className={styles.brandSub}>웹서핑 정리 도우미</div>
-          </div>
+          {/* 이미 홈이면 주소가 안 바뀌어 서랍이 그대로 남으므로 누를 때 직접 닫는다 */}
+          <Link
+            href="/home"
+            className={styles.brandLink}
+            aria-label="JustInNeed 홈으로 이동"
+            onClick={() => setOpen(false)}
+            {...{ [NAV_ROOT_ATTR]: "" }}
+          >
+            <span className={styles.logo}>
+              <Icon name="sprout" size={20} stroke={2} />
+            </span>
+            <span>
+              <span className={styles.brandName}>JustInNeed</span>
+              <span className={styles.brandSub}>웹서핑 정리 도우미</span>
+            </span>
+          </Link>
           <button
             type="button"
             className={styles.closeBtn}

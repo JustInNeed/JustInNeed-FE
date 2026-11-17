@@ -74,37 +74,44 @@ describe("내 프로필 — 불러오기", () => {
     expect(screen.getAllByTitle("핀고정됨")).toHaveLength(4);
   });
 
-  it("마인드맵 탭은 더 보기로 다음 페이지를 이어 붙이고 끝나면 버튼이 사라진다", async () => {
+  // QA-044-1: 더 보기로 이어 붙이지 않고 페이지 번호로 한 페이지씩 바꿔 보여준다
+  it("마인드맵 탭은 페이지 번호로 한 페이지씩 보여주고 더 보기는 없다", async () => {
     serveMyProfile({ perPage: 2 });
     const { user } = renderPersonal(<MyProfile />);
 
     await screen.findByText("공개 카드");
     expect(screen.queryByText("비공개 카드")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "더 보기" })).not.toBeInTheDocument();
+    const pager = screen.getByRole("navigation", { name: "마인드맵 목록 페이지" });
+    expect(within(pager).getAllByRole("button", { name: /^\d+페이지$/ })).toHaveLength(2);
 
-    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await user.click(within(pager).getByRole("button", { name: "2페이지" }));
 
     expect(await screen.findByText("비공개 카드")).toBeInTheDocument();
-    expect(screen.getByText("고정한 카드")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "더 보기" })).not.toBeInTheDocument();
+    expect(screen.queryByText("공개 카드")).not.toBeInTheDocument();
+    expect(within(pager).getByRole("button", { name: "2페이지" })).toHaveAttribute("aria-current", "page");
+    expect(within(pager).getByRole("button", { name: "다음" })).toBeDisabled();
   });
 
-  it("세션 탭은 마인드맵 탭과 따로 더 보기로 이어 붙인다", async () => {
+  it("세션 탭은 마인드맵 탭과 따로 페이지를 넘기고 이전으로 돌아올 수 있다", async () => {
     const fake = serveMyProfile({ perPage: 3 });
     const { user } = renderPersonal(<MyProfile />);
     await openSessions(user);
     expect(sessionTitles()).toEqual(MY_SESSIONS.slice(0, 3).map((s) => s.title));
+    const pager = screen.getByRole("navigation", { name: "세션 목록 페이지" });
+    expect(within(pager).getAllByRole("button", { name: /^\d+페이지$/ })).toHaveLength(3);
 
-    await user.click(screen.getByRole("button", { name: "더 보기" }));
-    await screen.findByRole("heading", { level: 3, name: MY_SESSIONS[5].title });
-    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await user.click(within(pager).getByRole("button", { name: "3페이지" }));
     await screen.findByRole("heading", { level: 3, name: MY_SESSIONS[6].title });
+    expect(sessionTitles()).toEqual(MY_SESSIONS.slice(6).map((s) => s.title));
 
-    expect(sessionTitles()).toEqual(MY_SESSIONS.map((s) => s.title));
-    expect(screen.queryByRole("button", { name: "더 보기" })).not.toBeInTheDocument();
+    await user.click(within(pager).getByRole("button", { name: "이전" }));
+    await screen.findByRole("heading", { level: 3, name: MY_SESSIONS[3].title });
+    expect(sessionTitles()).toEqual(MY_SESSIONS.slice(3, 6).map((s) => s.title));
     expect(fake.sessionQueries).toEqual([
       "?page=0&size=12&publicOnly=false",
-      "?page=1&size=12&publicOnly=false",
       "?page=2&size=12&publicOnly=false",
+      "?page=1&size=12&publicOnly=false",
     ]);
   });
 
@@ -147,23 +154,23 @@ describe("내 프로필 — 불러오기", () => {
     expect(await screen.findByText("고정한 카드")).toBeInTheDocument();
   });
 
-  it("더 보기가 실패하면 받아 둔 항목은 두고 그 페이지만 다시 받는다", async () => {
+  it("다른 페이지를 못 받으면 보던 페이지는 두고 그 페이지만 다시 받는다", async () => {
     serveMyProfile({ perPage: 3 });
     const { user } = renderPersonal(<MyProfile />);
     await openSessions(user);
     server.use(http.get(`${ME}/sessions`, () => fail(500, SERVER_ERROR)));
 
-    await user.click(screen.getByRole("button", { name: "더 보기" }));
+    await user.click(screen.getByRole("button", { name: "2페이지" }));
 
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("세션을 더 불러오지 못했어요.");
-    expect(sessionTitles()).toHaveLength(3);
+    expect(alert).toHaveTextContent("세션을 불러오지 못했어요.");
+    expect(sessionTitles()).toEqual(MY_SESSIONS.slice(0, 3).map((s) => s.title));
 
     serveMyProfile({ perPage: 3 });
     await user.click(within(alert).getByRole("button", { name: "다시 시도" }));
 
     await screen.findByRole("heading", { level: 3, name: MY_SESSIONS[5].title });
-    expect(sessionTitles()).toEqual(MY_SESSIONS.slice(0, 6).map((s) => s.title));
+    expect(sessionTitles()).toEqual(MY_SESSIONS.slice(3, 6).map((s) => s.title));
   });
 
   it("아무것도 없는 프로필은 각 탭 빈 상태와 수정 화면의 공개 세션 안내를 보여준다", async () => {
@@ -339,7 +346,7 @@ describe("프로필 저장", () => {
       http.get(`${ME}/profile`, () => ok({ ...API_MY_PROFILE, bio: "서버가 다듬은 소개", sharedSessionCount: 9 })),
       http.get(`${ME}/mindmaps`, () => {
         cardCalls += 1;
-        return ok({ mindmaps: [apiMyCard({ mindmapId: 50, title: "새로 받은 카드" })], hasNext: false });
+        return ok({ mindmaps: [apiMyCard({ mindmapId: 50, title: "새로 받은 카드" })], hasNext: false, totalPages: 1 });
       }),
     );
     const before = fake.sessionQueries.filter((q) => !PUBLIC_ONLY.test(q)).length;

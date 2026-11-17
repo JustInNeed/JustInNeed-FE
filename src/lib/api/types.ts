@@ -58,6 +58,8 @@ export interface CommunitySharedSession {
 export interface CommunitySharedSessionPage {
   sessions: CommunitySharedSession[];
   hasNext: boolean;
+  /** 전체 페이지 수. 항목이 없으면 0 */
+  totalPages: number;
 }
 
 /** GET /community/profiles/{userId} — 없거나 탈퇴한 회원이면 404 */
@@ -98,6 +100,8 @@ export interface CommunityProfileCard {
 export interface CommunityProfileCardPage {
   mindmaps: CommunityProfileCard[];
   hasNext: boolean;
+  /** 전체 페이지 수. 항목이 없으면 0 */
+  totalPages: number;
 }
 
 /** 프로필 주인의 전체 마인드맵. 연결선 양 끝은 tag:<hashtagId> · node:<nodeId> */
@@ -156,6 +160,8 @@ export interface MyProfileResponse {
 export interface MySessionPage {
   sessions: MySession[];
   hasNext: boolean;
+  /** 전체 페이지 수. 항목이 없으면 0 */
+  totalPages: number;
 }
 
 /** 내 프로필 마인드맵 카드 — title · snippet 이 항상 온다 */
@@ -167,6 +173,8 @@ export interface MyProfileCard extends CommunityProfileCard {
 export interface MyProfileCardPage {
   mindmaps: MyProfileCard[];
   hasNext: boolean;
+  /** 전체 페이지 수. 항목이 없으면 0 */
+  totalPages: number;
 }
 
 /** PUT /community/me/profile — 전부 저장되거나 전부 거절된다 (400) */

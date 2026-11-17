@@ -31,12 +31,24 @@
   box-shadow: 0 2px 8px rgba(95, 207, 62, 0.35);
 }
 
+/* 로고 + 이름 전체가 홈 링크 (QA-031) */
+.brandLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  text-decoration: none;
+  border-radius: 10px;
+}
+
 .brandName {
+  display: block;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 .brandSub {
+  display: block;
   font-size: 11px;
   color: var(--ink-500);
 }
@@ -245,6 +257,14 @@
   }
   .menuBtn:hover {
     border-color: var(--green-300);
+  }
+  .topbarBrand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 34px;
+    text-decoration: none;
+    border-radius: 8px;
   }
   .topbarLogo {
     width: 28px;

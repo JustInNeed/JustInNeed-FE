@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Icon, Card, PageHeader, InlineState, type IconName } from "@/components/ui";
 import type {
   AnalysisNote,
@@ -94,78 +94,85 @@ function AnalyticsBody({ cards, tips, random }: { cards: AnalyticsCards; tips: B
         random={random}
       />
 
-      <Card className={styles.card}>
-        <div className={styles.cardHead}>
-          <h3 className={styles.cardTitle}>탐색 성향</h3>
-          <span className={styles.cardSub}>매일 업데이트</span>
-        </div>
-        <CardContent card={cards.exploration}>
-          {(exploration) => (
-            <>
-              <ExplorationStats exploration={exploration} />
-              <AnalysisRecBox note={exploration.note} />
-            </>
-          )}
-        </CardContent>
-      </Card>
+      {/* 두 칸일 때 칸마다 카드를 위로 붙여 쌓는다 — 옆 카드 높이 때문에 생기던 빈 공간을 없앤다 (QA-032 A안).
+          왼쪽: 탐색 성향 → 카테고리, 오른쪽: 읽기 행동 분포 → 시간대. 한 칸(768px 미만)일 때는 order 로 원래 순서대로 */}
+      <div className={styles.col}>
+        <Card className={`${styles.card} ${styles.orderExploration}`}>
+          <div className={styles.cardHead}>
+            <h3 className={styles.cardTitle}>탐색 성향</h3>
+            <span className={styles.cardSub}>매일 업데이트</span>
+          </div>
+          <CardContent card={cards.exploration}>
+            {(exploration) => (
+              <>
+                <ExplorationStats exploration={exploration} />
+                <AnalysisRecBox note={exploration.note} />
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card className={styles.card}>
-        <div className={styles.cardHead}>
-          <h3 className={styles.cardTitle}>읽기 행동 분포</h3>
-          <span className={styles.cardSub}>최근 7일 · 세션별 집중도</span>
-        </div>
-        <CardContent card={cards.readingBehavior}>
-          {({ shares, note }) => (
-            <>
-              <ReadingBehaviorBar shares={shares} />
-              <AnalysisRecBox note={note} />
-            </>
-          )}
-        </CardContent>
-      </Card>
+        <Card className={`${styles.card} ${styles.orderCategories}`}>
+          <div className={styles.cardHead}>
+            <h3 className={styles.cardTitle}>카테고리별 방문 비율</h3>
+            <span className={styles.cardSub}>최근 7일</span>
+          </div>
+          <CardContent card={cards.categories}>
+            {({ categories, note }) => (
+              <>
+                {categories.map((c) => (
+                  <div key={c.name} className={styles.catRow}>
+                    <div className={styles.catHead}>
+                      <span className={styles.catName}>{c.name}</span>
+                      <span className={styles.catMeta}>{c.pct}% · {c.count}회</span>
+                    </div>
+                    <div className={styles.catTrack}>
+                      <div className={styles.catBar} style={{ width: `${c.pct}%` }} />
+                    </div>
+                  </div>
+                ))}
+                <AnalysisRecBox note={note} />
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card className={styles.card}>
-        <div className={styles.cardHead}>
-          <h3 className={styles.cardTitle}>카테고리별 방문 비율</h3>
-          <span className={styles.cardSub}>최근 7일</span>
-        </div>
-        <CardContent card={cards.categories}>
-          {({ categories, note }) => (
-            <>
-              {categories.map((c) => (
-                <div key={c.name} className={styles.catRow}>
-                  <div className={styles.catHead}>
-                    <span className={styles.catName}>{c.name}</span>
-                    <span className={styles.catMeta}>{c.pct}% · {c.count}회</span>
-                  </div>
-                  <div className={styles.catTrack}>
-                    <div className={styles.catBar} style={{ width: `${c.pct}%` }} />
-                  </div>
+      </div>
+
+      <div className={styles.col}>
+        <Card className={`${styles.card} ${styles.orderReading}`}>
+          <div className={styles.cardHead}>
+            <h3 className={styles.cardTitle}>읽기 행동 분포</h3>
+            <span className={styles.cardSub}>최근 7일 · 세션별 집중도</span>
+          </div>
+          <CardContent card={cards.readingBehavior}>
+            {({ shares, note }) => (
+              <>
+                <ReadingBehaviorBar shares={shares} />
+                <AnalysisRecBox note={note} />
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className={`${styles.card} ${styles.orderTime}`}>
+          <div className={styles.cardHead}>
+            <h3 className={styles.cardTitle}>시간대별 탐색 패턴</h3>
+            <span className={styles.cardSub}>최근 7일</span>
+          </div>
+          <CardContent card={cards.timePatterns}>
+            {({ surfing, focus, note }) => (
+              <>
+                <div className={styles.heatmaps}>
+                  <HeatBlock data={surfing} label="활동이 많은 시간" sub="본 분량 기준" rgb="100,116,139" />
+                  <HeatBlock data={focus} label="정독 비율" sub="Deep + Reading" rgb="95,207,62" />
                 </div>
-              ))}
-              <AnalysisRecBox note={note} />
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className={styles.card}>
-        <div className={styles.cardHead}>
-          <h3 className={styles.cardTitle}>시간대별 탐색 패턴</h3>
-          <span className={styles.cardSub}>최근 7일</span>
-        </div>
-        <CardContent card={cards.timePatterns}>
-          {({ surfing, focus, note }) => (
-            <>
-              <div className={styles.heatmaps}>
-                <HeatBlock data={surfing} label="활동이 많은 시간" sub="본 분량 기준" rgb="100,116,139" />
-                <HeatBlock data={focus} label="정독 비율" sub="Deep + Reading" rgb="95,207,62" />
-              </div>
-              <AnalysisRecBox note={note} />
-            </>
-          )}
-        </CardContent>
-      </Card>
+                <AnalysisRecBox note={note} />
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -281,17 +288,30 @@ function RollingBanner({ sessions, tips, recs, random }: RollingBannerProps) {
   if (tip) slides.push({ eyebrow: "오늘의 웹 서핑 팁", icon: "sprout", ...tip });
   if (rec) slides.push({ eyebrow: "오늘의 추천 행동", icon: "compass", ...rec });
 
+  // 마우스가 배너 위에 있거나 키보드 포커스가 배너 안에 있으면 자동 넘김을 멈춘다 (QA-037). 벗어나면 다시 5초부터
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const paused = hovered || focused;
+
   useEffect(() => {
-    if (slides.length < 2) return;
+    if (slides.length < 2 || paused) return;
     const t = setInterval(() => setI((v) => (v + 1) % slides.length), 5000);
     return () => clearInterval(t);
-  }, [slides.length]);
+  }, [slides.length, paused]);
 
   if (slides.length === 0) return null;
   const current = i % slides.length;
   const s = slides[current];
   return (
-    <Card className={styles.banner}>
+    <Card
+      className={styles.banner}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
+    >
       <div className={styles.bannerRow}>
         <div className={styles.bannerIcon}>
           <Icon name={s.icon} size={18} />
@@ -334,7 +354,8 @@ function RollingBanner({ sessions, tips, recs, random }: RollingBannerProps) {
             className={styles.dot}
             aria-label={`슬라이드 ${idx + 1}`}
             aria-current={idx === current}
-            style={{ width: idx === current ? 20 : 6, background: idx === current ? "var(--green-600)" : "var(--green-200)" }}
+            // 버튼은 누를 수 있는 투명한 영역, 보이는 점은 .dot::before 가 이 색으로 그린다 (QA-037)
+            style={{ width: idx === current ? 20 : 6, ["--dot-color" as string]: idx === current ? "var(--green-600)" : "var(--green-200)" } as CSSProperties}
           />
         ))}
       </div>

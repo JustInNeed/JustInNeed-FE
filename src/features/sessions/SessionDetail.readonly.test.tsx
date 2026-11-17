@@ -57,11 +57,16 @@ describe("세션 상세 — 다른 사람의 공개 세션 (읽기 전용)", () 
 });
 
 describe("세션 상세 — 내 세션", () => {
-  it("별 · 공개 · 편집 · 삭제 · 해시태그 추가가 모두 있다", async () => {
-    await renderDetail(PARIS_DETAIL);
-    for (const name of ["즐겨찾기", "공개", "편집", "삭제", "추가"]) {
+  it("별 · 공개 · 편집 · 삭제가 있고, 해시태그 추가 · 지우기 · 끌어 옮기기는 편집할 때만 보인다 (QA-041)", async () => {
+    const { user } = await renderDetail(PARIS_DETAIL);
+    for (const name of ["즐겨찾기", "공개", "편집", "삭제"]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
+    expect(screen.queryByRole("button", { name: "추가" })).not.toBeInTheDocument();
+    expect(screen.queryAllByTitle("드래그로 순서 변경")).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: "편집" }));
+    expect(screen.getByRole("button", { name: "추가" })).toBeInTheDocument();
     expect(screen.queryAllByTitle("드래그로 순서 변경")).toHaveLength(PARIS_DETAIL.tags.length);
   });
 });

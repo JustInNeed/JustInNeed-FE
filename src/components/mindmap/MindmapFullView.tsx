@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui";
+import { CitationPopup } from "@/features/sessions/CitationPopup";
 import { hostFromUrl } from "@/lib/format";
 import type { FullMindmap } from "@/lib/viewTypes";
 import { Mindmap } from "./Mindmap";
@@ -19,9 +20,12 @@ export interface MindmapFullViewProps {
   highlightIds?: readonly string[];
 }
 
-/** 작성자의 전체 마인드맵을 화면 가득 보여주는 오버레이. URL 이 있는 노드를 누르면 원문을 새 탭으로 연다. */
+/**
+ * 작성자의 전체 마인드맵을 화면 가득 보여주는 오버레이.
+ * "내용까지" 공개한 노드는 누르면 세션 마인드맵처럼 원문 미리보기(형광펜)를 띄우고, 원문 URL만 공개한 노드는 원문을 새 탭으로 연다 (QA-049).
+ */
 export function MindmapFullView({ title, mindmap, onClose, highlightIds }: MindmapFullViewProps) {
-  const { nodes, edges, nodeUrls } = mindmap;
+  const { nodes, edges, nodeUrls, nodeCitations } = mindmap;
   useOverlayClose(onClose);
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -37,8 +41,15 @@ export function MindmapFullView({ title, mindmap, onClose, highlightIds }: Mindm
     [highlight, nodes],
   );
 
+  const citations = nodeCitations ?? {};
+  const hasCitations = Object.keys(citations).length > 0;
+
   const onSelect = (id: string) => {
     if (dragged.current) return; // 노드를 끌어 옮긴 뒤의 클릭은 무시
+    if (citations[id]) {
+      setSelected((cur) => (cur === id ? null : id));
+      return;
+    }
     const url = urls.get(id);
     if (url) {
       window.open(url, "_blank", "noopener,noreferrer");
@@ -47,7 +58,9 @@ export function MindmapFullView({ title, mindmap, onClose, highlightIds }: Mindm
     setSelected((cur) => (cur === id ? null : id));
   };
 
-  const hoveredUrl = hovered ? urls.get(hovered) : undefined;
+  const hoveredUrl = hovered && !citations[hovered] ? urls.get(hovered) : undefined;
+  const selectedNode = selected ? nodes.find((n) => n.id === selected) : undefined;
+  const selectedCitation = selected ? citations[selected] : undefined;
   const hoveredLabel = nodes.find((n) => n.id === hovered)?.label;
   const hoveredHost = hoveredUrl ? hostFromUrl(hoveredUrl) : undefined;
 
@@ -110,9 +123,17 @@ export function MindmapFullView({ title, mindmap, onClose, highlightIds }: Mindm
                 {hoveredLabel === hoveredHost ? hoveredHost : `${hoveredLabel} · ${hoveredHost}`} 원문 열기
               </>
             ) : (
-              "드래그로 이동 · 휠로 줌 · URL 이 있는 노드를 누르면 원문이 새 탭에서 열려요"
+              hasCitations
+                ? "드래그로 이동 · 휠로 줌 · 노드를 누르면 원문 내용을 볼 수 있어요"
+                : "드래그로 이동 · 휠로 줌 · URL 이 있는 노드를 누르면 원문이 새 탭에서 열려요"
             )}
           </div>
+          {selectedNode && selectedCitation && (
+            <CitationPopup
+              node={{ label: selectedNode.label, citation: { url: selectedCitation.url, excerpt: selectedCitation.excerpt } }}
+              onClose={() => setSelected(null)}
+            />
+          )}
         </div>
       </div>
     </div>,

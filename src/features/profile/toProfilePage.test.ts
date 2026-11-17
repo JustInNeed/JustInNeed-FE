@@ -191,6 +191,20 @@ describe("toFullMindmap", () => {
     expect(node("node:1", res).label).toBe("야간열차 예약");
   });
 
+  it("'내용까지' 공개한 노드만 근거 원문을 갖고, 원문 URL만이면 내용이 와도 넘기지 않는다 (QA-049)", () => {
+    const res: CommunityProfileMindmap = {
+      ...API_MINDMAP,
+      nodes: [
+        { ...API_MINDMAP.nodes[0], content: "침대칸은 일찍 마감된다.", visibilityScope: "CONTENT" },
+        { ...API_MINDMAP.nodes[1], content: "다른 내용", visibilityScope: "URL_ONLY" },
+      ],
+    };
+
+    expect(toFullMindmap(res).nodeCitations).toEqual({
+      "node:1": { url: "https://www.nightjet.com/en", excerpt: "침대칸은 일찍 마감된다." },
+    });
+  });
+
   it("sourceUrl 이 있는 노드만 원문 주소를 갖는다", () => {
     const res = {
       ...API_MINDMAP,

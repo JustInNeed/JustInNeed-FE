@@ -17,12 +17,20 @@
 .grid {
   padding: 0 28px 28px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* 히트맵 최소 너비 때문에 한 칸이 넓어지지 않게 minmax(0, …) — 768px 에서 325 · 372px 로 갈리던 것 (QA-038) */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-items: start;
 }
 .card {
   padding: 22px;
+}
+/* 두 칸일 때 칸마다 카드를 위로 붙여 쌓는다 — 옆 카드 높이 때문에 생기던 빈 공간 없앰 (QA-032 A안) */
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
 }
 .cardHead {
   display: flex;
@@ -172,17 +180,32 @@
   font-size: 12px;
   font-weight: 600;
 }
+/* 점은 6px 이지만 누를 수 있는 영역은 둘레 여백(위아래 9 · 좌우 3)까지 넓힌다. 보이는 위치 · 모양 · 간격(6px)은 그대로 (QA-037)
+   버튼은 투명한 영역이고, 보이는 점은 ::before 가 버튼의 --dot-color 로 그린다 */
 .dots {
   position: absolute;
-  bottom: 16px;
-  right: 20px;
+  bottom: 7px;
+  right: 17px;
   display: flex;
-  gap: 6px;
 }
 .dot {
+  position: relative;
+  box-sizing: content-box;
+  height: 24px;
+  padding: 0 3px;
+  border-radius: 999px;
+  transition: width 0.25s;
+}
+.dot::before {
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: 3px;
+  right: 3px;
   height: 6px;
   border-radius: 999px;
-  transition: all 0.25s;
+  background: var(--dot-color);
+  transition: background-color 0.25s;
 }
 
 /* 읽기 행동 분포 */
@@ -276,7 +299,7 @@
 }
 .heatGrid {
   display: grid;
-  grid-template-columns: 20px repeat(8, 1fr);
+  grid-template-columns: 20px repeat(8, minmax(0, 1fr));
   gap: 3px;
 }
 .heatAxis {
@@ -300,14 +323,27 @@
   .grid {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* 한 칸일 때는 칸 묶음을 풀고 원래 순서(탐색 성향 → 읽기 행동 분포 → 카테고리 → 시간대)로 쌓는다 (QA-032) */
+  .col {
+    display: contents;
+  }
+  .orderExploration {
+    order: 1;
+  }
+  .orderReading {
+    order: 2;
+  }
+  .orderCategories {
+    order: 3;
+  }
+  .orderTime {
+    order: 4;
+  }
   /* 오른쪽 아래 넘김 점 자리(80px)를 비우는 대신 아래 여백으로 */
   .bannerBody {
     padding-right: 0;
   }
   .banner {
     padding-bottom: 36px;
-  }
-  .heatGrid {
-    grid-template-columns: 20px repeat(8, minmax(0, 1fr));
   }
 }

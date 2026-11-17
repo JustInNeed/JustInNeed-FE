@@ -101,7 +101,7 @@ describe("세션 목록 — 카드", () => {
     expect(rome.getByText("1시간 34분")).toBeInTheDocument();
     expect(rome.getByText("18개 URL")).toBeInTheDocument();
     expect(rome.getByText("2026-04-26")).toBeInTheDocument();
-    expect(rome.getAllByRole("button", { name: /^#/ }).map((b) => b.textContent)).toEqual([
+    expect(rome.getAllByText(/^#/).map((b) => b.textContent)).toEqual([
       "#로마",
       "#콜로세움",
       "#바티칸",
@@ -114,7 +114,7 @@ describe("세션 목록 — 카드", () => {
   it("해시태그가 4개를 넘으면 앞의 4개만 보인다", async () => {
     renderSessions();
     await screen.findByRole("heading", { level: 3, name: MANY_TAGS_SESSION.title });
-    const chips = within(card(MANY_TAGS_SESSION.title)).getAllByRole("button", { name: /^#/ });
+    const chips = Array.from(card(MANY_TAGS_SESSION.title).querySelectorAll(".chip"));
     expect(chips.map((b) => b.textContent)).toEqual(["#리스본", "#포르투", "#에그타르트", "#트램"]);
   });
 
@@ -129,6 +129,23 @@ describe("세션 목록 — 카드", () => {
     await screen.findByRole("heading", { level: 3, name: ROME.title });
     expect(isFilled(starOf(ROME.title))).toBe(true);
     expect(isFilled(starOf(FLIGHTS.title))).toBe(false);
+  });
+
+  it("별 · 머리말 보기 버튼은 켜짐 상태를 aria-pressed 로 알린다 (QA-039)", async () => {
+    const { user } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: ROME.title });
+    expect(starOf(ROME.title)).toHaveAttribute("aria-pressed", "true");
+    expect(starOf(FLIGHTS.title)).toHaveAttribute("aria-pressed", "false");
+
+    expect(favFilter()).toHaveAttribute("aria-pressed", "false");
+    await user.click(favFilter());
+    expect(favFilter()).toHaveAttribute("aria-pressed", "true");
+
+    const groupBtn = screen.getByText("해시태그", { selector: "button" });
+    expect(groupBtn).toHaveAttribute("aria-pressed", "false");
+    await user.click(groupBtn);
+    expect(groupBtn).toHaveAttribute("aria-pressed", "true");
+    expect(favFilter()).toHaveAttribute("aria-pressed", "false");
   });
 
   it("카드를 누르면 그 세션 상세로 이동한다", async () => {
@@ -394,6 +411,42 @@ describe("세션 목록 — 무한 스크롤", () => {
     expect(requests).toEqual([]); // 덮어쓴 응답만 썼고 다음 페이지는 요청하지 않았다
   });
 
+  it("끝 안내에 이어서 내 전체 세션 · 즐겨찾기 · 그룹 개수를 보여 준다 (REC-10-1)", async () => {
+    server.use(
+      http.get(`${API}/sessions`, () =>
+        ok({ sessions: SESSION_LIST.slice(0, 10), hasNext: false, totalCount: 42, favoriteCount: 7 }),
+      ),
+    );
+    renderSessions();
+    await screen.findByText(END);
+    expect(await screen.findByText(`전체 42개 세션 · 7개 즐겨찾기 · ${TAG_GROUPS.length}개 그룹`)).toBeInTheDocument();
+  });
+
+  it("별을 켜면 끝 안내의 즐겨찾기 개수가 바로 늘고, 저장에 실패하면 되돌린다", async () => {
+    const list = SESSION_LIST.slice(0, 10);
+    const target = list.find((s) => !s.isFavorite)!;
+    const favorites = list.filter((s) => s.isFavorite).length;
+    const countText = (n: number) => `전체 10개 세션 · ${n}개 즐겨찾기 · ${TAG_GROUPS.length}개 그룹`;
+    let failNext = false;
+    server.use(
+      http.get(`${API}/sessions`, () =>
+        ok({ sessions: list, hasNext: false, totalCount: 10, favoriteCount: favorites }),
+      ),
+      http.patch(`${API}/sessions/:id`, () => (failNext ? fail(500, SERVER_ERROR) : ok(null))),
+    );
+    const { user } = renderSessions();
+    await screen.findByText(countText(favorites));
+
+    await user.click(starOf(target.title));
+    expect(screen.getByText(countText(favorites + 1))).toBeInTheDocument();
+
+    // 다시 눌러 끄는 저장이 실패하면 별과 개수가 모두 켠 상태로 돌아온다
+    failNext = true;
+    await user.click(starOf(target.title));
+    await waitFor(() => expect(isFilled(starOf(target.title))).toBe(true));
+    expect(screen.getByText(countText(favorites + 1))).toBeInTheDocument();
+  });
+
   it("스크롤이 80% 지점에 못 미치면 다음 페이지를 요청하지 않는다", async () => {
     const { scroll } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
@@ -565,9 +618,7 @@ describe("세션 목록 — 즐겨찾기 보기", () => {
 describe("세션 목록 — 해시태그(그룹) 보기 전환", () => {
   const sectionHeads = () =>
     Array.from(document.querySelectorAll<HTMLElement>(".groupTags")).map((el) =>
-      within(el)
-        .getAllByRole("button")
-        .map((b) => b.textContent),
+      Array.from(el.querySelectorAll(".chip"), (c) => c.textContent),
     );
 
   it("해시태그를 누르면 그룹 보기로 바뀌고, 다시 누르면 목록으로 돌아온다", async () => {

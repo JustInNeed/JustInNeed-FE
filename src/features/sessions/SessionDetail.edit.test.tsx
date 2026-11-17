@@ -311,6 +311,19 @@ describe("세션 상세 — 30초 자동 저장", () => {
     expect(bodyInput()).toBeInTheDocument();
   });
 
+  it("해시태그만 바꿔도 30초 자동 저장에 제목 · 본문과 함께 실린다 (QA-041)", async () => {
+    useFakeClock();
+    const { user, patches } = await startEditing();
+    await user.click(button("#콜로세움 삭제"));
+    await tick(30_000);
+    await waitFor(() =>
+      expect(patches).toEqual([
+        { title: ROME_DETAIL.title, editedMarkdown: ROME_MD, tags: ["로마", "바티칸", "먹거리"], draft: true },
+      ]),
+    );
+    await waitFor(() => expect(status()).toHaveTextContent("저장 완료"));
+  });
+
   it("저장 완료 뒤 더 바꾸면 다시 '30초 단위 자동저장' 으로 돌아가고, 바꾼 게 없으면 다시 저장하지 않는다", async () => {
     useFakeClock();
     const { user, patches } = await startEditing();

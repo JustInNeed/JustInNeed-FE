@@ -12,15 +12,16 @@ beforeEach(() => {
 const statCard = (label: string) => screen.getByText(label).parentElement!;
 const card = (title: string) => screen.getByRole("heading", { name: title }).closest<HTMLElement>(".colCard, .card")!;
 const daySlot = (label: string) => screen.getByText(label).closest<HTMLElement>(".slot")!;
-const chipsIn = (el: HTMLElement) => within(el).queryAllByRole("button").map((b) => b.textContent);
+// 보기만 하는 해시태그 칩은 글자(span.chip)라 클래스로 찾는다 (QA-039)
+const chipsIn = (el: HTMLElement) => Array.from(el.querySelectorAll(".chip"), (c) => c.textContent);
 const sitesIn = (el: HTMLElement) => Array.from(el.querySelectorAll(".site")).map((s) => s.lastChild?.textContent);
 
 describe("홈 대시보드", () => {
-  it("통계 카드에 누적 노드 · 이번 주 세션 · Deep Reading 값이 보인다", () => {
+  it("통계 카드에 누적 노드 · 이번 주 세션 · Deep Reading 값이 보이고, Deep Reading 은 회색 부제 '지난주 대비'와 %p 증감이다 (QA-047)", () => {
     renderPersonal(<HomeView data={HOME_DATA} />);
     expect(statCard("누적 노드")).toHaveTextContent("218+12해시태그 47개");
     expect(statCard("이번 주 세션")).toHaveTextContent("14+3평균 42분 / 세션");
-    expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading68%↑ 8%$/);
+    expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading68%↑ 8%p지난주 대비$/);
   });
 
   it("지난주보다 줄었으면 감소로, 변화가 없으면 증감 없이 보인다", () => {
@@ -28,7 +29,7 @@ describe("홈 대시보드", () => {
     renderPersonal(<HomeView data={{ ...HOME_DATA, stats }} />);
     expect(statCard("누적 노드")).toHaveTextContent("218-2해시태그");
     expect(statCard("이번 주 세션")).toHaveTextContent(/^이번 주 세션14평균/);
-    expect(statCard("Deep Reading")).toHaveTextContent("68%↓ 5%");
+    expect(statCard("Deep Reading")).toHaveTextContent("68%↓ 5%p지난주 대비");
   });
 
   it("이번 주 활동에 기간과 요일별 탐색 시간이 보이고, 가장 긴 요일 막대가 꽉 찬다", () => {
@@ -75,6 +76,15 @@ describe("홈 대시보드", () => {
       "#환전6",
       "#숨겨진명소5",
     ]);
+  });
+
+  it("상위 해시태그 이름은 칸보다 길면 말줄임되므로 마우스를 올리면 전체 이름이 보인다 (QA-034)", () => {
+    const topTags = [{ tag: "#반려견행동교정훈련법정리", count: 14 }, ...HOME_DATA.topTags.slice(1)];
+    renderPersonal(<HomeView data={{ ...HOME_DATA, topTags }} />);
+    const name = within(card("상위 해시태그")).getByText("#반려견행동교정훈련법정리");
+    expect(name).toHaveClass("topTagName");
+    expect(name).toHaveAttribute("title", "#반려견행동교정훈련법정리");
+    expect(name.parentElement).toHaveTextContent(/^#반려견행동교정훈련법정리14$/);
   });
 
   it("오늘의 탐색 타임라인에 시간대별 해시태그와 방문 사이트가 보인다", () => {
@@ -191,7 +201,7 @@ describe("홈 데이터 없음 · 불러오기 실패", () => {
       const { user } = renderPersonal(<HomeView data={EMPTY_HOME_DATA} />);
       expect(statCard("누적 노드")).toHaveTextContent(/^누적 노드0해시태그 0개$/);
       expect(statCard("이번 주 세션")).toHaveTextContent(/^이번 주 세션0평균 0분 \/ 세션$/);
-      expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading0%$/);
+      expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading0%지난주 대비$/);
 
       expect(screen.getByRole("status")).toHaveTextContent("아직 그래프로 그릴 노드가 없어요.");
       expect(screen.queryByRole("button", { name: "필터" })).not.toBeInTheDocument();

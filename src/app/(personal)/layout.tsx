@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { AuthToast, type AuthToastProps } from "@/components/layout/AuthToast";
@@ -57,8 +57,12 @@ export default function PersonalLayout({ children }: { children: React.ReactNode
     return () => clearTimeout(t);
   }, [toast]);
 
+  // 확인 창 없이 바로 로그아웃하고, 로그인 화면 상단 토스트로 알린다 (QA-046).
+  // 연달아 눌러도 요청은 한 번만
+  const loggingOutRef = useRef(false);
   const onLogout = async () => {
-    if (!confirm("로그아웃하시겠어요?")) return;
+    if (loggingOutRef.current) return;
+    loggingOutRef.current = true;
     try {
       await logout(getRefreshToken() ?? undefined);
     } catch {

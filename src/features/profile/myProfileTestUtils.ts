@@ -27,7 +27,11 @@ export function serveMyProfile({ profile = API_MY_PROFILE, sessions = MY_SESSION
 
   const paged = <T,>(items: T[], url: URL) => {
     const page = Number(url.searchParams.get("page"));
-    return { items: items.slice(page * perPage, (page + 1) * perPage), hasNext: items.length > (page + 1) * perPage };
+    return {
+      items: items.slice(page * perPage, (page + 1) * perPage),
+      hasNext: items.length > (page + 1) * perPage,
+      totalPages: Math.ceil(items.length / perPage),
+    };
   };
 
   const applyPut = (body: UpdateMyProfileRequest) => {
@@ -58,12 +62,12 @@ export function serveMyProfile({ profile = API_MY_PROFILE, sessions = MY_SESSION
       const url = new URL(request.url);
       sessionQueries.push(url.search);
       const publicOnly = url.searchParams.get("publicOnly") === "true";
-      const { items, hasNext } = paged(publicOnly ? state.sessions.filter((s) => s.isPublic) : state.sessions, url);
-      return ok({ sessions: items, hasNext });
+      const { items, hasNext, totalPages } = paged(publicOnly ? state.sessions.filter((s) => s.isPublic) : state.sessions, url);
+      return ok({ sessions: items, hasNext, totalPages });
     }),
     http.get(`${API}/community/me/mindmaps`, ({ request }) => {
-      const { items, hasNext } = paged(cards, new URL(request.url));
-      return ok({ mindmaps: items, hasNext });
+      const { items, hasNext, totalPages } = paged(cards, new URL(request.url));
+      return ok({ mindmaps: items, hasNext, totalPages });
     }),
     http.get(`${API}/community/me/mindmaps/:id/sessions`, () => ok({ sessions: state.sessions.slice(0, 2) })),
     http.get(`${API}/community/me/mindmap`, () => ok(API_MINDMAP)),

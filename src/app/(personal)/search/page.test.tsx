@@ -187,7 +187,7 @@ describe("/search 페이지", () => {
     mockSearch({ mindmaps: () => ok(EMPTY_MINDMAPS), profiles: () => ok(EMPTY_PROFILES) });
     renderPersonal(<SearchPage />);
     typeQuery("남극");
-    expect(await screen.findByRole("status")).toHaveTextContent("검색 결과가 없어요");
+    expect(await screen.findByRole("status")).toHaveTextContent("일치하는 결과가 없어요.다른 해시태그로 검색해보세요.");
     expect(await screen.findByRole("button", { name: "마인드맵 (0)" })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "사용자 (0)" })).toBeInTheDocument();
   });

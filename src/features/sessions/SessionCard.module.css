@@ -28,6 +28,9 @@
 }
 .title {
   margin: 0;
+  /* 띄어쓰기 없는 긴 단어도 카드 안에서 끊는다 — 최소 너비를 0 으로 둬야 줄 맞춤 상자 안에서 줄어든다 (QA-039) */
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 15px;
   font-weight: 600;
   line-height: 1.3;
@@ -39,9 +42,13 @@
   gap: 8px;
   color: var(--ink-500);
 }
+/* 누를 수 있는 영역을 둘레 6px 넓히고(16 → 28px) 같은 만큼 바깥 여백을 빼서 별 위치 · 배치는 그대로 (QA-039) */
 .favBtn {
   flex-shrink: 0;
   display: inline-flex;
+  padding: 6px;
+  margin: -6px;
+  border-radius: 8px;
 }
 
 .meta {

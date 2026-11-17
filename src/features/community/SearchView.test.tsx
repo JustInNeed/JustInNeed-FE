@@ -152,7 +152,7 @@ describe("SearchView — 상태", () => {
 
   it("결과가 없으면 빈 상태를 보여준다", () => {
     renderSearch({ mindmaps: tab([]) });
-    expect(screen.getByRole("status")).toHaveTextContent("검색 결과가 없어요");
+    expect(screen.getByRole("status")).toHaveTextContent("일치하는 결과가 없어요.다른 해시태그로 검색해보세요."); // 둘러보기 검색바와 같은 문구 (QA-050)
   });
 
   it("실패한 탭은 오류와 다시 시도를 보여주고, 누르면 그 탭만 다시 부른다", async () => {

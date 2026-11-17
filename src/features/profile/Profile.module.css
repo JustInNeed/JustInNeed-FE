@@ -280,6 +280,49 @@
   font-size: 13px;
   color: var(--ink-500);
 }
+/* 페이지 번호 — 위 탭(.tab)과 같은 밑줄 표시 (QA-044 B안) */
+.listTop {
+  scroll-margin-top: 16px;
+}
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0 28px;
+}
+.pagerStep,
+.pagerNum {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-500);
+  cursor: pointer;
+}
+.pagerStep {
+  padding: 10px 12px;
+  color: var(--ink-700);
+}
+.pagerStep:disabled {
+  color: var(--ink-400);
+  cursor: default;
+}
+.pagerNum {
+  min-width: 36px;
+  padding: 10px 8px;
+}
+.pagerNum:hover,
+.pagerStep:hover:not(:disabled) {
+  color: var(--green-700);
+}
+.pagerNumOn {
+  color: var(--green-700);
+  font-weight: 600;
+  border-bottom-color: var(--green-500);
+}
 .exploreBtn {
   margin-left: auto;
   font-size: 11px;

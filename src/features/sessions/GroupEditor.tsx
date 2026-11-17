@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon, Button } from "@/components/ui";
 import type { TagGroup } from "@/lib/api";
 import { MAX_HASHTAGS } from "@/lib/hashtag";
@@ -49,16 +49,53 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
     setDragOverIdx(null);
   };
 
+  // Esc 로 닫는다 — 취소와 같이 고르던 해시태그는 저장하지 않는다 (QA-040)
+  // Tab · Shift+Tab 은 창 안에서만 돈다 — 창 뒤 카드 · 사이드바로 포커스가 나가지 않게 (QA-040)
+  const modalRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCancel();
+        return;
+      }
+      if (e.key !== "Tab" || !modalRef.current) return;
+      const focusables = Array.from(
+        modalRef.current.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex='-1'])"),
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      const inside = !!active && modalRef.current.contains(active);
+      if (e.shiftKey && (active === first || !inside)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !inside)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
   const q = query.replace(/^#/, "").toLowerCase();
   const visibleTags = q ? allTags.filter((t) => t.toLowerCase().includes(q)) : allTags;
   const canSave = selectedList.length > 0;
 
   return (
     <div className={styles.overlay} onClick={onCancel}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="group-editor-title"
+        className={styles.modal}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={styles.head}>
           <div>
-            <h2 className={styles.headTitle}>{group ? "그룹 수정" : "새 그룹 만들기"}</h2>
+            <h2 id="group-editor-title" className={styles.headTitle}>{group ? "그룹 수정" : "새 그룹 만들기"}</h2>
             <p className={styles.headSub}>여러 해시태그를 묶어 관련 세션들을 한 번에 관리합니다.</p>
           </div>
           <Button variant="icon" onClick={onCancel} aria-label="닫기">

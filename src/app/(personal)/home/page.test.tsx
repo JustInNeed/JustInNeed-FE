@@ -20,7 +20,8 @@ const node = (label: string) => screen.getByText(label, { selector: "text" }).pa
 const relatedButton = () => screen.getByRole("button", { name: "관련 세션 보기" });
 const popover = () => relatedButton().parentElement!;
 const slot = (label: string) => screen.getByText(label).closest<HTMLElement>(".slot")!;
-const chipsIn = (el: HTMLElement) => within(el).queryAllByRole("button").map((b) => b.textContent);
+// 보기만 하는 해시태그 칩은 글자(span.chip)라 클래스로 찾는다 (QA-039)
+const chipsIn = (el: HTMLElement) => Array.from(el.querySelectorAll(".chip"), (c) => c.textContent);
 const sitesIn = (el: HTMLElement) => Array.from(el.querySelectorAll(".site")).map((s) => s.lastChild?.textContent);
 
 describe("홈 페이지 — 불러오기", () => {
@@ -106,7 +107,7 @@ describe("홈 페이지 — 응답 표시", () => {
 
     expect(statCard("누적 노드")).toHaveTextContent("218+12해시태그 47개");
     expect(statCard("이번 주 세션")).toHaveTextContent("14+3평균 42분 / 세션");
-    expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading68%↑ 8%$/);
+    expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading68%↑ 8%p지난주 대비$/);
 
     expect(screen.getByText("10.25 — 10.31")).toBeInTheDocument();
     // 오늘(토)로 끝나는 최근 7일 — 받은 순서 그대로

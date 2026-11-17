@@ -47,10 +47,24 @@ export function HomeView({ data, loading = false, error = null, onRetry }: HomeV
 }
 
 const GRAPH_INITIAL_ZOOM = 1.1;
+/**
+ * 좁은 화면(768px 미만)의 처음 배율. 그래프 영역은 정사각형으로 낮춘다 (HomeView.module.css).
+ * 정사각형이면 너비와 상관없이 노드(중심에서 반지름 290 안)가 영역의 약 90% 를 채우고, 라벨을 읽을 수 있다 (QA-036 다안, 확대를 약하게).
+ * 마인드맵은 끌기가 마우스만 되므로 휴대폰에서도 끌지 않고 다 보이게 둔다.
+ */
+export const GRAPH_INITIAL_ZOOM_NARROW = 1.7;
+const NARROW_QUERY = "(max-width: 767.98px)";
 const GRAPH_ZOOM_STEP = 1.2;
 
+/** 처음 배율 — 그래프를 처음 그릴 때의 화면 너비로 정한다 (그 뒤 창 크기를 바꿔도 그대로, +/- 로 조절) */
+function initialGraphZoom() {
+  const narrow = typeof window !== "undefined" && window.matchMedia?.(NARROW_QUERY).matches;
+  return narrow ? GRAPH_INITIAL_ZOOM_NARROW : GRAPH_INITIAL_ZOOM;
+}
+
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? String(n) : undefined);
-const trend = (n: number) => (n > 0 ? `↑ ${n}%` : n < 0 ? `↓ ${-n}%` : undefined);
+// Deep Reading 증감은 이번 7일과 지난 7일 비율의 차이라 %p 로 적는다 (QA-047)
+const trend = (n: number) => (n > 0 ? `↑ ${n}%p` : n < 0 ? `↓ ${-n}%p` : undefined);
 
 function HomeDashboard({ data }: { data: HomeData }) {
   const { graph, sessions } = data;
@@ -66,6 +80,7 @@ function HomeDashboard({ data }: { data: HomeData }) {
   const [query, setQuery] = useState("");
   const toolsRef = useRef<HTMLDivElement>(null);
   const mindmapRef = useRef<MindmapHandle>(null);
+  const [initialZoom] = useState(initialGraphZoom);
 
   const dimmedIds = useMemo(() => dimmedNodeIds(graph, filter), [graph, filter]);
   // 세션 노드는 처음 놓인 방향으로 약하게 붙잡아 둔다
@@ -95,6 +110,19 @@ function HomeDashboard({ data }: { data: HomeData }) {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [filterOpen, searchOpen]);
+
+  // 필터 팝오버는 Esc 로도 닫는다 — 고르던 건 적용하지 않고, 포커스는 필터 버튼으로 (QA-035). 검색은 GraphSearch 가 Esc 를 처리한다
+  const filterBtnRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!filterOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setFilterOpen(false);
+      filterBtnRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [filterOpen]);
 
   // 선택한 노드를 다시 누르면 선택을 푼다. 마우스가 아직 그 노드 위라 호버로 다시 강조되지 않게,
   // 그 노드에서 마우스가 나갈 때까지 호버를 무시한다 (QA-008)
@@ -135,6 +163,7 @@ function HomeDashboard({ data }: { data: HomeData }) {
           <>
             <div className={styles.graphTools} ref={toolsRef}>
               <button
+                ref={filterBtnRef}
                 className={`${styles.iconBtn} ${filterActive ? styles.iconBtnOn : ""}`}
                 aria-label="필터"
                 aria-expanded={filterOpen}
@@ -208,7 +237,7 @@ function HomeDashboard({ data }: { data: HomeData }) {
               edges={graph.edges}
               width={1100}
               height={700}
-              initialZoom={GRAPH_INITIAL_ZOOM}
+              initialZoom={initialZoom}
               selectedId={selected}
               onSelect={toggleSelect}
               hoveredId={hovered}
@@ -257,7 +286,9 @@ function HomeDashboard({ data }: { data: HomeData }) {
               <div className={styles.topTags}>
                 {data.topTags.map((r) => (
                   <div key={r.tag} className={styles.topTagRow}>
-                    <span className={styles.topTagName}>{r.tag}</span>
+                    <span className={styles.topTagName} title={r.tag}>
+                      {r.tag}
+                    </span>
                     <span className={styles.topTagCount}>{r.count}</span>
                   </div>
                 ))}
@@ -318,6 +349,7 @@ function StatCards({ stats }: { stats: HomeStats }) {
         label="Deep Reading"
         value={`${stats.deepReadingPct}%`}
         accent={trend(stats.deepReadingDelta)}
+        sub="지난주 대비"
       />
     </div>
   );
