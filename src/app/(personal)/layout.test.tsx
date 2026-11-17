@@ -110,8 +110,8 @@ describe("개인 영역 레이아웃", () => {
   });
 
   describe("로그아웃", () => {
-    it("확인하면 POST /auth/logout 에 refresh 토큰을 보내고, 토큰 삭제 · 로그아웃 토스트 예약 후 /login 으로 보낸다", async () => {
-      const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    it("확인 창 없이 바로 POST /auth/logout 에 refresh 토큰을 보내고, 토큰 삭제 · 로그아웃 토스트 예약 후 /login 으로 보낸다 (QA-046)", async () => {
+      const confirm = vi.spyOn(window, "confirm");
       let body: unknown = null;
       server.use(
         http.post(`${API}/auth/logout`, async ({ request }) => {
@@ -122,7 +122,7 @@ describe("개인 영역 레이아웃", () => {
       const { user } = await openAsMember();
       await user.click(screen.getByRole("button", { name: "로그아웃" }));
 
-      expect(confirm).toHaveBeenCalledWith("로그아웃하시겠어요?");
+      expect(confirm).not.toHaveBeenCalled();
       await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/login"));
       expect(body).toEqual({ refreshToken: "test-refresh-token" });
       expect(getAccessToken()).toBeNull();
@@ -130,17 +130,23 @@ describe("개인 영역 레이아웃", () => {
       expect(consumeAuthToast()).toEqual({ kind: "logout" });
     });
 
-    it("확인 창에서 취소하면 요청도 이동도 없다", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(false);
+    it("로그아웃을 연달아 눌러도 요청은 한 번만 보낸다 (QA-046)", async () => {
+      let calls = 0;
+      server.use(
+        http.post(`${API}/auth/logout`, () => {
+          calls += 1;
+          return ok(null);
+        }),
+      );
       const { user } = await openAsMember();
-      await user.click(screen.getByRole("button", { name: "로그아웃" }));
+      const button = screen.getByRole("button", { name: "로그아웃" });
+      await user.dblClick(button);
 
-      expect(mockRouter.replace).not.toHaveBeenCalled();
-      expect(getAccessToken()).toBe("test-access-token");
+      await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/login"));
+      expect(calls).toBe(1);
     });
 
     it("서버 로그아웃이 실패해도 토큰은 지우고 /login 으로 보낸다", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
       server.use(http.post(`${API}/auth/logout`, () => fail(500, "서버 오류가 발생했습니다.")));
       const { user } = await openAsMember();
       await user.click(screen.getByRole("button", { name: "로그아웃" }));
@@ -206,7 +212,6 @@ describe("개인 영역 레이아웃", () => {
     });
 
     it("웹에서 로그아웃하면 확장에도 JIN_LOGOUT 을 보낸다", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
       server.use(http.post(`${API}/auth/logout`, () => ok(null)));
       const sent = installFakeExtension(() => ({ loggedIn: true, memberId: MEMBER.id, version: "0.1.0" }));
       const { user } = await openAsMember();
