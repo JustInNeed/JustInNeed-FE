@@ -47,3 +47,32 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # 정책 #24: BE main 의 명세(openapi.json)와 FE 타입이 맞는지 본다.
+  # 1) 명세로 다시 만든 타입이 커밋된 src/lib/api/schema.gen.ts 와 다르면 실패 → npm run api:types 로 다시 만들어 커밋
+  # 2) 손으로 쓴 src/lib/api 타입이 명세와 다르면 실패 (BE 가 안 보내는 필드 · 종류가 다른 필드 · 없는 경로)
+  # BE 를 먼저 머지하고 FE 를 맞추는 순서라 잠깐 다를 수 있어 필수 검사로는 넣지 않는다
+  openapi-sync:
+    if: github.repository == 'JustInNeed/JustInNeed-FE'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Regenerate types from BE main
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/JustInNeed/JustInNeed-BE/main/openapi.json -o be-openapi.json
+          npx openapi-typescript be-openapi.json -o regenerated.ts
+          if ! diff -u src/lib/api/schema.gen.ts regenerated.ts > types.diff; then
+            head -60 types.diff
+            echo "::error::BE 명세가 바뀌었는데 src/lib/api/schema.gen.ts 가 그대로입니다. npm run api:types 로 다시 만들어 커밋하세요."
+            exit 1
+          fi
+      - name: Compare hand-written types with the spec
+        run: node scripts/openapi/compare-types.mjs be-openapi.json types-report.md --fail
+      - name: Report
+        if: always()
+        run: test -f types-report.md && cat types-report.md >> "$GITHUB_STEP_SUMMARY" || true
