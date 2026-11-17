@@ -192,10 +192,15 @@ export function toFullMindmap(res: CommunityProfileMindmap): FullMindmap {
   const outerIndex = new Map(outerOrder.map((id, i) => [id, i]));
 
   const nodeUrls: Record<string, string> = {};
+  // "내용까지" 공개한 노드만 근거 원문을 넘긴다. 원문 URL만이면 미리보기 없이 링크만 (QA-049)
+  const nodeCitations: Record<string, { url: string; excerpt: string }> = {};
   const urlNodes: MindmapNode[] = res.nodes.map((n, i) => {
     const id = nodeIds[i];
     // 다른 사용자가 남긴 주소라 웹 주소만 연다 (javascript: 등 제외)
     if (n.sourceUrl && isWebUrl(n.sourceUrl)) nodeUrls[id] = n.sourceUrl;
+    if (n.visibilityScope === "CONTENT" && n.content && n.sourceUrl && isWebUrl(n.sourceUrl)) {
+      nodeCitations[id] = { url: n.sourceUrl, excerpt: n.content };
+    }
     return {
       id,
       label: isWebUrl(n.label) ? hostFromUrl(n.label) : n.label,
@@ -205,5 +210,5 @@ export function toFullMindmap(res: CommunityProfileMindmap): FullMindmap {
     };
   });
 
-  return { nodes: [...tagNodes, ...urlNodes], edges, nodeUrls };
+  return { nodes: [...tagNodes, ...urlNodes], edges, nodeUrls, nodeCitations };
 }

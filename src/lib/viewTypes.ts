@@ -214,6 +214,8 @@ export interface FullMindmap {
   edges: MindmapEdge[];
   /** 노드 id → 원문 URL. 연결 수와 상관없이 누르면 열린다 */
   nodeUrls: Record<string, string>;
+  /** 노드 id → 근거 원문. 작성자가 "내용까지" 공개한 노드만 있고, 누르면 원문 미리보기(형광펜)를 띄운다 (QA-049) */
+  nodeCitations?: Record<string, { url: string; excerpt: string }>;
 }
 
 /** 마인드맵 상세 팝업이 쓰는 카드 값 — 북마크 응답에는 없는 저장 수 · 활동 값은 빠진다 */

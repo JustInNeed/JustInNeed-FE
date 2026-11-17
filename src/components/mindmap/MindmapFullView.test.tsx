@@ -38,6 +38,26 @@ describe("MindmapFullView", () => {
     expect(open).toHaveBeenCalledWith("https://wise.com/kr/currency-converter/eur-to-krw-rate", "_blank", "noopener,noreferrer");
   });
 
+  it("'내용까지' 공개한 노드를 누르면 원문을 바로 열지 않고 원문 미리보기(형광펜 · 원문 열기)를 띄운다 (QA-049)", async () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    const url = "https://wise.com/kr/currency-converter/eur-to-krw-rate";
+    const { user, node, dialog } = renderFullView({
+      mindmap: { ...AUTHOR_MINDMAP, nodeCitations: { budget: { url, excerpt: "하루 예산은 숙박 포함 15만 원으로 잡는다." } } },
+    });
+    expect(within(dialog).getByText("드래그로 이동 · 휠로 줌 · 노드를 누르면 원문 내용을 볼 수 있어요")).toBeInTheDocument();
+
+    const budget = node("예산");
+    await user.click(budget);
+
+    expect(open).not.toHaveBeenCalled();
+    expect(within(dialog).getByText("예산", { selector: "mark" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: /원문 열기/ })).toHaveAttribute("href", url);
+
+    // 같은 노드를 다시 누르면 미리보기가 닫힌다
+    await user.click(budget);
+    expect(within(dialog).queryByText("예산", { selector: "mark" })).not.toBeInTheDocument();
+  });
+
   it("연결이 여러 개인 노드도 URL 이 있으면 원문을 연다", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     const { user, node } = renderFullView({
