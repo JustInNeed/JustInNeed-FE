@@ -1,5 +1,5 @@
 // 수집 제외 URL 형식 검사 — 백엔드 ExcludedUrlParser 와 같은 규칙. 테스트 입력 · 기대값도 같은 표를 쓴다.
-// http(s)만 허용(프로토콜 생략 가능), 공백 · 계정정보(user@) 불가, 도메인은 점으로 나뉜 라벨 + 영문 2자 이상 TLD.
+// http(s)만 허용(프로토콜 생략 가능), 공백 · 계정정보(user@) 불가, 도메인은 점으로 나뉜 라벨 + 영문 2자 이상 TLD, 포트는 1~65535.
 import type { ExcludedUrlItem } from "@/lib/api";
 import type { ExcludedUrl } from "@/lib/viewTypes";
 
@@ -18,6 +18,8 @@ export function normalizeExcludedUrl(raw: string): string | null {
   const hostPort = /^(.+?)(?::(\d{1,5}))?$/.exec(authority);
   if (!hostPort) return null;
   const [, host, port] = hostPort;
+  // 포트는 1~65535 (BE ExcludedUrlParser 와 같은 규칙)
+  if (port !== undefined && (Number(port) < 1 || Number(port) > 65535)) return null;
   if (!DOMAIN_RE.test(host) || ILLEGAL_RE.test(path + query)) return null;
   // www.com 처럼 떼면 도메인이 안 되는 경우는 그대로 둔다
   const domain = host.toLowerCase().replace(/^www\.(?=[^.]+\.)/, "");
