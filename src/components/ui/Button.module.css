@@ -15,7 +15,7 @@
   padding: 8px 14px;
   font-size: 12px;
   background: var(--green-500);
-  color: #fff;
+  color: var(--surface);
   border-radius: 9px;
 }
 .primary:hover:not(:disabled) {
@@ -45,15 +45,15 @@
   padding: 8px 14px;
   font-size: 12px;
   background: var(--danger-700);
-  color: #fff;
+  color: var(--surface);
   border-radius: 9px;
 }
 .danger:hover:not(:disabled) {
-  background: #912018;
+  background: var(--danger-700);
 }
 .danger:disabled {
   background: var(--danger-200);
-  color: #912018;
+  color: var(--danger-700);
 }
 
 /* active toggle chip (for secondary toggles) */

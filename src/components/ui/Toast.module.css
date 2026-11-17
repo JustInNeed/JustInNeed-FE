@@ -7,7 +7,7 @@
   padding: 8px 8px 8px 12px;
   border-radius: 999px;
   background: var(--ink-900);
-  color: #fff;
+  color: var(--surface);
   font-size: 13px;
   font-weight: 500;
   box-shadow: var(--shadow-lg);
@@ -40,11 +40,11 @@
   color: var(--ink-900);
 }
 .badge_success {
-  background: #fff;
+  background: var(--surface);
   color: var(--green-800);
 }
 .badge_info {
-  background: #fff;
+  background: var(--surface);
   color: var(--ink-900);
 }
 
@@ -76,7 +76,7 @@
   justify-content: center;
 }
 .close:hover {
-  color: #fff;
+  color: var(--surface);
 }
 .success .close {
   margin-right: -8px;

@@ -57,7 +57,7 @@
 .error {
   margin-top: 6px;
   font-size: 11px;
-  color: #c44;
+  color: var(--danger-500);
 }
 .hint {
   margin-top: 6px;
@@ -79,7 +79,7 @@
 }
 .addBtnOn {
   background: var(--green-600);
-  color: #fff;
+  color: var(--surface);
 }
 .addBtnOff {
   background: var(--ink-300);

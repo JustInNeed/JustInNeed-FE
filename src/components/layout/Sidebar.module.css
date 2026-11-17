@@ -24,7 +24,7 @@
   height: 36px;
   border-radius: 10px;
   background: linear-gradient(135deg, var(--green-400), var(--green-600));
-  color: #fff;
+  color: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -164,7 +164,7 @@
 }
 .recBtnPrimary {
   background: var(--green-500);
-  color: #fff;
+  color: var(--surface);
   border: none;
 }
 .recBtnSecondary {
@@ -193,7 +193,7 @@
   height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--green-300), var(--green-600));
-  color: #fff;
+  color: var(--surface);
   font-size: 13px;
   font-weight: 700;
   display: flex;
@@ -271,7 +271,7 @@
     height: 28px;
     border-radius: 8px;
     background: linear-gradient(135deg, var(--green-400), var(--green-600));
-    color: #fff;
+    color: var(--surface);
     display: flex;
     align-items: center;
     justify-content: center;

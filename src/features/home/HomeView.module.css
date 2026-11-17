@@ -105,7 +105,7 @@
   align-items: center;
   justify-content: center;
   background: var(--green-500);
-  color: #fff;
+  color: var(--surface);
 }
 .popBtn:hover {
   background: var(--green-600);
@@ -341,7 +341,7 @@
   width: 18px;
   height: 18px;
   border-radius: 4px;
-  color: #fff;
+  color: var(--surface);
   font-size: 9px;
   font-weight: 700;
   display: inline-flex;
