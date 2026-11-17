@@ -33,7 +33,7 @@
   height: 64px;
   border-radius: 18px;
   background: linear-gradient(135deg, var(--green-400), var(--green-600));
-  color: #fff;
+  color: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -206,7 +206,7 @@
   font-size: 13px;
   font-weight: 600;
   background: var(--green-600);
-  color: #fff;
+  color: var(--surface);
   border-radius: 10px;
 }
 
@@ -251,7 +251,7 @@
 }
 .stepActive {
   background: var(--green-500);
-  color: #fff;
+  color: var(--surface);
   border: none;
 }
 .stepLine {
@@ -311,7 +311,7 @@
 .checkBtnOn {
   border-color: var(--green-500);
   background: var(--green-500);
-  color: #fff;
+  color: var(--surface);
 }
 
 .statusLine {
@@ -326,7 +326,7 @@
   gap: 4px;
 }
 .statusError {
-  color: #c44;
+  color: var(--danger-500);
 }
 .statusHint {
   color: var(--ink-400);
@@ -343,7 +343,7 @@
 }
 .nextBtnOn {
   background: var(--green-600);
-  color: #fff;
+  color: var(--surface);
 }
 .nextBtnOff {
   background: var(--ink-300);
@@ -435,6 +435,6 @@
   font-size: 14px;
   font-weight: 600;
   background: var(--green-600);
-  color: #fff;
+  color: var(--surface);
   border-radius: 10px;
 }

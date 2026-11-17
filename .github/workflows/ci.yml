@@ -1,0 +1,49 @@
+name: ci
+
+# 정책 #16: PR 마다 전체 테스트 + tsc + lint + next build
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # 개인 레포(Vercel 동기화)로 복사된 뒤에는 돌지 않게 팀 레포에서만 실행
+    if: github.repository == 'JustInNeed/JustInNeed-FE'
+    runs-on: ubuntu-latest
+    env:
+      # 빌드에 필요한 공개 값. 실제 배포 값이 아니라 빌드가 되는지만 본다
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Design token lint
+        run: npm run lint:css
+
+      - name: Build
+        run: npm run build

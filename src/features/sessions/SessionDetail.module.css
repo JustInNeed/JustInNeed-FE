@@ -17,7 +17,7 @@
 }
 .stateError {
   margin: 0;
-  color: #c44;
+  color: var(--danger-500);
 }
 .stateBox {
   width: 100%;

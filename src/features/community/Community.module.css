@@ -533,7 +533,7 @@
 .mapPreview {
   display: block;
   position: relative;
-  background: #0d1812;
+  background: var(--ink-900);
   text-decoration: none;
 }
 .mapPreview:focus-visible {
@@ -559,7 +559,7 @@
 .mapTitle {
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--surface);
   margin-bottom: 3px;
   white-space: nowrap;
   overflow: hidden;

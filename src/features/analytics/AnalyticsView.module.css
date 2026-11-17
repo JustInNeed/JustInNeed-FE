@@ -128,7 +128,7 @@
   height: 40px;
   border-radius: 10px;
   background: var(--green-500);
-  color: #fff;
+  color: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;

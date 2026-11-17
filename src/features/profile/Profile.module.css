@@ -78,7 +78,7 @@
   padding: 6px 12px;
   border-radius: 999px;
   background: var(--green-700);
-  color: #fff;
+  color: var(--surface);
   border: 1px solid var(--green-700);
 }
 .countBadge {
@@ -89,8 +89,8 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #e64545;
-  color: #fff;
+  background: var(--danger-500);
+  color: var(--surface);
   font-size: 10px;
   font-weight: 700;
   line-height: 18px;

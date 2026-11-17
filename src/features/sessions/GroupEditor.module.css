@@ -103,7 +103,7 @@
   font-size: 12px;
   font-weight: 500;
   background: var(--green-500);
-  color: #fff;
+  color: var(--surface);
   border-radius: 999px;
   cursor: grab;
   user-select: none;
@@ -114,7 +114,7 @@
   height: 18px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  color: var(--surface);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -172,7 +172,7 @@
 }
 .tagBtnOn {
   background: var(--green-500);
-  color: #fff;
+  color: var(--surface);
   border-color: var(--green-500);
 }
 
@@ -193,7 +193,7 @@
 }
 .saveBtnOn {
   background: var(--green-600);
-  color: #fff;
+  color: var(--surface);
 }
 .saveBtnOff {
   background: var(--ink-300);
