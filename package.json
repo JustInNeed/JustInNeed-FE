@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
-    "lint:css": "stylelint \"src/**/*.css\""
+    "lint:css": "stylelint \"src/**/*.css\"",
+    "req:coverage": "node scripts/requirements/coverage.mjs"
   },
   "dependencies": {
     "next": "^15.5.0",
