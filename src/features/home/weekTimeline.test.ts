@@ -10,7 +10,7 @@ const week = (sessions: WeekSession[]) => buildWeekTimeline(sessions, TODAY);
 const names = (sites: TimelineSite[]) => sites.map((s) => s.name);
 
 describe("buildWeekTimeline", () => {
-  it("오늘부터 6일 전까지 7일을 날짜 (요일) 라벨로 만들고, 첫 날(맨 위)만 오늘이다", () => {
+  it("[ANA-2-1 S2] 오늘부터 6일 전까지 7일을 날짜 (요일) 라벨로 만들고, 첫 날(맨 위)만 오늘이다", () => {
     const days = week([]);
     expect(days.map((d) => d.label)).toEqual([
       "4/26 (일)",
@@ -30,28 +30,28 @@ describe("buildWeekTimeline", () => {
     expect(days[6].label).toBe("4/26 (일)");
   });
 
-  it("세션이 없는 날은 해시태그 · 사이트가 비어 있다", () => {
+  it("[ANA-2-1 S3] 세션이 없는 날은 해시태그 · 사이트가 비어 있다", () => {
     const tue = week(HOME_DATA.weekSessions)[5];
     expect(tue).toMatchObject({ label: "4/21 (화)", tags: [], sites: [] });
   });
 
-  it("7일 범위 밖(dayOffset -7) 세션은 무시한다", () => {
+  it("[ANA-2-1 R1] 7일 범위 밖(dayOffset -7) 세션은 무시한다", () => {
     const days = week([{ dayOffset: -7, startedAt: "10:00", tags: ["# 옛날"], visits: [{ site: site("old.com"), dwellSec: 10 }] }]);
     expect(days.every((d) => d.tags.length === 0 && d.sites.length === 0)).toBe(true);
   });
 
   describe("대표 해시태그", () => {
-    it("등장한 세션 수가 많은 순, 같으면 더 최근 세션의 태그가 앞선다", () => {
+    it("[ANA-2-2 S2] 등장한 세션 수가 많은 순, 같으면 더 최근 세션의 태그가 앞선다", () => {
       // 6일 전: 10:10 [# 파리 # 항공권] · 21:40 [# 파리 # 일정] → 파리(2) · 일정(21:40) · 항공권(10:10)
       expect(week(HOME_DATA.weekSessions)[6].tags).toEqual(["# 파리", "# 일정", "# 항공권"]);
     });
 
-    it("최대 3개까지만 뽑는다", () => {
+    it("[ANA-2-2 S2] 최대 3개까지만 뽑는다", () => {
       // 오늘: 09:00 [# 아침루틴 # 커피] · 10:30 [# 자바 # 스프링 # JPA] → 모두 1번, 최근 세션 태그 3개
       expect(week(HOME_DATA.weekSessions)[0].tags).toEqual(["# 자바", "# 스프링", "# JPA"]);
     });
 
-    it("한 세션에 같은 태그가 여러 번 있어도 1번으로 센다", () => {
+    it("[ANA-2-2 R1] 한 세션에 같은 태그가 여러 번 있어도 1번으로 센다", () => {
       const days = week([
         { dayOffset: 0, startedAt: "09:00", tags: ["# A", "# A", "# A"], visits: [] },
         { dayOffset: 0, startedAt: "08:00", tags: ["# B"], visits: [] },
@@ -62,12 +62,12 @@ describe("buildWeekTimeline", () => {
   });
 
   describe("대표 사이트", () => {
-    it("방문 횟수가 많은 순으로 최대 3개", () => {
+    it("[ANA-2-1 S2] 방문 횟수가 많은 순으로 최대 3개", () => {
       // 4일 전: stackoverflow 3번 · baeldung 2번 · docs.spring.io 1번
       expect(names(week(HOME_DATA.weekSessions)[4].sites)).toEqual(["stackoverflow", "baeldung.com", "docs.spring.io"]);
     });
 
-    it("방문 횟수가 같으면 체류 시간 합이 긴 사이트가 앞선다", () => {
+    it("[ANA-2-1 S2] 방문 횟수가 같으면 체류 시간 합이 긴 사이트가 앞선다", () => {
       // 6일 전: parisinfo 2번(820초) · skyscanner 2번(600초) · naver 1번
       expect(names(week(HOME_DATA.weekSessions)[6].sites)).toEqual(["parisinfo.com", "skyscanner.net", "naver.com/blog"]);
     });

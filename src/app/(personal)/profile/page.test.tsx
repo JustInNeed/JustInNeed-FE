@@ -5,7 +5,7 @@ import { renderPersonal } from "@/test/render";
 import MyProfilePage from "./page";
 
 describe("/profile 페이지", () => {
-  it("내 프로필을 받아 로그인 회원 닉네임과 함께 보여준다", async () => {
+  it("[X-PRF-01 S1] [X-PRF-04 S1] 내 프로필을 받아 로그인 회원 닉네임과 함께 보여준다", async () => {
     serveMyProfile();
     renderPersonal(<MyProfilePage />);
 

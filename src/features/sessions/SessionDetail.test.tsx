@@ -37,7 +37,7 @@ describe("세션 상세 — 보기", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "로마 3박 4일 동선 짜기" })).toBeInTheDocument();
   });
 
-  it("시작 → 종료 시각, 걸린 시간, 페이지 수, 분석 상태가 보인다", async () => {
+  it("[REC-1 S1·S2] 시작 → 종료 시각, 걸린 시간, 페이지 수, 분석 상태가 보인다", async () => {
     await renderDetail();
     expect(screen.getByText("2026-04-26 21:14 → 22:48")).toBeInTheDocument();
     expect(screen.getByText("1시간 34분")).toBeInTheDocument();
@@ -47,7 +47,14 @@ describe("세션 상세 — 보기", () => {
     expect(screen.getByText("분석 완료").querySelector("svg")).toBeNull();
   });
 
-  it("해시태그가 # 를 붙여 순서대로 보이고, 보기 중에는 지우기 · 추가 · 끌어 옮기기가 없다 (QA-041)", async () => {
+  it("[REC-1 S1] 종료 시각이 없으면 '진행 중' 으로 보이고 걸린 시간은 빠진다", async () => {
+    await renderDetail({ ...ROME_DETAIL, endedAt: null });
+    expect(screen.getByText("2026-04-26 21:14 → 진행 중")).toBeInTheDocument();
+    expect(screen.queryByText("1시간 34분")).not.toBeInTheDocument();
+    expect(screen.getByText("18개 페이지")).toBeInTheDocument();
+  });
+
+  it("[REC-7-2 S1] 해시태그가 # 를 붙여 순서대로 보이고, 보기 중에는 지우기 · 추가 · 끌어 옮기기가 없다 (QA-041)", async () => {
     await renderDetail();
     expect(viewTagTexts()).toEqual(ROME_TAGS);
     for (const t of ROME_TAGS) expect(screen.queryByRole("button", { name: `${t} 삭제` })).not.toBeInTheDocument();
@@ -55,7 +62,7 @@ describe("세션 상세 — 보기", () => {
     expect(tagChips()).toHaveLength(0);
   });
 
-  it("즐겨찾기 별은 채워져 있고, 비공개 세션이면 '비공개' 로 보인다", async () => {
+  it("[COM-1-3@1 S1] 즐겨찾기 별은 채워져 있고, 비공개 세션이면 '비공개' 로 보인다", async () => {
     await renderDetail();
     expect(isFilled(screen.getByRole("button", { name: "즐겨찾기" }))).toBe(true);
     const visibility = screen.getByRole("button", { name: "비공개" });
@@ -63,7 +70,7 @@ describe("세션 상세 — 보기", () => {
     expect(visibility).not.toHaveClass("active");
   });
 
-  it("본문 마크다운의 ## 소제목과 굵은 글씨가 그대로 그려진다", async () => {
+  it("[REC-2-1 S1] 본문 마크다운의 ## 소제목과 굵은 글씨가 그대로 그려진다", async () => {
     await renderDetail();
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
       "한눈에 보기",
@@ -75,7 +82,7 @@ describe("세션 상세 — 보기", () => {
     expect(screen.getByText("오전 첫 타임 예약이 가장 덜 붐빈다.").tagName).toBe("LI");
   });
 
-  it("출처마다 제목(없으면 도메인) · 도메인 · 원문 링크가 보이고 원문은 새 탭으로 연다", async () => {
+  it("[REC-3-1 S1] [REC-3-3 S1] 출처마다 제목(없으면 도메인) · 도메인 · 원문 링크가 보이고 원문은 새 탭으로 연다", async () => {
     await renderDetail();
     expect(screen.getByRole("heading", { name: "출처 (3)" })).toBeInTheDocument();
     const rows = Array.from(document.querySelectorAll<HTMLElement>(".source"));
@@ -94,7 +101,7 @@ describe("세션 상세 — 보기", () => {
     }
   });
 
-  it("출처마다 방문 시각이 보이고, 값이 없으면 시각 자리를 비운다", async () => {
+  it("[REC-3-1 S1·S3] 출처마다 방문 시각이 보이고, 값이 없으면 시각 자리를 비운다", async () => {
     await renderDetail();
     const meta = Array.from(document.querySelectorAll<HTMLElement>(".sourceMeta"), (m) =>
       Array.from(m.children, (c) => c.textContent),
@@ -112,7 +119,7 @@ describe("세션 상세 — 보기", () => {
     expect(document.querySelector("[class*='highlight']")).not.toBeInTheDocument();
   });
 
-  it("편집으로 본문을 비워 저장했으면 '요약 본문이 없습니다.' 가 보인다", async () => {
+  it("[REC-2-1 S3] 편집으로 본문을 비워 저장했으면 '요약 본문이 없습니다.' 가 보인다", async () => {
     await renderDetail({ ...ROME_DETAIL, summary: { markdown: "" } });
     expect(screen.getByText("요약 본문이 없습니다.")).toBeInTheDocument();
   });
@@ -120,7 +127,7 @@ describe("세션 상세 — 보기", () => {
 });
 
 describe("세션 상세 — 못 여는 경우", () => {
-  it("없는 세션(404)이면 '세션을 찾을 수 없어요' 와 세션 목록으로 버튼이 보인다", async () => {
+  it("[REC-1 R1] 없는 세션(404)이면 '세션을 찾을 수 없어요' 와 세션 목록으로 버튼이 보인다", async () => {
     server.use(http.get(`${API}/sessions/:id`, () => fail(404, "세션을 찾을 수 없습니다.")));
     const { user } = renderPersonal(<SessionDetail sessionId={404} />);
     expect(await screen.findByText("세션을 찾을 수 없어요")).toBeInTheDocument();
@@ -130,7 +137,7 @@ describe("세션 상세 — 못 여는 경우", () => {
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions");
   });
 
-  it("권한이 없는 세션(403)이면 '볼 수 없는 세션이에요' 가 보인다", async () => {
+  it("[X-SDT-01 S1] 권한이 없는 세션(403)이면 '볼 수 없는 세션이에요' 가 보인다", async () => {
     server.use(http.get(`${API}/sessions/:id`, () => fail(403, "비공개 세션이라 볼 수 없어요.")));
     renderPersonal(<SessionDetail sessionId={77} />);
     expect(await screen.findByText("볼 수 없는 세션이에요")).toBeInTheDocument();
@@ -153,7 +160,7 @@ describe("세션 상세 — 못 여는 경우", () => {
     expect(await screen.findByRole("heading", { level: 1, name: PARIS_DETAIL.title })).toBeInTheDocument();
   });
 
-  it.each(["abc", "0", "-1", "1.5"])("주소의 id 가 %s 처럼 양의 정수가 아니면 요청 없이 바로 404 화면을 보여 준다", async (id) => {
+  it.each(["abc", "0", "-1", "1.5"])("[REC-1 R1] 주소의 id 가 %s 처럼 양의 정수가 아니면 요청 없이 바로 404 화면을 보여 준다", async (id) => {
     const requested: string[] = [];
     const onStart = ({ request }: { request: Request }) => requested.push(request.url);
     server.events.on("request:start", onStart);
@@ -169,7 +176,7 @@ describe("세션 상세 — 못 여는 경우", () => {
 });
 
 describe("세션 상세 — 즐겨찾기 · 공개", () => {
-  it("별을 누르면 바로 비워지고 PATCH 에 { isFavorite: false } 를 보낸다", async () => {
+  it("[REC-11 S3] 별을 누르면 바로 비워지고 PATCH 에 { isFavorite: false } 를 보낸다", async () => {
     const { user, patches } = await renderDetail();
     const star = screen.getByRole("button", { name: "즐겨찾기" });
     await user.click(star);
@@ -177,7 +184,7 @@ describe("세션 상세 — 즐겨찾기 · 공개", () => {
     await waitFor(() => expect(patches).toEqual([{ isFavorite: false }]));
   });
 
-  it("비공개를 누르면 '공개' 로 바뀌고 PATCH 에 { isPublic: true } 를 보낸다", async () => {
+  it("[COM-1-3@1 S1] 비공개를 누르면 '공개' 로 바뀌고 PATCH 에 { isPublic: true } 를 보낸다", async () => {
     const { user, patches } = await renderDetail();
     await user.click(screen.getByRole("button", { name: "비공개" }));
     const visibility = screen.getByRole("button", { name: "공개" });
@@ -186,14 +193,14 @@ describe("세션 상세 — 즐겨찾기 · 공개", () => {
     await waitFor(() => expect(patches).toEqual([{ isPublic: true }]));
   });
 
-  it("공개 세션에서 공개를 누르면 PATCH 에 { isPublic: false } 를 보낸다", async () => {
+  it("[COM-1-3@1 S1] 공개 세션에서 공개를 누르면 PATCH 에 { isPublic: false } 를 보낸다", async () => {
     const { user, patches } = await renderDetail(PARIS_DETAIL);
     await user.click(screen.getByRole("button", { name: "공개" }));
     expect(screen.getByRole("button", { name: "비공개" })).toBeInTheDocument();
     await waitFor(() => expect(patches).toEqual([{ isPublic: false }]));
   });
 
-  it("저장에 실패하면 원래대로 되돌리고 서버 메시지를 토스트로 띄운다", async () => {
+  it("[COM-1-3@1 R2] 저장에 실패하면 원래대로 되돌리고 서버 메시지를 토스트로 띄운다", async () => {
     const g = gate();
     const { user } = await renderDetail(ROME_DETAIL, async () => {
       await g.opened;
@@ -216,7 +223,7 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
     return popover();
   };
 
-  it("추가를 누르면 입력창에 포커스가 간 팝오버가 열리고 규칙 안내가 보인다", async () => {
+  it("[REC-7-2 S2] 추가를 누르면 입력창에 포커스가 간 팝오버가 열리고 규칙 안내가 보인다", async () => {
     const { user } = await renderEditing();
     const pop = await openPicker(user);
     expect(input()).toHaveFocus();
@@ -224,7 +231,7 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
     expect(within(pop).getByRole("button", { name: "추가" })).toBeDisabled();
   });
 
-  it("Enter 로 넣으면 바로 저장하지 않고 초안 태그 뒤에 붙고, 저장할 때 제목 · 본문과 함께 PATCH 로 간다", async () => {
+  it("[REC-7-2 S2] Enter 로 넣으면 바로 저장하지 않고 초안 태그 뒤에 붙고, 저장할 때 제목 · 본문과 함께 PATCH 로 간다", async () => {
     const { user, patches } = await renderEditing();
     await openPicker(user);
     await user.type(input(), "트레비{Enter}");
@@ -242,7 +249,7 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
     expect(viewTagTexts()).toEqual([...ROME_TAGS, "# 트레비"]);
   });
 
-  it("앞의 # 와 사이 공백은 빼고 넣고, 추가 버튼으로도 넣을 수 있다", async () => {
+  it("[REC-7-2 S3] 앞의 # 와 사이 공백은 빼고 넣고, 추가 버튼으로도 넣을 수 있다", async () => {
     const { user, patches } = await renderEditing();
     const pop = await openPicker(user);
     await user.type(input(), "# 트레비 분수");
@@ -251,7 +258,7 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
     await waitFor(() => expect(patches[0]?.tags).toEqual(["로마", "콜로세움", "바티칸", "먹거리", "트레비분수"]));
   });
 
-  it("10자를 넘으면 오류를 보여 주고 넣지 않는다, 다시 입력하면 오류가 사라진다", async () => {
+  it("[REC-7-2 R1] 10자를 넘으면 오류를 보여 주고 넣지 않는다, 다시 입력하면 오류가 사라진다", async () => {
     const { user, patches } = await renderEditing();
     const pop = await openPicker(user);
     await user.type(input(), "가나다라마바사아자차카{Enter}");
@@ -270,7 +277,7 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
     expect(input()).toHaveValue("가나다라마바사아자차카타");
   });
 
-  it("이미 있는 태그면 '이미 추가된 해시태그입니다.' 를 보여 준다", async () => {
+  it("[REC-7-2 R1] 이미 있는 태그면 '이미 추가된 해시태그입니다.' 를 보여 준다", async () => {
     const { user, patches } = await renderEditing();
     const pop = await openPicker(user);
     await user.type(input(), "# 로마{Enter}");
@@ -278,14 +285,14 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
     expect(patches).toEqual([]);
   });
 
-  it("특수문자가 있으면 한글 · 영문 · 숫자만 된다고 알려 준다", async () => {
+  it("[REC-7-2 R1] 특수문자가 있으면 한글 · 영문 · 숫자만 된다고 알려 준다", async () => {
     const { user } = await renderEditing();
     const pop = await openPicker(user);
     await user.type(input(), "로마!{Enter}");
     expect(within(pop).getByText("한글·영문·숫자만 사용할 수 있어요.")).toBeInTheDocument();
   });
 
-  it("이미 10개면 더 추가할 수 없다고 알려 준다", async () => {
+  it("[REC-7-2 R1] 이미 10개면 더 추가할 수 없다고 알려 준다", async () => {
     const ten = Array.from({ length: 10 }, (_, i) => `태그${i}`);
     const { user } = await renderEditing({ ...ROME_DETAIL, tags: ten });
     const pop = await openPicker(user);
@@ -293,7 +300,20 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
     expect(within(pop).getByText("해시태그는 최대 10개까지 추가할 수 있어요.")).toBeInTheDocument();
   });
 
-  it("Esc 를 누르면 넣지 않고 닫는다", async () => {
+  it("[REC-7-2 R1] 빈 값으로 Enter 를 누르면 '내용을 입력해주세요.', 대소문자만 다른 태그는 중복으로 막는다", async () => {
+    const { user, patches } = await renderEditing({ ...ROME_DETAIL, tags: ["Rome"] });
+    const pop = await openPicker(user);
+    await user.type(input(), "{Enter}");
+    expect(within(pop).getByText("내용을 입력해주세요.")).toBeInTheDocument();
+    expect(within(pop).getByRole("button", { name: "추가" })).toBeDisabled();
+
+    await user.type(input(), "rome{Enter}");
+    expect(within(pop).getByText("이미 추가된 해시태그입니다.")).toBeInTheDocument();
+    expect(tagTexts()).toEqual(["# Rome"]);
+    expect(patches).toEqual([]);
+  });
+
+  it("[REC-7-2 R3] Esc 를 누르면 넣지 않고 닫는다", async () => {
     const { user, patches } = await renderEditing();
     await openPicker(user);
     await user.type(input(), "트레비");
@@ -303,7 +323,7 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
     expect(patches).toEqual([]);
   });
 
-  it("팝오버 바깥을 누르면 닫히고, 안쪽을 누르면 그대로다", async () => {
+  it("[REC-7-2 R3] 팝오버 바깥을 누르면 닫히고, 안쪽을 누르면 그대로다", async () => {
     const { user } = await renderEditing();
     const pop = await openPicker(user);
     await user.click(within(pop).getByText("해시태그 추가"));
@@ -313,7 +333,7 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
     expect(screen.queryByText("해시태그 추가")).not.toBeInTheDocument();
   });
 
-  it("팝오버의 취소를 누르면 닫힌다", async () => {
+  it("[REC-7-2 R3] 팝오버의 취소를 누르면 닫힌다", async () => {
     const { user } = await renderEditing();
     const pop = await openPicker(user);
     await user.click(within(pop).getByRole("button", { name: "취소" }));
@@ -332,7 +352,7 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
 });
 
 describe("세션 상세 — 해시태그 삭제 · 순서 (편집 중, QA-041)", () => {
-  it("× 를 누르면 초안에서만 빠지고, 저장할 때 그 태그만 빠진 목록을 보낸다", async () => {
+  it("[REC-7-3 S1] × 를 누르면 초안에서만 빠지고, 저장할 때 그 태그만 빠진 목록을 보낸다", async () => {
     const { user, patches } = await renderEditing();
     await user.click(screen.getByRole("button", { name: "# 콜로세움 삭제" }));
     expect(tagTexts()).toEqual(["# 로마", "# 바티칸", "# 먹거리"]);
@@ -343,7 +363,7 @@ describe("세션 상세 — 해시태그 삭제 · 순서 (편집 중, QA-041)",
     expect(viewTagTexts()).toEqual(["# 로마", "# 바티칸", "# 먹거리"]);
   });
 
-  it("태그를 바꾼 채 취소하면 경고하고, '저장 안 하고 나가기' 면 원래 태그로 돌아간다", async () => {
+  it("[REC-7-3 R1] 태그를 바꾼 채 취소하면 경고하고, '저장 안 하고 나가기' 면 원래 태그로 돌아간다", async () => {
     const { user, patches } = await renderEditing();
     await user.click(screen.getByRole("button", { name: "# 콜로세움 삭제" }));
     await user.click(screen.getByRole("button", { name: "취소" }));
@@ -362,7 +382,7 @@ describe("세션 상세 — 해시태그 삭제 · 순서 (편집 중, QA-041)",
     expect(patches[0]).not.toHaveProperty("tags");
   });
 
-  it("태그를 끌어 다른 태그 위에 놓으면 초안 순서가 바뀌고, 저장할 때 그 순서로 보낸다", async () => {
+  it("[REC-7-4 S2] 태그를 끌어 다른 태그 위에 놓으면 초안 순서가 바뀌고, 저장할 때 그 순서로 보낸다", async () => {
     const { user, patches } = await renderEditing();
     const [first, , third] = tagChips();
     const dataTransfer = { effectAllowed: "" };
@@ -390,6 +410,21 @@ describe("세션 상세 — 해시태그 삭제 · 순서 (편집 중, QA-041)",
   });
 });
 
+describe("세션 상세 — 해시태그 × 와 드래그", () => {
+  it("[REC-7-4 R1] × 버튼은 끌 수 없게 돼 있고, 눌러도 드래그가 시작되지 않고 그 태그만 빠진다", async () => {
+    const { user } = await renderEditing();
+    const remove = screen.getByRole("button", { name: "# 콜로세움 삭제" });
+    expect(remove).toHaveAttribute("draggable", "false");
+
+    await user.click(remove);
+    expect(tagTexts()).toEqual(["# 로마", "# 바티칸", "# 먹거리"]);
+    for (const chip of tagChips()) {
+      expect(chip.style.opacity).toBe("1");
+      expect(chip.style.outline).not.toContain("2px solid");
+    }
+  });
+});
+
 describe("세션 상세 — 삭제", () => {
   function onDelete(respond: () => Response) {
     const ids: string[] = [];
@@ -402,7 +437,7 @@ describe("세션 상세 — 삭제", () => {
     return ids;
   }
 
-  it("확인창에서 확인하면 DELETE /sessions/{id} 를 보내고 세션 목록으로 간다", async () => {
+  it("[REC-6 S1] 확인창에서 확인하면 DELETE /sessions/{id} 를 보내고 세션 목록으로 간다", async () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     const ids = onDelete(() => ok(null));
     const { user } = await renderDetail();
@@ -422,7 +457,7 @@ describe("세션 상세 — 삭제", () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("삭제에 실패하면 토스트를 띄우고 화면에 남는다", async () => {
+  it("[REC-6 R1] 삭제에 실패하면 토스트를 띄우고 화면에 남는다", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     onDelete(() => fail(404, "세션을 찾을 수 없습니다."));
     const { user } = await renderDetail();
@@ -461,7 +496,7 @@ describe("세션 상세 — 줄글 복사 · .md 다운로드", () => {
     return { create, revoke, click };
   }
 
-  it("줄글 복사를 누르면 '# 제목' 과 본문 글을 클립보드에 넣고 알려 준다", async () => {
+  it("[REC-8-4 S1] 줄글 복사를 누르면 '# 제목' 과 본문 글을 클립보드에 넣고 알려 준다", async () => {
     const { user } = await renderDetail();
     const write = vi.spyOn(navigator.clipboard, "writeText");
     await user.click(screen.getByRole("button", { name: "줄글 복사" }));
@@ -475,7 +510,7 @@ describe("세션 상세 — 줄글 복사 · .md 다운로드", () => {
     expect(await screen.findByText("줄글을 복사했어요.")).toBeInTheDocument();
   });
 
-  it("본문이 옛 # 제목으로 시작하면 현재 제목으로 바꿔서 복사한다", async () => {
+  it("[REC-8-4 R1] 본문이 옛 # 제목으로 시작하면 현재 제목으로 바꿔서 복사한다", async () => {
     const { user } = await renderDetail(OLD_EDITED_DETAIL);
     const write = vi.spyOn(navigator.clipboard, "writeText");
     await user.click(screen.getByRole("button", { name: "줄글 복사" }));
@@ -486,7 +521,7 @@ describe("세션 상세 — 줄글 복사 · .md 다운로드", () => {
     expect(text).not.toContain("옛 제목");
   });
 
-  it("본문의 # 제목이 현재 제목과 같으면 한 번만 넣는다", async () => {
+  it("[REC-8-4 R1] 본문의 # 제목이 현재 제목과 같으면 한 번만 넣는다", async () => {
     const title = OLD_EDITED_DETAIL.title;
     serveSession({ ...OLD_EDITED_DETAIL, summary: { markdown: `# ${title}\n\n## 결론` } });
     const { user } = renderPersonal(<SessionDetail sessionId={OLD_EDITED_DETAIL.id} />);
@@ -509,14 +544,20 @@ describe("세션 상세 — 줄글 복사 · .md 다운로드", () => {
     );
   });
 
-  it("클립보드에 못 넣으면 다시 시도하라고 알려 준다", async () => {
+  it("[REC-8-4 R2] 클립보드에 못 넣으면 다시 시도하라고 알려 준다", async () => {
     const { user } = await renderDetail();
     vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("denied"));
     await user.click(screen.getByRole("button", { name: "줄글 복사" }));
     expect(await screen.findByText("복사하지 못했어요. 다시 시도해 주세요.")).toBeInTheDocument();
   });
 
-  it(".md 다운로드를 누르면 '# 제목' 을 붙인 마크다운을 '제목.md' 로 내려받는다", async () => {
+  it("[REC-8-4 R2] 본문이 없으면 줄글 복사 · .md 버튼이 없다", async () => {
+    await renderDetail({ ...ROME_DETAIL, summary: { markdown: "" } });
+    expect(screen.queryByRole("button", { name: "줄글 복사" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: ".md 파일 다운로드" })).not.toBeInTheDocument();
+  });
+
+  it("[REC-9-1 S1] .md 다운로드를 누르면 '# 제목' 을 붙인 마크다운을 '제목.md' 로 내려받는다", async () => {
     const { user } = await renderDetail();
     const { create, revoke, click } = spyDownload();
     await user.click(screen.getByRole("button", { name: ".md 파일 다운로드" }));
@@ -543,7 +584,7 @@ describe("세션 상세 — 줄글 복사 · .md 다운로드", () => {
   it.each([
     { label: "지금 본문", detail: ROME_DETAIL, body: ROME_DETAIL.summary!.markdown },
     { label: "옛 # 제목이 남은 본문", detail: OLD_EDITED_DETAIL, body: "## 결론\n\n- 일정이 짧으면 개별 구매가 낫다." },
-  ])("제목을 고쳐 저장하면 복사 · .md 가 고친 제목으로 시작한다 ($label)", async ({ detail, body }) => {
+  ])("[REC-5-1 S2] 제목을 고쳐 저장하면 복사 · .md 가 고친 제목으로 시작한다 ($label)", async ({ detail, body }) => {
     const { user } = await renderDetail(detail);
     await user.click(screen.getByRole("button", { name: "편집" }));
     await user.clear(screen.getByPlaceholderText("세션 제목"));
@@ -561,7 +602,7 @@ describe("세션 상세 — 줄글 복사 · .md 다운로드", () => {
     expect(await readBlob(create.mock.calls[0][0] as Blob)).toBe(`# 새 제목\n\n${body}\n`);
   });
 
-  it("파일 이름에 못 쓰는 글자는 _ 로 바꾼다", async () => {
+  it("[REC-9-1 S1] 파일 이름에 못 쓰는 글자는 _ 로 바꾼다", async () => {
     const { user } = await renderDetail(PARIS_DETAIL);
     const { click } = spyDownload();
     await user.click(screen.getByRole("button", { name: ".md 파일 다운로드" }));

@@ -77,7 +77,7 @@ describe("URL 만 공개한 사용자의 프로필", () => {
     expect(dialog.querySelector(".tags")?.children).toHaveLength(0);
   });
 
-  it("전체 마인드맵의 URL 노드는 사이트 이름으로 보이고 해시태그 여럿에 이어져도 · 연결이 없어도 원문이 열린다", async () => {
+  it("[COM-3-1 S1] 전체 마인드맵의 URL 노드는 사이트 이름으로 보이고 해시태그 여럿에 이어져도 · 연결이 없어도 원문이 열린다", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     const { user } = renderPersonal(<OtherProfile id="7" />);
     const dialog = await openCard(user);
@@ -100,7 +100,7 @@ describe("URL 만 공개한 사용자의 프로필", () => {
     expect(within(full).queryByText(/https?:\/\//)).not.toBeInTheDocument();
   });
 
-  it("공유 세션 카드는 제목 자리에 해시태그가 보이고 누르면 세션 상세로 이동한다", async () => {
+  it("[COM-1-6 S3·S4] 공유 세션 카드는 제목 자리에 해시태그가 보이고 누르면 세션 상세로 이동한다", async () => {
     const { user } = renderPersonal(<OtherProfile id="7" />);
 
     await user.click(await screen.findByRole("button", { name: "세션 (2)" }));
@@ -116,7 +116,7 @@ describe("URL 만 공개한 사용자의 프로필", () => {
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/31");
   });
 
-  it("해시태그가 없는 공유 세션도 누르면 세션 상세로 이동한다", async () => {
+  it("[COM-1-6 S3·S4] 해시태그가 없는 공유 세션도 누르면 세션 상세로 이동한다", async () => {
     const { user } = renderPersonal(<OtherProfile id="7" />);
 
     await user.click(await screen.findByRole("button", { name: "세션 (2)" }));

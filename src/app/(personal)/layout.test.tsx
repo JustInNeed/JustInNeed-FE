@@ -34,20 +34,20 @@ afterEach(() => {
 
 describe("개인 영역 레이아웃", () => {
   describe("들어올 수 있는 사람", () => {
-    it("로그인 토큰이 없으면 아무것도 그리지 않고 /login 으로 보낸다", () => {
+    it("[MEM-2-2 S1] 로그인 토큰이 없으면 아무것도 그리지 않고 /login 으로 보낸다", () => {
       renderLayout({ authed: false });
       expect(mockRouter.replace).toHaveBeenCalledWith("/login");
       expect(screen.queryByText("본문")).not.toBeInTheDocument();
     });
 
-    it("닉네임을 아직 안 정한 회원이면 /onboarding/nickname 으로 보낸다", async () => {
+    it("[MEM-2-2 S2] 닉네임을 아직 안 정한 회원이면 /onboarding/nickname 으로 보낸다", async () => {
       server.use(http.get(`${API}/members/me`, () => ok(NEW_MEMBER)));
       renderLayout();
       await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/onboarding/nickname"));
       expect(screen.queryByText("본문")).not.toBeInTheDocument();
     });
 
-    it("회원 정보를 불러오지 못하면 토큰을 지우고 /login 으로 보낸다", async () => {
+    it("[MEM-2-2 R1] 회원 정보를 불러오지 못하면 토큰을 지우고 /login 으로 보낸다", async () => {
       server.use(http.get(`${API}/members/me`, () => fail(500, "서버 오류가 발생했습니다.")));
       renderLayout();
       await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/login"));
@@ -94,7 +94,7 @@ describe("개인 영역 레이아웃", () => {
   });
 
   describe("로그인 직후 토스트", () => {
-    it("기존 회원이면 '{프로바이더} 계정으로 로그인되었어요.' 를 한 번 띄운다", async () => {
+    it("[MEM-1-1@2 S2] 기존 회원이면 '{프로바이더} 계정으로 로그인되었어요.' 를 한 번 띄운다", async () => {
       setAuthToast({ kind: "login", justSignedUp: false });
       await openAsMember();
       expect(screen.getByRole("status")).toHaveTextContent(/^카카오 계정으로 로그인되었어요\.$/);
@@ -112,7 +112,7 @@ describe("개인 영역 레이아웃", () => {
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
 
-    it("토스트는 4.5초 뒤 사라진다", async () => {
+    it("[MEM-1-1@2 S2] 토스트는 4.5초 뒤 사라진다", async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       setAuthToast({ kind: "login", justSignedUp: false });
       await openAsMember();
@@ -125,7 +125,7 @@ describe("개인 영역 레이아웃", () => {
   });
 
   describe("로그아웃", () => {
-    it("확인 창 없이 바로 POST /auth/logout 에 refresh 토큰을 보내고, 토큰 삭제 · 로그아웃 토스트 예약 후 /login 으로 보낸다 (QA-046)", async () => {
+    it("[MEM-3@1 S1·S2·S3] 확인 창 없이 바로 POST /auth/logout 에 refresh 토큰을 보내고, 토큰 삭제 · 로그아웃 토스트 예약 후 /login 으로 보낸다 (QA-046)", async () => {
       const confirm = vi.spyOn(window, "confirm");
       let body: unknown = null;
       server.use(
@@ -161,7 +161,25 @@ describe("개인 영역 레이아웃", () => {
       expect(calls).toBe(1);
     });
 
-    it("서버 로그아웃이 실패해도 토큰은 지우고 /login 으로 보낸다", async () => {
+    it("[MEM-3@1 S2] 로그아웃 요청에는 access 토큰을 Authorization 헤더로, refresh 토큰을 본문으로 보낸다", async () => {
+      let auth: string | null = null;
+      let body: unknown = null;
+      server.use(
+        http.post(`${API}/auth/logout`, async ({ request }) => {
+          auth = request.headers.get("Authorization");
+          body = await request.json();
+          return ok(null);
+        }),
+      );
+      const { user } = await openAsMember();
+      await user.click(screen.getByRole("button", { name: "로그아웃" }));
+
+      await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/login"));
+      expect(auth).toBe("Bearer test-access-token");
+      expect(body).toEqual({ refreshToken: "test-refresh-token" });
+    });
+
+    it("[MEM-3@1 R2] 서버 로그아웃이 실패해도 토큰은 지우고 /login 으로 보낸다", async () => {
       server.use(http.post(`${API}/auth/logout`, () => fail(500, "서버 오류가 발생했습니다.")));
       const { user } = await openAsMember();
       await user.click(screen.getByRole("button", { name: "로그아웃" }));
@@ -186,7 +204,7 @@ describe("개인 영역 레이아웃", () => {
 
     afterEach(() => removeFakeExtension());
 
-    it("확장이 로그아웃 상태면 연결 코드를 받아 이 회원으로 연결한다", async () => {
+    it("[MEM-2-3 S1] 확장이 로그아웃 상태면 연결 코드를 받아 이 회원으로 연결한다", async () => {
       const calls = issueOk();
       const sent = installFakeExtension(loggedOutExtension(MEMBER.id));
       await openAsMember();
@@ -204,7 +222,7 @@ describe("개인 영역 레이아웃", () => {
       expect(new Set(sent.map((s) => s.message.type))).toEqual(new Set(["JIN_STATUS"]));
     });
 
-    it("확장이 다른 회원이면 이 회원으로 다시 연결한다", async () => {
+    it("[MEM-2-3 S1] 확장이 다른 회원이면 이 회원으로 다시 연결한다", async () => {
       issueOk();
       const sent = installFakeExtension((m) =>
         m.type === "JIN_STATUS" ? { loggedIn: true, memberId: 999, version: "0.1.0" } : { ok: true, memberId: MEMBER.id },
@@ -213,7 +231,7 @@ describe("개인 영역 레이아웃", () => {
       await vi.waitFor(() => expect(sent.map((s) => s.message.type)).toContain("JIN_CONNECT"));
     });
 
-    it("연결이 실패해도 화면은 그대로이고 콘솔 경고만 남긴다", async () => {
+    it("[MEM-2-3 R2] 연결이 실패해도 화면은 그대로이고 콘솔 경고만 남긴다", async () => {
       issueOk();
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
       installFakeExtension((m) =>
@@ -226,7 +244,7 @@ describe("개인 영역 레이아웃", () => {
       warn.mockRestore();
     });
 
-    it("웹에서 로그아웃하면 확장에도 JIN_LOGOUT 을 보낸다", async () => {
+    it("[MEM-3@1 S3] 웹에서 로그아웃하면 확장에도 JIN_LOGOUT 을 보낸다", async () => {
       server.use(http.post(`${API}/auth/logout`, () => ok(null)));
       const sent = installFakeExtension(() => ({ loggedIn: true, memberId: MEMBER.id, version: "0.1.0" }));
       const { user } = await openAsMember();
@@ -238,7 +256,7 @@ describe("개인 영역 레이아웃", () => {
     });
   });
 
-  it("설정에서 닉네임을 바꾸면 사이드바 닉네임도 바뀐다", async () => {
+  it("[MEM-4 S4] 설정에서 닉네임을 바꾸면 사이드바 닉네임도 바뀐다", async () => {
     server.use(
       http.get(`${API}/members/me`, () => ok(MEMBER)),
       http.patch(`${API}/members/me/nickname`, () => ok({ ...MEMBER, nickname: "newnick" })),

@@ -23,7 +23,7 @@ function respondWith(cards: Record<keyof typeof REAL_ANALYTICS, unknown>) {
 describe("분석 페이지", () => {
   beforeEach(() => respondWith(REAL_ANALYTICS));
 
-  it("카드별 API 를 불러와 실제 응답을 화면에 그린다", async () => {
+  it("[ANA-1-1 S1] 카드별 API 를 불러와 실제 응답을 화면에 그린다", async () => {
     renderPersonal(<AnalyticsPage />);
 
     const reading = await screen.findByText("Scanning 비중 32%");
@@ -48,7 +48,7 @@ describe("분석 페이지", () => {
     expect(await screen.findByRole("button", { name: "슬라이드 3" })).toBeInTheDocument();
   });
 
-  it("모든 카드에 데이터가 없으면 빈 상태 하나만 보인다", async () => {
+  it("[ANA-1-1 S4] 모든 카드에 데이터가 없으면 빈 상태 하나만 보인다", async () => {
     respondWith({
       weekSessions: { sessions: [] },
       exploration: null,
@@ -63,7 +63,7 @@ describe("분석 페이지", () => {
     expect(screen.queryByRole("heading", { name: "탐색 성향" })).not.toBeInTheDocument();
   });
 
-  it("카드 하나가 실패하면 그 카드에 오류가 보이고, 다시 시도하면 불러온다", async () => {
+  it("[ANA-1-1 S2] 카드 하나가 실패하면 그 카드에 오류가 보이고, 다시 시도하면 불러온다", async () => {
     server.use(http.get(`${ANALYTICS}/categories`, () => fail(500, SERVER_ERROR), { once: true }));
     const { user } = renderPersonal(<AnalyticsPage />);
 

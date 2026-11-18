@@ -24,14 +24,14 @@ function issueOk() {
 afterEach(() => removeFakeExtension());
 
 describe("확장 연결 페이지", () => {
-  it("로그인 안 됐으면 로그인 화면으로 보내고, 로그인 뒤 이 페이지로 돌아오게 표시한다", () => {
+  it("[MEM-2-3 S2] 로그인 안 됐으면 로그인 화면으로 보내고, 로그인 뒤 이 페이지로 돌아오게 표시한다", () => {
     render(<ExtensionConnectPage />);
     expect(screen.getByText("로그인 화면으로 이동하는 중…")).toBeInTheDocument();
     expect(mockRouter.replace).toHaveBeenCalledWith("/login");
     expect(consumeConnectAfterLogin()).toBe(true);
   });
 
-  it("로그인돼 있으면 연결하고 '연결됐어요' 를 보여 준다. 표시는 지운다", async () => {
+  it("[MEM-2-3 S2] 로그인돼 있으면 연결하고 '연결됐어요' 를 보여 준다. 표시는 지운다", async () => {
     setTokens({ accessToken: "web-a", refreshToken: "web-r" });
     issueOk();
     const sent = installFakeExtension(loggedOutExtension(12));
@@ -57,7 +57,7 @@ describe("확장 연결 페이지", () => {
     expect(calls()).toBe(1);
   });
 
-  it("확장이 없으면 '설치돼 있지 않아요' 와 [다시 시도] — 설치한 뒤 누르면 연결된다", async () => {
+  it("[MEM-2-3 S3] 확장이 없으면 '설치돼 있지 않아요' 와 [다시 시도] — 설치한 뒤 누르면 연결된다", async () => {
     setTokens({ accessToken: "web-a", refreshToken: "web-r" });
     issueOk();
     render(<ExtensionConnectPage />);
@@ -68,7 +68,7 @@ describe("확장 연결 페이지", () => {
     expect(await screen.findByText("확장 프로그램과 연결됐어요")).toBeInTheDocument();
   });
 
-  it("확장이 거절하면 그 문구를 그대로 보여 준다", async () => {
+  it("[MEM-2-3 S3] 확장이 거절하면 그 문구를 그대로 보여 준다", async () => {
     setTokens({ accessToken: "web-a", refreshToken: "web-r" });
     issueOk();
     installFakeExtension((m) =>

@@ -62,7 +62,7 @@ describe("BackLink — 직전 화면 이름으로 돌아가기", () => {
     expect(screen.queryByRole("button", { name: /^←/ })).not.toBeInTheDocument();
   });
 
-  it("커뮤니티에서 세션 상세로 오면 '← 커뮤니티' 이고, 누르면 뒤로 간다", async () => {
+  it("[X-SDT-02 S1] 커뮤니티에서 세션 상세로 오면 '← 커뮤니티' 이고, 누르면 뒤로 간다", async () => {
     const { rerender } = mountAt("/community", <BackLink fallback="/sessions" />);
     setMockPathname("/sessions/2");
     rerender(<NavHistoryProvider><BackLink fallback="/sessions" /></NavHistoryProvider>);
@@ -71,7 +71,7 @@ describe("BackLink — 직전 화면 이름으로 돌아가기", () => {
     expect(mockRouter.back).toHaveBeenCalled();
   });
 
-  it("세션 상세에 주소로 바로 들어오면 '← 세션 목록' 으로 목록에 간다", async () => {
+  it("[X-SDT-02 S2] 세션 상세에 주소로 바로 들어오면 '← 세션 목록' 으로 목록에 간다", async () => {
     mountAt("/sessions/2", <BackLink fallback="/sessions" />);
     await userEvent.click(screen.getByRole("button", { name: "← 세션 목록" }));
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions");

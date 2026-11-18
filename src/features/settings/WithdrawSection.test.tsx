@@ -13,7 +13,7 @@ const confirmInput = () => screen.getByLabelText(/를 입력해 주세요/);
 const withdrawBtn = () => screen.getByRole("button", { name: /탈퇴하기|탈퇴 처리 중/ });
 
 describe("설정 > 회원 탈퇴", () => {
-  it("확인 문구를 정확히 'WITHDRAW' 로 입력해야 탈퇴하기 버튼이 켜진다", async () => {
+  it("[X-SET-06 S2] 확인 문구를 정확히 'WITHDRAW' 로 입력해야 탈퇴하기 버튼이 켜진다", async () => {
     const { user } = renderApp(<WithdrawSection onBack={vi.fn()} />);
     expect(withdrawBtn()).toBeDisabled();
 
@@ -29,7 +29,7 @@ describe("설정 > 회원 탈퇴", () => {
     expect(withdrawBtn()).toBeEnabled();
   });
 
-  it("문구가 틀린 채로 Enter 를 눌러도 요청을 보내지 않는다", async () => {
+  it("[X-SET-06 R1] 문구가 틀린 채로 Enter 를 눌러도 요청을 보내지 않는다", async () => {
     // 요청이 나가면 MSW 가 처리되지 않은 요청으로 실패시킨다
     const { user } = renderApp(<WithdrawSection onBack={vi.fn()} />);
     await user.type(confirmInput(), "WITHDRA{Enter}");
@@ -37,7 +37,7 @@ describe("설정 > 회원 탈퇴", () => {
     expect(getAccessToken()).toBe("test-access-token");
   });
 
-  it("성공하면 DELETE /settings/account 에 확인 문구를 보내고, 토큰 삭제 · 탈퇴 토스트 예약 후 /login 으로 보낸다", async () => {
+  it("[X-SET-06 S3] 성공하면 DELETE /settings/account 에 확인 문구를 보내고, 토큰 삭제 · 탈퇴 토스트 예약 후 /login 으로 보낸다", async () => {
     let body: unknown = null;
     server.use(
       http.delete(`${API}/settings/account`, async ({ request }) => {
@@ -56,7 +56,7 @@ describe("설정 > 회원 탈퇴", () => {
     expect(consumeAuthToast()).toEqual({ kind: "withdraw" });
   });
 
-  it("탈퇴하면 크롬 확장에도 JIN_LOGOUT 을 보낸다", async () => {
+  it("[X-SET-06 S3] 탈퇴하면 크롬 확장에도 JIN_LOGOUT 을 보낸다", async () => {
     server.use(http.delete(`${API}/settings/account`, () => ok({ memberId: 6, withdrawn: true })));
     const sent = installFakeExtension(() => ({ ok: true }));
     const { user } = renderApp(<WithdrawSection onBack={vi.fn()} />);
@@ -94,7 +94,7 @@ describe("설정 > 회원 탈퇴", () => {
     await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/login"));
   });
 
-  it("실패하면 서버 메시지를 오류 토스트로 띄우고, 토큰은 그대로 두고 다시 시도할 수 있다", async () => {
+  it("[X-SET-06 S6] 실패하면 서버 메시지를 오류 토스트로 띄우고, 토큰은 그대로 두고 다시 시도할 수 있다", async () => {
     server.use(http.delete(`${API}/settings/account`, () => fail(400, "탈퇴 확인 문구가 올바르지 않습니다.")));
     const { user } = renderApp(<WithdrawSection onBack={vi.fn()} />);
     await user.type(confirmInput(), "WITHDRAW");
@@ -106,6 +106,15 @@ describe("설정 > 회원 탈퇴", () => {
     expect(mockRouter.replace).not.toHaveBeenCalled();
     expect(withdrawBtn()).toBeEnabled();
   });
+
+  it("[X-SET-06 R2] 탈퇴 화면은 확인 문구 입력칸 하나뿐이고 탈퇴 사유는 받지 않는다", () => {
+    renderApp(<WithdrawSection onBack={vi.fn()} />);
+    expect(screen.getAllByRole("textbox")).toEqual([confirmInput()]);
+    expect(screen.queryByText(/사유/)).not.toBeInTheDocument();
+  });
+
+  // 요구사항과 다름: 서버 문구가 없는 실패도 ApiError("요청에 실패했습니다. (HTTP n)") 라 대체 문구가 나오지 않는다
+  it.todo("X-SET-06 S6 미일치 — 실패 응답에 서버 문구가 없으면 '탈퇴에 실패했습니다. 다시 시도해 주세요.' 를 보여준다");
 
   it("취소 · '← 계정 설정으로' 는 onBack 을 부른다", async () => {
     const onBack = vi.fn();

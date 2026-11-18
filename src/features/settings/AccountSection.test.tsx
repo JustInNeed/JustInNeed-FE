@@ -29,13 +29,13 @@ async function renderWithNickname(value: string, checkNickname?: (n: string) => 
 
 describe("설정 > 계정", () => {
   describe("연결된 계정 · 버튼", () => {
-    it("가입한 소셜 계정과 이메일이 보이고, 이메일이 없으면 '이메일 정보 없음'", () => {
+    it("[X-SET-05 S1] 가입한 소셜 계정과 이메일이 보이고, 이메일이 없으면 '이메일 정보 없음'", () => {
       renderPersonal(<AccountSection onWithdraw={vi.fn()} />);
       expect(screen.getByText("카카오로 로그인")).toBeInTheDocument();
       expect(screen.getByText("이메일 정보 없음")).toBeInTheDocument();
     });
 
-    it("네이버 계정이면 '네이버로 로그인' 과 이메일이 보인다", () => {
+    it("[X-SET-05 S1] 네이버 계정이면 '네이버로 로그인' 과 이메일이 보인다", () => {
       renderPersonal(<AccountSection onWithdraw={vi.fn()} />, {
         member: { ...MEMBER, socialProvider: "NAVER", email: "yesong@naver.com" },
       });
@@ -65,7 +65,13 @@ describe("설정 > 계정", () => {
       noSaveBtn();
     });
 
-    it("형식이 틀리면 형식 안내가 뜨고 중복 확인 · 저장이 꺼진다", async () => {
+    it("[MEM-4 S1] 닉네임 칸에 현재 닉네임과 힌트 '3-16자 (영문/숫자)' 가 보인다", () => {
+      renderPersonal(<AccountSection onWithdraw={vi.fn()} />);
+      expect(nicknameInput()).toHaveValue("yesong");
+      expect(screen.getByText("3-16자 (영문/숫자)")).toBeInTheDocument();
+    });
+
+    it("[MEM-4 S2] 형식이 틀리면 형식 안내가 뜨고 중복 확인 · 저장이 꺼진다", async () => {
       await renderWithNickname("1ab");
       expect(screen.getByRole("alert")).toHaveTextContent("영문으로 시작하는 3-16자(영문·숫자)로 입력해주세요.");
       expect(nicknameInput()).toHaveAttribute("aria-invalid", "true");
@@ -86,7 +92,7 @@ describe("설정 > 계정", () => {
       noSaveBtn();
     });
 
-    it("쓸 수 있는 닉네임이면 '사용 가능한 닉네임입니다.' 가 뜬다", async () => {
+    it("[MEM-4 S3] 쓸 수 있는 닉네임이면 '사용 가능한 닉네임입니다.' 가 뜬다", async () => {
       const checkNickname = vi.fn().mockResolvedValue(true);
       const { user } = await renderWithNickname("newnick", checkNickname);
       await user.click(checkBtn());
@@ -94,13 +100,13 @@ describe("설정 > 계정", () => {
       expect(await screen.findByRole("status")).toHaveTextContent("사용 가능한 닉네임입니다.");
     });
 
-    it("이미 쓰는 닉네임이면 '이미 사용 중인 닉네임입니다.' 가 뜬다", async () => {
+    it("[MEM-4 S3] 이미 쓰는 닉네임이면 '이미 사용 중인 닉네임입니다.' 가 뜬다", async () => {
       const { user } = await renderWithNickname("admin", vi.fn().mockResolvedValue(false));
       await user.click(checkBtn());
       expect(await screen.findByRole("alert")).toHaveTextContent("이미 사용 중인 닉네임입니다.");
     });
 
-    it("중복 확인 요청이 실패하면 다시 시도 안내가 뜬다", async () => {
+    it("[MEM-4 S3] 중복 확인 요청이 실패하면 다시 시도 안내가 뜬다", async () => {
       const { user } = await renderWithNickname("newnick", vi.fn().mockRejectedValue(new Error("network")));
       await user.click(checkBtn());
       expect(await screen.findByRole("alert")).toHaveTextContent("중복 확인에 실패했어요. 다시 시도해 주세요.");
@@ -158,7 +164,7 @@ describe("설정 > 계정", () => {
   });
 
   describe("닉네임 저장 (PATCH /members/me/nickname)", () => {
-    it("중복 확인 전에는 저장할 수 없고, 통과하면 같은 버튼이 '저장' 으로 바뀐다 (QA-028)", async () => {
+    it("[MEM-4 S3·R1] 중복 확인 전에는 저장할 수 없고, 통과하면 같은 버튼이 '저장' 으로 바뀐다 (QA-028)", async () => {
       const { user } = await renderWithNickname("newnick", vi.fn().mockResolvedValue(true));
       noSaveBtn();
       const btn = checkBtn();
@@ -183,7 +189,7 @@ describe("설정 > 계정", () => {
       noSaveBtn();
     });
 
-    it("성공하면 새 닉네임을 보내고, 받은 회원 정보로 updateMember 를 부른 뒤 성공 토스트를 띄운다", async () => {
+    it("[MEM-4 S4] 성공하면 새 닉네임을 보내고, 받은 회원 정보로 updateMember 를 부른 뒤 성공 토스트를 띄운다", async () => {
       const updated = { ...MEMBER, nickname: "newnick" };
       let body: unknown = null;
       server.use(
@@ -207,7 +213,7 @@ describe("설정 > 계정", () => {
       expect(screen.getByRole("button", { name: "저장 중…" })).toBeDisabled();
     });
 
-    it("409 면 입력칸 아래에 서버의 중복 메시지가 뜨고, 버튼은 '중복 확인' 으로 돌아가며 회원 정보는 그대로다", async () => {
+    it("[MEM-4 S5] 409 면 입력칸 아래에 서버의 중복 메시지가 뜨고, 버튼은 '중복 확인' 으로 돌아가며 회원 정보는 그대로다", async () => {
       server.use(http.patch(`${API}/members/me/nickname`, () => fail(409, "이미 사용 중인 닉네임입니다.")));
       const { user, updateMember } = await renderReadyToSave("admin");
       await user.click(saveBtn());

@@ -74,7 +74,7 @@ describe("profilePath", () => {
 });
 
 describe("CommunityView — 추천 피드", () => {
-  it("두 추천을 근거 태그와 함께 섹션별로 보여준다", () => {
+  it("[COM-6-1 S1] 두 추천을 근거 태그와 함께 섹션별로 보여준다", () => {
     renderCommunity();
     const chips = (el: HTMLElement) => Array.from(el.querySelector(".secChips")!.children, (c) => c.textContent);
     expect(chips(region(INTEREST))).toEqual(["# 파리", "# 로마"]);
@@ -90,7 +90,7 @@ describe("CommunityView — 추천 피드", () => {
     ]);
   });
 
-  it("카드에 작성자 · 날짜 · 노드 수 · 소개글 · 해시태그 · 반응 수를 보여주고 아바타는 기본값이다", () => {
+  it("[X-CMT-01 S1·S2] [COM-4-2@1 S1] 카드에 작성자 · 날짜 · 노드 수 · 소개글 · 해시태그 · 반응 수를 보여주고 아바타는 기본값이다", () => {
     renderCommunity();
     const card = feedCard(CONTENT_TITLE, region(INTEREST));
     const c = within(card);
@@ -105,7 +105,7 @@ describe("CommunityView — 추천 피드", () => {
     expect(button(card, "나도 탐색중")).toHaveTextContent("나도 탐색중 12");
   });
 
-  it("URL 만 공개한 카드는 제목 자리에 해시태그, 소개글 없음, URL 은 사이트 주소만 보여준다", () => {
+  it("[X-CMT-01 S3] [COM-6-1 S4] URL 만 공개한 카드는 제목 자리에 해시태그, 소개글 없음, URL 은 사이트 주소만 보여준다", () => {
     renderCommunity();
     const card = feedCard("# 미술관 # 로마");
     expect(card.querySelector(".feedSnippet")).toBeNull();
@@ -115,12 +115,12 @@ describe("CommunityView — 추천 피드", () => {
     expect(within(link).getAllByText("museivaticani.va")).toHaveLength(1);
   });
 
-  it("닉네임이 없는 작성자는 대체 이름으로 보여준다", () => {
+  it("[X-CMT-01 S1] 닉네임이 없는 작성자는 대체 이름으로 보여준다", () => {
     renderCommunity();
     expect(within(feedCard("유럽 한 달 예산")).getByText("이름 없는 사용자")).toBeInTheDocument();
   });
 
-  it("연관 URL 은 제목과 사이트 주소로 보여주고 새 탭으로 연다", () => {
+  it("[COM-6-1 S4] 연관 URL 은 제목과 사이트 주소로 보여주고 새 탭으로 연다", () => {
     renderCommunity();
     const card = within(feedCard(CONTENT_TITLE, region(INTEREST)));
     const link = card.getByRole("link", { name: /ÖBB 나이트젯 야간열차 노선/ });
@@ -130,7 +130,7 @@ describe("CommunityView — 추천 피드", () => {
     expect(within(link).getByText("nightjet.com")).toBeInTheDocument();
   });
 
-  it("연관 URL 이 3개 이상이어도 앞의 2개만, 없으면 영역 없이 보여준다", () => {
+  it("[COM-6-1 S4] 연관 URL 이 3개 이상이어도 앞의 2개만, 없으면 영역 없이 보여준다", () => {
     renderCommunity();
     const links = within(feedCard(CONTENT_TITLE, region(INTEREST))).getAllByRole("link");
     expect(links.map((a) => a.getAttribute("href"))).toEqual(["https://www.nightjet.com/en", "https://www.cd.cz/en/"]);
@@ -147,7 +147,7 @@ describe("CommunityView — 카드 반응", () => {
     expect(button(card, "나도 탐색중")).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("좋아요는 먼저 바뀌고 서버 값으로 맞춘다", async () => {
+  it("[X-CMT-03 S1] 좋아요는 먼저 바뀌고 서버 값으로 맞춘다", async () => {
     let release = () => {};
     const gate = new Promise<void>((resolve) => (release = resolve));
     const bodies: unknown[] = [];
@@ -168,7 +168,7 @@ describe("CommunityView — 카드 반응", () => {
     expect(bodies).toEqual([{ liked: true }]);
   });
 
-  it("좋아요를 끄면 liked: false 를 보낸다", async () => {
+  it("[X-CMT-03 S1] 좋아요를 끄면 liked: false 를 보낸다", async () => {
     const bodies = onPatch("/community/mindmaps/13/like", () => ok({ likeCount: 6, likedByMe: false }));
     const { user } = renderCommunity();
     const like = button(feedCard(REACTED_CARD.title!), "좋아요");
@@ -178,7 +178,7 @@ describe("CommunityView — 카드 반응", () => {
     expect(bodies).toEqual([{ liked: false }]);
   });
 
-  it("북마크 응답의 bookmarkId 로 눌림 상태를 정한다", async () => {
+  it("[COM-4-3@1 S1] 북마크 응답의 bookmarkId 로 눌림 상태를 정한다", async () => {
     const bodies = onPatch("/community/mindmaps/13/bookmark", () => ok({ bookmarkCount: 2, bookmarkId: null }));
     const { user } = renderCommunity();
     const bookmark = button(feedCard(REACTED_CARD.title!), "북마크");
@@ -188,7 +188,7 @@ describe("CommunityView — 카드 반응", () => {
     expect(bodies).toEqual([{ bookmarked: false }]);
   });
 
-  it("나도 탐색중은 카드 버튼으로 켜고 끌 수 있고 팝업은 열리지 않는다", async () => {
+  it("[COM-4-2@1 S2] [X-CMT-02 R1] 나도 탐색중은 카드 버튼으로 켜고 끌 수 있고 팝업은 열리지 않는다", async () => {
     const bodies = onPatch("/community/mindmaps/12/exploring", () => ok({ exploringCount: 14, exploringByMe: true }));
     const { user } = renderCommunity();
     const exploring = button(feedCard(CONTENT_TITLE, region(INTEREST)), "나도 탐색중");
@@ -200,7 +200,7 @@ describe("CommunityView — 카드 반응", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("나도 탐색중을 끄면 exploring: false 를 보낸다", async () => {
+  it("[COM-4-2@1 S2] 나도 탐색중을 끄면 exploring: false 를 보낸다", async () => {
     const bodies = onPatch("/community/mindmaps/13/exploring", () => ok({ exploringCount: 4, exploringByMe: false }));
     const { user } = renderCommunity();
     const exploring = button(feedCard(REACTED_CARD.title!), "나도 탐색중");
@@ -253,7 +253,7 @@ describe("CommunityView — 카드 반응", () => {
     expect(button(card, "북마크")).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("응답을 받기 전에 다시 누르면 요청을 또 보내지 않는다", async () => {
+  it("[X-CMT-03 R2] 응답을 받기 전에 다시 누르면 요청을 또 보내지 않는다", async () => {
     let release = () => {};
     const gate = new Promise<void>((resolve) => (release = resolve));
     const bodies: unknown[] = [];
@@ -278,7 +278,7 @@ describe("CommunityView — 카드 반응", () => {
     await waitFor(() => expect(bodies).toEqual([{ liked: true }, { liked: false }]));
   });
 
-  it("같은 카드가 두 목록에 있으면 반응이 함께 바뀌고 실패하면 함께 되돌아간다", async () => {
+  it("[COM-4-2@1 S2] 같은 카드가 두 목록에 있으면 반응이 함께 바뀌고 실패하면 함께 되돌아간다", async () => {
     let release = () => {};
     const gate = new Promise<void>((resolve) => (release = resolve));
     server.use(
@@ -298,7 +298,7 @@ describe("CommunityView — 카드 반응", () => {
     expect(inInterest).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("내 카드에는 좋아요 버튼이 없고 다른 반응은 그대로 있다", () => {
+  it("[X-CMT-03 R1] 내 카드에는 좋아요 버튼이 없고 다른 반응은 그대로 있다", () => {
     renderCommunity({ interests: ready(toRecommendation({ basisHashtags: [], mindmaps: [MY_CARD, CONTENT_CARD] })) });
     const mine = feedCard(MY_CARD.title!);
     expect(within(mine).queryByRole("button", { name: "좋아요" })).toBeNull();
@@ -339,7 +339,7 @@ function mockSearch({
 const settle = () => new Promise((resolve) => setTimeout(resolve, 350));
 
 describe("CommunityView — 검색바", () => {
-  it("검색어를 입력하면 연관 해시태그 · 프로필 추천 · 마인드맵 탐색 드롭다운이 열린다", async () => {
+  it("[COM-5-1@1 S1·S2] 검색어를 입력하면 연관 해시태그 · 프로필 추천 · 마인드맵 탐색 드롭다운이 열린다", async () => {
     const urls = mockSearch();
     const { user } = renderCommunity();
     expect(dropdown()).toBeNull();
@@ -365,7 +365,7 @@ describe("CommunityView — 검색바", () => {
     );
   });
 
-  it("입력이 멈출 때까지 기다렸다가 마지막 검색어로 한 번만 찾는다", async () => {
+  it("[COM-5-1@1 S1] 입력이 멈출 때까지 기다렸다가 마지막 검색어로 한 번만 찾는다", async () => {
     const urls = mockSearch();
     renderCommunity();
     // 사용자 타이핑 속도에 기대지 않도록 같은 순간에 연달아 바꾼다
@@ -375,7 +375,7 @@ describe("CommunityView — 검색바", () => {
     expect(urls.map((u) => u.searchParams.get("q"))).toEqual(["파리올", "파리올", "파리올"]);
   });
 
-  it("입력 직후에는 요청을 보내지 않는다", async () => {
+  it("[COM-5-1@1 S1] 입력 직후에는 요청을 보내지 않는다", async () => {
     const urls = mockSearch();
     renderCommunity();
     fireEvent.change(searchInput(), { target: { value: "파리" } });
@@ -384,7 +384,7 @@ describe("CommunityView — 검색바", () => {
     await (await panel()).findByText("프로필 추천");
   });
 
-  it("검색어 앞의 # 과 공백은 빼고 찾는다", async () => {
+  it("[COM-5-1@1 S1] 검색어 앞의 # 과 공백은 빼고 찾는다", async () => {
     const urls = mockSearch();
     const { user } = renderCommunity();
     await user.type(searchInput(), " ##파리 ");
@@ -392,7 +392,7 @@ describe("CommunityView — 검색바", () => {
     expect(new Set(urls.map((u) => u.searchParams.get("q")))).toEqual(new Set(["파리"]));
   });
 
-  it("공백이나 # 만 입력하면 요청을 보내지 않고 드롭다운도 열지 않는다", async () => {
+  it("[COM-5-1@1 R1] 공백이나 # 만 입력하면 요청을 보내지 않고 드롭다운도 열지 않는다", async () => {
     const urls = mockSearch();
     const { user } = renderCommunity();
     await user.type(searchInput(), " # ");
@@ -401,7 +401,7 @@ describe("CommunityView — 검색바", () => {
     expect(dropdown()).toBeNull();
   });
 
-  it("나중에 도착한 옛 검색어 응답은 무시한다", async () => {
+  it("[COM-5-1@1 R5] 나중에 도착한 옛 검색어 응답은 무시한다", async () => {
     let releaseOld = () => {};
     const oldGate = new Promise<void>((resolve) => (releaseOld = resolve));
     const hit = (tag: string) => ok({ hashtags: [{ tag, count: 1 }] });
@@ -427,7 +427,7 @@ describe("CommunityView — 검색바", () => {
     expect(p.queryByRole("button", { name: /^# 옛결과/ })).toBeNull();
   });
 
-  it("검색어를 바꾸면 이전 결과 대신 찾는 중을 보여준다", async () => {
+  it("[COM-5-1@1 S1] 검색어를 바꾸면 이전 결과 대신 찾는 중을 보여준다", async () => {
     let release = () => {};
     const gate = new Promise<void>((resolve) => (release = resolve));
     mockSearch({
@@ -447,7 +447,7 @@ describe("CommunityView — 검색바", () => {
     expect(await p.findByText("프로필 추천")).toBeInTheDocument();
   });
 
-  it("일치하는 결과가 없으면 안내 문구를 보여준다", async () => {
+  it("[COM-5-1@1 S6] 일치하는 결과가 없으면 안내 문구를 보여준다", async () => {
     mockSearch({
       hashtags: () => ok({ hashtags: [] }),
       profiles: () => ok({ profiles: [], hasNext: false }),
@@ -458,7 +458,7 @@ describe("CommunityView — 검색바", () => {
     expect(await (await panel()).findByText("일치하는 결과가 없어요. 다른 해시태그로 검색해보세요.")).toBeInTheDocument();
   });
 
-  it("한 그룹만 실패하면 나머지는 보여주고 다시 시도할 수 있다", async () => {
+  it("[COM-5-1@1 S7] 한 그룹만 실패하면 나머지는 보여주고 다시 시도할 수 있다", async () => {
     let calls = 0;
     mockSearch({
       profiles: () => {
@@ -478,7 +478,7 @@ describe("CommunityView — 검색바", () => {
     expect(p.queryByRole("alert")).toBeNull();
   });
 
-  it("모두 실패하면 오류를 보여주고 결과 없음 문구는 보여주지 않는다", async () => {
+  it("[COM-5-1@1 S7] 모두 실패하면 오류를 보여주고 결과 없음 문구는 보여주지 않는다", async () => {
     const failing = () => fail(500, "서버 오류");
     mockSearch({ hashtags: failing, profiles: failing, mindmaps: failing });
     const { user } = renderCommunity();
@@ -490,7 +490,7 @@ describe("CommunityView — 검색바", () => {
     expect(within(region(INTEREST)).getAllByRole("heading", { level: 4 })).toHaveLength(3);
   });
 
-  it("× 를 누르면 검색어가 지워지고 드롭다운이 닫힌다", async () => {
+  it("[COM-5-1@1 S8] × 를 누르면 검색어가 지워지고 드롭다운이 닫힌다", async () => {
     mockSearch();
     const { user } = renderCommunity();
     await user.type(searchInput(), "파리");
@@ -511,7 +511,7 @@ describe("CommunityView — 검색바", () => {
     expect(urls).toHaveLength(0);
   });
 
-  it("검색 영역 바깥을 누르면 드롭다운이 닫히고, 검색창을 다시 누르면 같은 결과로 열린다", async () => {
+  it("[COM-5-1@1 S8] 검색 영역 바깥을 누르면 드롭다운이 닫히고, 검색창을 다시 누르면 같은 결과로 열린다", async () => {
     mockSearch();
     const { user } = renderCommunity();
     await user.type(searchInput(), "파리");
@@ -523,7 +523,7 @@ describe("CommunityView — 검색바", () => {
     expect(within(dropdown()!).getByText("foodtrip")).toBeInTheDocument();
   });
 
-  it("연관 해시태그를 누르면 그 태그(# 없이)로 검색창이 채워진다", async () => {
+  it("[COM-5-1@1 S4] 연관 해시태그를 누르면 그 태그(# 없이)로 검색창이 채워진다", async () => {
     mockSearch();
     const { user } = renderCommunity();
     await user.type(searchInput(), "파");
@@ -532,7 +532,7 @@ describe("CommunityView — 검색바", () => {
     expect(dropdown()).not.toBeNull();
   });
 
-  it("프로필 추천을 누르면 회원 id 로 그 사람 프로필에 이동한다", async () => {
+  it("[COM-5-1@1 S5] 프로필 추천을 누르면 회원 id 로 그 사람 프로필에 이동한다", async () => {
     mockSearch();
     const { user } = renderCommunity();
     await user.type(searchInput(), "파리");
@@ -540,7 +540,7 @@ describe("CommunityView — 검색바", () => {
     expect(mockRouter.push).toHaveBeenCalledWith("/profile/102");
   });
 
-  it("마인드맵 탐색 결과를 누르면 작성자 프로필로 이동한다", async () => {
+  it("[COM-5-1@1 S5] 마인드맵 탐색 결과를 누르면 작성자 프로필로 이동한다", async () => {
     mockSearch();
     const { user } = renderCommunity();
     await user.type(searchInput(), "파리");
@@ -556,7 +556,7 @@ describe("CommunityView — 상세 팝업", () => {
     return screen.getByRole("dialog", { name: CONTENT_TITLE });
   };
 
-  it("카드를 누르면 팝업이 열리고 그때 관련 세션을 불러온다", async () => {
+  it("[X-CMT-02 S1·S2] 카드를 누르면 팝업이 열리고 그때 관련 세션을 불러온다", async () => {
     let calls = 0;
     let release = () => {};
     const gate = new Promise<void>((resolve) => (release = resolve));
@@ -579,7 +579,7 @@ describe("CommunityView — 상세 팝업", () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("카드는 Tab 으로 포커스되고 Enter · Space 로 팝업을 연다 (QA-017-1)", async () => {
+  it("[X-CMT-02 S1] 카드는 Tab 으로 포커스되고 Enter · Space 로 팝업을 연다 (QA-017-1)", async () => {
     server.use(http.get(SESSIONS_URL, () => ok(CARD_SESSIONS)));
     const { user } = renderCommunity();
     const card = feedCard(CONTENT_TITLE, region(INTEREST));
@@ -596,7 +596,7 @@ describe("CommunityView — 상세 팝업", () => {
     expect(screen.getByRole("dialog", { name: CONTENT_TITLE })).toBeInTheDocument();
   });
 
-  it("카드 안 버튼에서 Enter 를 누르면 그 버튼만 동작하고 팝업은 열리지 않는다", async () => {
+  it("[X-CMT-02 R1] 카드 안 버튼에서 Enter 를 누르면 그 버튼만 동작하고 팝업은 열리지 않는다", async () => {
     const bodies = onPatch("/community/mindmaps/12/exploring", () => ok({ exploringCount: 14, exploringByMe: true }));
     const { user } = renderCommunity();
     const exploring = button(feedCard(CONTENT_TITLE, region(INTEREST)), "나도 탐색중");
@@ -607,20 +607,20 @@ describe("CommunityView — 상세 팝업", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("URL 만 공개한 세션은 제목 대신 안내 문구를 보여준다", async () => {
+  it("[X-CMT-02 S4] URL 만 공개한 세션은 제목 대신 안내 문구를 보여준다", async () => {
     server.use(http.get(SESSIONS_URL, () => ok(CARD_SESSIONS)));
     const { user } = renderCommunity();
     expect(await within(await open(user)).findByText("원문 링크만 공개된 세션")).toBeInTheDocument();
   });
 
-  it("관련 세션을 누르면 그 세션 화면으로 이동한다", async () => {
+  it("[X-CMT-02 S4] 관련 세션을 누르면 그 세션 화면으로 이동한다", async () => {
     server.use(http.get(SESSIONS_URL, () => ok(CARD_SESSIONS)));
     const { user } = renderCommunity();
     await user.click(await within(await open(user)).findByText("프라하 1박 일정 짜기"));
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/12");
   });
 
-  it("작성자 이름을 누르면 회원 id 로 프로필에 이동하고 팝업이 닫힌다", async () => {
+  it("[X-CMT-02 S3] 작성자 이름을 누르면 회원 id 로 프로필에 이동하고 팝업이 닫힌다", async () => {
     server.use(http.get(SESSIONS_URL, () => ok(CARD_SESSIONS)));
     const { user } = renderCommunity();
     const dialog = within(await open(user));
@@ -630,7 +630,7 @@ describe("CommunityView — 상세 팝업", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("세션을 불러오지 못하면 팝업 안에서 다시 시도할 수 있다", async () => {
+  it("[X-CMT-02 S2] 세션을 불러오지 못하면 팝업 안에서 다시 시도할 수 있다", async () => {
     let calls = 0;
     server.use(
       http.get(SESSIONS_URL, () => {
@@ -656,7 +656,7 @@ describe("CommunityView — 상세 팝업", () => {
     await screen.findByText("프라하 1박 일정 짜기");
   });
 
-  it("연관 URL · 반응 버튼을 눌러도 팝업은 열리지 않는다", async () => {
+  it("[X-CMT-02 R1] 연관 URL · 반응 버튼을 눌러도 팝업은 열리지 않는다", async () => {
     // jsdom 은 링크 이동을 지원하지 않아 기본 동작만 막는다 (전파는 그대로)
     const prevent = (e: Event) => e.preventDefault();
     window.addEventListener("click", prevent, true);
@@ -676,7 +676,7 @@ const peopleCard = () => screen.getByRole("heading", { name: "관심사가 비�
 const personRow = (name: string) => within(peopleCard()).getByText(name).closest<HTMLElement>(".personRow")!;
 
 describe("CommunityView — 떠오르는 해시태그", () => {
-  it("오늘의 해시태그를 개수 · 증감과 함께 보여주고, 증감이 0 이면 화살표를 그리지 않는다", () => {
+  it("[COM-6-3 S1] 오늘의 해시태그를 개수 · 증감과 함께 보여주고, 증감이 0 이면 화살표를 그리지 않는다", () => {
     renderCommunity();
     const card = within(trendCard());
     expect(card.getByRole("heading", { name: "오늘의 떠오르는 해시태그" })).toBeInTheDocument();
@@ -686,7 +686,7 @@ describe("CommunityView — 떠오르는 해시태그", () => {
     expect(card.getByRole("button", { name: /# 오로라/ }).textContent).toBe("# 오로라7");
   });
 
-  it("이번 주 탭을 누르면 이번 주 목록과 제목으로 바뀌고, 오늘을 누르면 돌아온다", async () => {
+  it("[COM-6-3 S2] 이번 주 탭을 누르면 이번 주 목록과 제목으로 바뀌고, 오늘을 누르면 돌아온다", async () => {
     const { user } = renderCommunity();
     await user.click(within(trendCard()).getByRole("button", { name: "이번 주" }));
     const card = within(trendCard());
@@ -697,7 +697,7 @@ describe("CommunityView — 떠오르는 해시태그", () => {
     expect(within(trendCard()).getByRole("button", { name: /# 쉥겐비자/ })).toBeInTheDocument();
   });
 
-  it("해시태그를 누르면 그 태그로 검색창이 채워지고 드롭다운이 열린다", async () => {
+  it("[COM-6-3 S4] 해시태그를 누르면 그 태그로 검색창이 채워지고 드롭다운이 열린다", async () => {
     mockSearch();
     const { user } = renderCommunity();
     await user.click(within(trendCard()).getByRole("button", { name: /# 오로라/ }));
@@ -715,7 +715,7 @@ describe("CommunityView — 떠오르는 해시태그", () => {
     expect(refetch).toHaveBeenCalledOnce();
   });
 
-  it("불러오는 중 · 비어 있음을 그 카드 안에 보여준다", () => {
+  it("[COM-6-3 S5] 불러오는 중 · 비어 있음을 그 카드 안에 보여준다", () => {
     const { unmount } = renderCommunity({ trendingToday: loading() });
     expect(within(trendCard()).getByText("불러오는 중…")).toBeInTheDocument();
     unmount();
@@ -725,7 +725,7 @@ describe("CommunityView — 떠오르는 해시태그", () => {
 });
 
 describe("CommunityView — 비슷한 사람", () => {
-  it("이름 · 겹치는 태그 · 팔로우 상태를 보여주고 닉네임이 없으면 대체 이름을 쓴다", () => {
+  it("[X-CMT-04 S1] 이름 · 겹치는 태그 · 팔로우 상태를 보여주고 닉네임이 없으면 대체 이름을 쓴다", () => {
     renderCommunity();
     expect(within(personRow("foodtrip")).getByText("# 파리 # 먹거리")).toBeInTheDocument();
     expect(within(personRow("foodtrip")).getByRole("button", { name: "팔로우" })).toHaveAttribute("aria-pressed", "false");
@@ -753,7 +753,7 @@ describe("CommunityView — 비슷한 사람", () => {
     expect(bodies).toEqual([{ following: false }]);
   });
 
-  it("실패 · 불러오는 중 · 빈 상태를 그 카드 안에 보여주고 피드는 그대로다", () => {
+  it("[X-CMT-04 S4] 실패 · 불러오는 중 · 빈 상태를 그 카드 안에 보여주고 피드는 그대로다", () => {
     const { unmount } = renderCommunity({ similarPeople: failed("사람을 불러오지 못했어요.") });
     expect(within(peopleCard()).getByRole("alert")).toHaveTextContent("사람을 불러오지 못했어요.");
     expect(within(region(INTEREST)).getAllByRole("heading", { level: 4 })).toHaveLength(3);
@@ -773,7 +773,7 @@ describe("CommunityView — 섹션 상태", () => {
     expect(within(region(RECENT)).getByText("유럽 한 달 예산")).toBeInTheDocument();
   });
 
-  it("한 섹션이 실패해도 다른 섹션은 보이고, 다시 시도는 그 섹션만 부른다", async () => {
+  it("[COM-6-1 S5] 한 섹션이 실패해도 다른 섹션은 보이고, 다시 시도는 그 섹션만 부른다", async () => {
     const refetch = vi.fn();
     const { user } = renderCommunity({ interests: failed("추천을 불러오지 못했어요.", refetch) });
     const interest = within(region(INTEREST));
@@ -783,7 +783,7 @@ describe("CommunityView — 섹션 상태", () => {
     expect(refetch).toHaveBeenCalledOnce();
   });
 
-  it("한 섹션만 비면 그 자리에 빈 안내를 보여준다", () => {
+  it("[COM-6-1 S5] 한 섹션만 비면 그 자리에 빈 안내를 보여준다", () => {
     renderCommunity({ interests: EMPTY.interests });
     expect(within(region(INTEREST)).getByRole("status")).toHaveTextContent("추천할 마인드맵이 아직 없어요");
     expect(within(region(RECENT)).getAllByRole("heading", { level: 4 })).toHaveLength(2);
@@ -814,4 +814,86 @@ describe("CommunityView — 섹션 상태", () => {
     expect(screen.queryByText("아직 볼 수 있는 커뮤니티 소식이 없어요")).toBeNull();
     expect(within(region(RECENT)).getByRole("alert")).toHaveTextContent("실패");
   });
+});
+
+describe("CommunityView — 요구사항 성공 기준 보강", () => {
+  it("[COM-5-1@1 S2] 드롭다운의 세 그룹은 제목 옆에 개수와 안내를 붙인다", async () => {
+    mockSearch();
+    const { user } = renderCommunity();
+    await user.type(searchInput(), "파리");
+    const p = await panel();
+    await p.findByText("프로필 추천");
+    const group = (title: string) => p.getByText(title).closest<HTMLElement>(".groupHead")!;
+    expect(within(group("연관 해시태그")).getByText("2")).toBeInTheDocument();
+    expect(within(group("프로필 추천")).getByText("2")).toBeInTheDocument();
+    expect(within(group("프로필 추천")).getByText("해당 태그를 보유한 사용자")).toBeInTheDocument();
+    expect(within(group("마인드맵 탐색")).getByText("2")).toBeInTheDocument();
+    expect(within(group("마인드맵 탐색")).getByText("해당 태그가 포함된 마인드맵")).toBeInTheDocument();
+  });
+
+  it("[COM-6-3 S1] 늘어난 태그의 ↑N 은 초록색이다", () => {
+    renderCommunity();
+    const up = within(within(trendCard()).getByRole("button", { name: /# 쉥겐비자/ })).getByText("↑8");
+    expect(up.style.color).toBe("var(--green-600)");
+  });
+
+  it("[COM-6-1 S6] 다섯 섹션이 모두 비면 페이지 안내 두 줄을 보여준다", () => {
+    renderCommunity(EMPTY);
+    expect(screen.getByText("아직 볼 수 있는 커뮤니티 소식이 없어요")).toBeInTheDocument();
+    expect(screen.getByText("다른 사람들이 마인드맵을 공유하면 여기에서 추천해 드릴게요.")).toBeInTheDocument();
+  });
+
+  it("[X-CMT-02 S1] 상세 팝업에 제목 · 작성자 · 노드 수 · 좋아요 수 · 태그 · 요약이 보인다", async () => {
+    server.use(http.get(`${API}/community/mindmaps/12/sessions`, () => ok(CARD_SESSIONS)));
+    const { user } = renderCommunity();
+    await user.click(within(region(INTEREST)).getByText(CONTENT_TITLE, { selector: "h4" }));
+    const dialog = within(screen.getByRole("dialog", { name: CONTENT_TITLE }));
+    expect(dialog.getAllByText(CONTENT_TITLE).length).toBeGreaterThan(0);
+    expect(dialog.getByRole("button", { name: "🌱 wanderlust" })).toBeInTheDocument();
+    expect(dialog.getByText("노드 14")).toBeInTheDocument();
+    expect(dialog.getByText("좋아요 28")).toBeInTheDocument();
+    expect(dialog.getByText("# 프라하", { selector: ".tag" })).toBeInTheDocument();
+    expect(dialog.getByText("# 동유럽", { selector: ".tag" })).toBeInTheDocument();
+    expect(dialog.getByText(/프라하 → 비엔나 → 부다페스트/)).toBeInTheDocument();
+    await dialog.findByText("프라하 1박 일정 짜기");
+  });
+
+  it("[X-CMT-03 S2] 같은 카드가 두 추천 섹션에 있으면 좋아요가 둘 다 바뀐다", async () => {
+    onPatch("/community/mindmaps/12/like", () => ok({ likeCount: 29, likedByMe: true }));
+    const { user } = renderCommunity();
+    const inInterest = button(feedCard(CONTENT_TITLE, region(INTEREST)), "좋아요");
+    const inRecent = button(feedCard(CONTENT_TITLE, region(RECENT)), "좋아요");
+    await user.click(inInterest);
+    expect(inRecent).toHaveAttribute("aria-pressed", "true");
+    expect(inRecent).toHaveTextContent("29");
+    await waitFor(() => expect(inInterest).toHaveTextContent("29"));
+    expect(inRecent).toHaveTextContent("29");
+  });
+
+  it("[COM-4-3@1 S1] 북마크를 누르면 바로 채워지고 +1, 응답의 bookmarkCount 로 맞춘다", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const bodies: unknown[] = [];
+    server.use(
+      http.patch(`${API}/community/mindmaps/12/bookmark`, async ({ request }) => {
+        bodies.push(await request.json());
+        await gate;
+        return ok({ bookmarkCount: 15, bookmarkId: 77 });
+      }),
+    );
+    const { user } = renderCommunity();
+    const bookmark = button(feedCard(CONTENT_TITLE, region(INTEREST)), "북마크");
+    await user.click(bookmark);
+    expect(bookmark).toHaveAttribute("aria-pressed", "true");
+    expect(bookmark).toHaveTextContent("10");
+    release();
+    await waitFor(() => expect(bookmark).toHaveTextContent("15"));
+    expect(bookmark).toHaveAttribute("aria-pressed", "true");
+    expect(bodies).toEqual([{ bookmarked: true }]);
+  });
+
+  // 불일치: 네트워크 오류는 client.ts 가 ApiError("서버에 연결할 수 없습니다. …") 로 바꿔 그 문구가 토스트로 나온다
+  it.todo("좋아요 · 북마크 네트워크 오류는 '저장에 실패했습니다. 다시 시도해 주세요.' 토스트 (X-CMT-03 S3 · COM-4-3@1 S3 불일치)");
+  // 불일치: 네트워크 오류도 ApiError 라 서버 문구 대신 "서버에 연결할 수 없습니다. …" 가 나온다
+  it.todo("팔로우 네트워크 오류는 '팔로우 변경에 실패했습니다. 다시 시도해 주세요.' 토스트 (X-CMT-04 S3 불일치)");
 });

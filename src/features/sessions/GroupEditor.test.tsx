@@ -32,7 +32,7 @@ const selectedTags = () => selectedChips().map((c) => c.textContent);
 const saveButton = (name = "그룹 만들기") => screen.getByRole("button", { name });
 
 describe("해시태그 그룹 편집기", () => {
-  it("새 그룹이면 제목이 '새 그룹 만들기' 이고 아무것도 고르지 않으면 저장 버튼이 꺼져 있다", () => {
+  it("[REC-7-5 S1·R1] 새 그룹이면 제목이 '새 그룹 만들기' 이고 아무것도 고르지 않으면 저장 버튼이 꺼져 있다", () => {
     renderEditor();
     expect(screen.getByRole("heading", { name: "새 그룹 만들기" })).toBeInTheDocument();
     expect(screen.getByText("(0/10)")).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe("해시태그 그룹 편집기", () => {
     expect(screen.queryByRole("button", { name: "모두 해제" })).not.toBeInTheDocument();
   });
 
-  it("검색창에 포커스가 가 있고, 검색어(# 붙여도 됨)가 들어간 태그만 보인다", async () => {
+  it("[REC-7-5 S2] 검색창에 포커스가 가 있고, 검색어(# 붙여도 됨)가 들어간 태그만 보인다", async () => {
     const { user } = renderEditor();
     const search = screen.getByPlaceholderText("해시태그 검색");
     expect(search).toHaveFocus();
@@ -64,7 +64,7 @@ describe("해시태그 그룹 편집기", () => {
     expect(screen.getByText("세션에 사용된 해시태그가 없습니다.")).toBeInTheDocument();
   });
 
-  it("태그를 누르면 고른 순서대로 위에 쌓이고, 다시 누르면 빠진다", async () => {
+  it("[REC-7-5 S2] 태그를 누르면 고른 순서대로 위에 쌓이고, 다시 누르면 빠진다", async () => {
     const { user } = renderEditor();
     await user.click(tagButton("파리"));
     await user.click(tagButton("로마"));
@@ -78,7 +78,7 @@ describe("해시태그 그룹 편집기", () => {
     expect(tagButton("파리")).not.toHaveClass("tagBtnOn");
   });
 
-  it("선택된 칩의 × 를 누르면 그 태그만 빠진다", async () => {
+  it("[REC-7-5 S2] 선택된 칩의 × 를 누르면 그 태그만 빠진다", async () => {
     const { user } = renderEditor();
     await user.click(tagButton("파리"));
     await user.click(tagButton("로마"));
@@ -86,7 +86,7 @@ describe("해시태그 그룹 편집기", () => {
     expect(selectedTags()).toEqual(["# 로마"]);
   });
 
-  it("모두 해제를 누르면 선택이 비고 저장 버튼이 다시 꺼진다", async () => {
+  it("[REC-7-5 S2·R1] 모두 해제를 누르면 선택이 비고 저장 버튼이 다시 꺼진다", async () => {
     const { user } = renderEditor();
     await user.click(tagButton("파리"));
     await user.click(tagButton("로마"));
@@ -95,7 +95,7 @@ describe("해시태그 그룹 편집기", () => {
     expect(saveButton()).toBeDisabled();
   });
 
-  it("10개를 고르면 나머지 태그는 누를 수 없고 '최대 10개 선택됨' 이 보인다", async () => {
+  it("[REC-7-5 S3] 10개를 고르면 나머지 태그는 누를 수 없고 '최대 10개 선택됨' 이 보인다", async () => {
     const { user } = renderEditor();
     for (const t of ALL_TAGS.slice(0, 10)) await user.click(tagButton(t));
     expect(screen.getByText("(10/10)")).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe("해시태그 그룹 편집기", () => {
     expect(tagButton("프라하")).toBeEnabled();
   });
 
-  it("두 개 이상 고르면 드래그 안내가 보이고, 칩을 끌어 놓으면 순서가 바뀐다", async () => {
+  it("[REC-7-4 S1] 두 개 이상 고르면 드래그 안내가 보이고, 칩을 끌어 놓으면 순서가 바뀐다", async () => {
     const { user } = renderEditor();
     await user.click(tagButton("로마"));
     expect(screen.queryByText("드래그로 순서 변경")).not.toBeInTheDocument();
@@ -156,7 +156,7 @@ describe("해시태그 그룹 편집기", () => {
     expect(onSave).toHaveBeenCalledWith({ id: 2, hashtags: ["항공권", "예산", "기차"] });
   });
 
-  it("취소 · 닫기 · 바깥 배경을 누르면 닫고, 창 안을 누르면 닫지 않는다", async () => {
+  it("[REC-7-5 S6] 취소 · 닫기 · 바깥 배경을 누르면 닫고, 창 안을 누르면 닫지 않는다", async () => {
     const { user, onCancel, container } = renderEditor();
     await user.click(screen.getByRole("heading", { name: "새 그룹 만들기" }));
     expect(onCancel).not.toHaveBeenCalled();

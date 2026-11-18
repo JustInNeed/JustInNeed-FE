@@ -42,7 +42,7 @@ describe("/profile/[id] 페이지", () => {
     server.use(http.get(`${API}/community/profiles/:userId/shared-sessions`, () => ok({ sessions: [], hasNext: false })));
   });
 
-  it("주소의 id 로 프로필과 카드를 받아 보여준다", async () => {
+  it("[X-OPRF-02 S1] 주소의 id 로 프로필과 카드를 받아 보여준다", async () => {
     const calls = serveProfile();
 
     renderPersonal(await page("7"));
@@ -55,7 +55,7 @@ describe("/profile/[id] 페이지", () => {
   });
 
   it.each(["wanderlust", "0", "-1", "1.5", "99999999999999999999", encodeURIComponent("여행자")])(
-    "숫자 id 가 아닌 주소 %s 는 요청 없이 찾을 수 없다고 보여준다",
+    "[X-OPRF-01 S1] 숫자 id 가 아닌 주소 %s 는 요청 없이 찾을 수 없다고 보여준다",
     async (id) => {
       const fetchSpy = vi.spyOn(globalThis, "fetch");
 
@@ -66,7 +66,7 @@ describe("/profile/[id] 페이지", () => {
     },
   );
 
-  it("없거나 탈퇴한 사용자(404)면 찾을 수 없다고 보여주고 다시 시도는 없다", async () => {
+  it("[X-SET-06 S5] [X-OPRF-01 S2·R1] 없거나 탈퇴한 사용자(404)면 찾을 수 없다고 보여주고 다시 시도는 없다", async () => {
     server.use(
       http.get(`${API}/community/profiles/7`, () => fail(404, "프로필을 찾을 수 없습니다.")),
       http.get(`${API}/community/profiles/7/mindmaps`, () => fail(404, "프로필을 찾을 수 없습니다.")),
@@ -95,7 +95,7 @@ describe("/profile/[id] 페이지", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "냥집사" })).toBeInTheDocument();
   });
 
-  it("내 id 면 요청 없이 /profile 로 바꿔 보낸다", async () => {
+  it("[X-OPRF-01 S3] 내 id 면 요청 없이 /profile 로 바꿔 보낸다", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
     renderPersonal(await page(String(MEMBER.id)));

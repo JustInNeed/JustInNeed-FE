@@ -25,7 +25,7 @@ const popover = () => sessionButton()!.parentElement!;
 describe("그래프 줌", () => {
   const zoomOf = () => /scale\(([\d.]+)\)/.exec(node("파리").parentElement!.getAttribute("transform")!)![1];
 
-  it("좁은 화면(768px 미만)에서는 배율 1.7 로 시작한다 (QA-036)", () => {
+  it("[X-HOME-01 S5] 좁은 화면(768px 미만)에서는 배율 1.7 로 시작한다 (QA-036)", () => {
     const original = window.matchMedia;
     window.matchMedia = ((query: string) => ({ ...original(query), matches: query === "(max-width: 767.98px)" })) as typeof window.matchMedia;
     try {
@@ -37,7 +37,7 @@ describe("그래프 줌", () => {
     }
   });
 
-  it("기본 배율 1.1 로 시작하고 + · - 버튼이 배율을 바꾼다", async () => {
+  it("[X-HOME-01 S5] 기본 배율 1.1 로 시작하고 + · - 버튼이 배율을 바꾼다", async () => {
     const { user } = setup();
     expect(Number(zoomOf())).toBeCloseTo(1.1);
 
@@ -59,7 +59,7 @@ describe("그래프 줌", () => {
       return (graph as unknown as SVGGElement).ownerSVGElement!;
     };
 
-    it("노드가 그려진 가로 범위 안에서 휠을 굴리면 확대 · 축소한다", () => {
+    it("[X-HOME-01 S3] 노드가 그려진 가로 범위 안에서 휠을 굴리면 확대 · 축소한다", () => {
       setup();
       const svg = placeGraph();
       const notCancelled = fireEvent.wheel(svg, { deltaY: 300, clientX: 500, clientY: 200 });
@@ -84,7 +84,7 @@ describe("그래프 줌", () => {
 });
 
 describe("그래프 필터", () => {
-  it("필터를 누르면 기간 · 해시태그 그룹(노드 수) · 해시태그를 고르는 팝오버가 열린다", async () => {
+  it("[X-HOME-03 S4] 필터를 누르면 기간 · 해시태그 그룹(노드 수) · 해시태그를 고르는 팝오버가 열린다", async () => {
     const { user } = setup();
     await user.click(filterButton());
 
@@ -113,7 +113,7 @@ describe("그래프 필터", () => {
     expect(within(dialog).queryByText(/개 적용/)).not.toBeInTheDocument();
   });
 
-  it("조건을 골라도 '적용'을 누르기 전에는 그래프가 그대로이고, 적용하면 맞지 않는 노드가 흐려진다", async () => {
+  it("[X-HOME-03 S1·R1] 조건을 골라도 '적용'을 누르기 전에는 그래프가 그대로이고, 적용하면 맞지 않는 노드가 흐려진다", async () => {
     const { user } = setup();
     await user.click(filterButton());
     await user.click(within(filterDialog()).getByRole("radio", { name: "오늘" }));
@@ -130,7 +130,7 @@ describe("그래프 필터", () => {
     expect(filterButton()).toHaveClass("iconBtnOn");
   });
 
-  it("해시태그를 고르면 그 태그 노드만 남고, 중심 노드는 흐려지지 않는다", async () => {
+  it("[X-HOME-03 S2·R2] 해시태그를 고르면 그 태그 노드만 남고, 중심 노드는 흐려지지 않는다", async () => {
     const { user } = setup();
     await user.click(filterButton());
     const chip = within(filterDialog()).getByRole("button", { name: "# 바르셀로나" });
@@ -143,7 +143,7 @@ describe("그래프 필터", () => {
     expect(node("유럽 여행")).toHaveStyle(NORMAL);
   });
 
-  it("해시태그 그룹을 고르면 그룹 태그가 붙은 노드만 남는다", async () => {
+  it("[X-HOME-03 S2] 해시태그 그룹을 고르면 그룹 태그가 붙은 노드만 남는다", async () => {
     const { user } = setup();
     await user.click(filterButton());
     await user.click(within(filterDialog()).getByRole("checkbox", { name: /# 로마, # 파리, # 콜로세움/ }));
@@ -153,7 +153,7 @@ describe("그래프 필터", () => {
     ["바르셀로나", "프라하", "예산", "유레일패스"].forEach((l) => expect(node(l)).toHaveStyle(DIMMED));
   });
 
-  it("기간 · 그룹 · 해시태그를 모두 고르면 '3개 적용'으로 센다", async () => {
+  it("[X-HOME-03 S2] 기간 · 그룹 · 해시태그를 모두 고르면 '3개 적용'으로 센다", async () => {
     const { user } = setup();
     await user.click(filterButton());
     const dialog = filterDialog();
@@ -174,7 +174,7 @@ describe("그래프 필터", () => {
     expect(within(filterDialog()).getByText("1개 적용")).toBeInTheDocument();
   });
 
-  it("'초기화'를 누르면 조건이 모두 풀리고 팝오버가 닫힌다", async () => {
+  it("[X-HOME-03 S3] '초기화'를 누르면 조건이 모두 풀리고 팝오버가 닫힌다", async () => {
     const { user } = setup();
     await user.click(filterButton());
     await user.click(within(filterDialog()).getByRole("radio", { name: "오늘" }));
@@ -188,7 +188,7 @@ describe("그래프 필터", () => {
     expect(filterButton()).not.toHaveClass("iconBtnOn");
   });
 
-  it("적용하지 않고 닫으면 고르던 조건은 버려진다", async () => {
+  it("[X-HOME-03 S3·R1] 적용하지 않고 닫으면 고르던 조건은 버려진다", async () => {
     const { user } = setup();
     await user.click(filterButton());
     await user.click(within(filterDialog()).getByRole("radio", { name: "오늘" }));
@@ -208,7 +208,24 @@ describe("그래프 필터", () => {
     expect(filterButton()).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("Esc 를 누르면 고르던 조건은 적용하지 않고 닫히며, 포커스가 필터 버튼으로 돌아온다 (QA-035)", async () => {
+  it("[X-HOME-03 S3·R1] 바깥을 눌러 닫으면 고르던 조건은 적용되지 않고, 다시 열면 '전체'로 돌아와 있다", async () => {
+    const { user } = setup();
+    await user.click(filterButton());
+    await user.click(within(filterDialog()).getByRole("radio", { name: "오늘" }));
+    await user.click(within(filterDialog()).getByRole("button", { name: "# 바르셀로나" }));
+    await user.click(screen.getByRole("heading", { name: "홈" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(node("파리")).toHaveStyle(NORMAL);
+    expect(node("로마")).toHaveStyle(NORMAL);
+    expect(filterButton()).not.toHaveClass("iconBtnOn");
+
+    await user.click(filterButton());
+    expect(within(filterDialog()).getByRole("radio", { name: "전체" })).toBeChecked();
+    expect(within(filterDialog()).getByRole("button", { name: "# 바르셀로나" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("[X-HOME-03 S3] Esc 를 누르면 고르던 조건은 적용하지 않고 닫히며, 포커스가 필터 버튼으로 돌아온다 (QA-035)", async () => {
     const { user } = setup();
     await user.click(filterButton());
     await user.click(within(filterDialog()).getByRole("button", { name: "# 바르셀로나" }));
@@ -232,7 +249,7 @@ describe("그래프 검색", () => {
   };
   const options = () => screen.getAllByRole("option");
 
-  it("검색어가 들어간 노드와 세션이 '노드' · '세션'으로 나뉘어 보인다", async () => {
+  it("[X-HOME-04 S1] 검색어가 들어간 노드와 세션이 '노드' · '세션'으로 나뉘어 보인다", async () => {
     const { user } = setup();
     await openSearch(user, "로마");
 
@@ -248,6 +265,17 @@ describe("그래프 검색", () => {
     expect(screen.getByText("↑↓ 이동 · Enter 선택 · Esc 닫기")).toBeInTheDocument();
   });
 
+  it("[X-HOME-04 S1] 검색어와 맞는 노드가 그래프에서 강조되고, 대소문자는 무시한다", async () => {
+    const { user } = setup();
+    await openSearch(user, "kAYAK");
+
+    expect(options()[0]).toHaveTextContent(/^Kayak연결 \d+개$/);
+    expect(node("Kayak")).toHaveStyle(NORMAL);
+    // 일치하지도 이어지지도 않은 노드는 옅어진다
+    expect(node("바르셀로나")).toHaveStyle({ opacity: "0.35" });
+    expect(node("로마")).toHaveStyle({ opacity: "0.35" });
+  });
+
   it("검색을 열면 필터 팝오버는 닫힌다", async () => {
     const { user } = setup();
     await user.click(filterButton());
@@ -256,7 +284,7 @@ describe("그래프 검색", () => {
     expect(screen.getByRole("combobox")).toHaveFocus();
   });
 
-  it("↓ 로 세션을 고르고 Enter 를 누르면 그 세션 상세로 이동한다", async () => {
+  it("[X-HOME-04 S2] ↓ 로 세션을 고르고 Enter 를 누르면 그 세션 상세로 이동한다", async () => {
     const { user } = setup();
     await openSearch(user, "로마");
     await user.keyboard("{ArrowDown}");
@@ -292,14 +320,14 @@ describe("그래프 검색", () => {
     expect(mockRouter.prefetch).toHaveBeenCalledTimes(2);
   });
 
-  it("세션 결과를 한 번 누르면 이동을 한 번만 요청한다 (QA-009)", async () => {
+  it("[X-HOME-04 R1] 세션 결과를 한 번 누르면 이동을 한 번만 요청한다 (QA-009)", async () => {
     const { user } = setup();
     await openSearch(user, "로마");
     await user.click(screen.getByRole("option", { name: /유럽 항공권 비교/ }));
     expect(mockRouter.push).toHaveBeenCalledTimes(1);
   });
 
-  it("노드 결과를 고르면 검색이 닫히고 그 노드가 선택된다", async () => {
+  it("[X-HOME-04 S2] 노드 결과를 고르면 검색이 닫히고 그 노드가 선택된다", async () => {
     const { user } = setup();
     await openSearch(user, "로마");
     await user.keyboard("{Enter}");
@@ -309,14 +337,14 @@ describe("그래프 검색", () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("맞는 결과가 없으면 '일치하는 결과가 없어요.'가 보인다", async () => {
+  it("[X-HOME-04 S3] 맞는 결과가 없으면 '일치하는 결과가 없어요.'가 보인다", async () => {
     const { user } = setup();
     await openSearch(user, "없는검색어");
     expect(screen.getByText("일치하는 결과가 없어요.")).toBeInTheDocument();
     expect(screen.queryAllByRole("option")).toHaveLength(0);
   });
 
-  it("Esc 를 누르면 검색이 닫히고, 다시 열면 검색어가 비어 있다", async () => {
+  it("[X-HOME-04 S2] Esc 를 누르면 검색이 닫히고, 다시 열면 검색어가 비어 있다", async () => {
     const { user } = setup();
     await openSearch(user, "로마");
     await user.keyboard("{Escape}");
@@ -389,7 +417,7 @@ describe("노드 선택 팝오버", () => {
     expect(sessionButton()).toBeInTheDocument();
   });
 
-  it("선택한 노드를 다시 누르면 선택이 풀린다", async () => {
+  it("[X-HOME-01 S3] 선택한 노드를 다시 누르면 선택이 풀린다", async () => {
     const { user } = setup();
     await user.click(node("로마"));
     await user.click(node("로마"));

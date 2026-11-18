@@ -64,7 +64,7 @@ const mockSessions = (response: () => Response | Promise<Response> = () => ok(CA
 };
 
 describe("BookmarksView — 탭 · 목록", () => {
-  it("세션 탭은 없고, 탭마다 불러온 수를 보여주며 더 있으면 + 를 붙인다", () => {
+  it("[COM-2-1@1 S1] 세션 탭은 없고, 탭마다 불러온 수를 보여주며 더 있으면 + 를 붙인다", () => {
     renderBookmarks({ mindmaps: tabOf(MINDMAPS, { hasNext: true }) });
     expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (3+)");
     expect(tab(/^해시태그 묶음/)).toHaveTextContent("해시태그 묶음 (3)");
@@ -77,7 +77,7 @@ describe("BookmarksView — 탭 · 목록", () => {
     expect(tab(/^마인드맵/)).toHaveTextContent(/^마인드맵$/);
   });
 
-  it("마인드맵 카드는 받은 순서대로 제목 · 작성자 · 저장 시점 · 앞의 해시태그 2개 · 노드 수를 보여준다", () => {
+  it("[COM-2-2@1 S1] 마인드맵 카드는 받은 순서대로 제목 · 작성자 · 저장 시점 · 앞의 해시태그 2개 · 노드 수를 보여준다", () => {
     renderBookmarks();
     expect(mapTitles()).toEqual(["동유럽 3주 살이 전체 동선", "파리 미식 지도", "# 화장실 # 놀이"]);
     const card = within(mapCard("동유럽 3주 살이 전체 동선"));
@@ -88,14 +88,14 @@ describe("BookmarksView — 탭 · 목록", () => {
     expect(card.getByText("노드 14")).toBeInTheDocument();
   });
 
-  it("URL 만 공개한 저장은 해시태그가 제목 자리에 가고 태그 칩을 또 그리지 않는다", () => {
+  it("[COM-2-2@1 S2] URL 만 공개한 저장은 해시태그가 제목 자리에 가고 태그 칩을 또 그리지 않는다", () => {
     renderBookmarks();
     const card = within(mapCard("# 화장실 # 놀이"));
     expect(card.getByText("by wanderlust · 저장 1시간 전")).toBeInTheDocument();
     expect(card.queryByText("# 화장실")).toBeNull();
   });
 
-  it("이름이 있는 묶음은 이름과 태그를, 이름이 없으면 태그를 제목 자리에 보여준다", async () => {
+  it("[COM-2-1@2 S1·S2] 이름이 있는 묶음은 이름과 태그를, 이름이 없으면 태그를 제목 자리에 보여준다", async () => {
     const { user } = renderBookmarks();
     await user.click(tab(/^해시태그 묶음/));
     expect(bundleTitles()).toEqual(["미술관 모음", "미술관 모음", "# 호스텔 # 무료투어"]);
@@ -113,7 +113,7 @@ describe("BookmarksView — 탭 · 목록", () => {
     expect(bundles.remove).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ bookmarkId: SAME_NAME_BUNDLE.bookmarkId }));
   });
 
-  it("카드의 북마크 해제는 팝업을 열지 않는다", async () => {
+  it("[COM-4-3@2 R1] 카드의 북마크 해제는 팝업을 열지 않는다", async () => {
     const mindmaps = tabOf(MINDMAPS);
     const { user } = renderBookmarks({ mindmaps });
     await user.click(within(mapCard("파리 미식 지도")).getByRole("button", { name: "북마크 해제" }));
@@ -127,7 +127,7 @@ describe("BookmarksView — 상세 팝업", () => {
     vi.spyOn(window, "requestAnimationFrame").mockReturnValue(0);
   });
 
-  it("카드를 누르면 팝업이 열리고 그 세션의 관련 세션을 sessionId 로 불러온다", async () => {
+  it("[COM-2-2@2 S1] 카드를 누르면 팝업이 열리고 그 세션의 관련 세션을 sessionId 로 불러온다", async () => {
     const sessionIds = mockSessions();
     const { user } = renderBookmarks();
     await user.click(mapCard("파리 미식 지도"));
@@ -145,7 +145,7 @@ describe("BookmarksView — 상세 팝업", () => {
     expect(within(screen.getByRole("dialog")).getByText("불러오는 중…")).toBeInTheDocument();
   });
 
-  it("세션 행을 누르면 그 세션 상세로 이동한다", async () => {
+  it("[COM-2-2@2 S5] 세션 행을 누르면 그 세션 상세로 이동한다", async () => {
     mockSessions();
     const { user } = renderBookmarks();
     await user.click(mapCard("동유럽 3주 살이 전체 동선"));
@@ -154,7 +154,7 @@ describe("BookmarksView — 상세 팝업", () => {
     expect(mockRouter.push).toHaveBeenCalledWith(`/sessions/${CARD_SESSIONS.sessions[0].id}`);
   });
 
-  it("작성자를 누르면 handle 없이 회원 id 프로필로 이동하고 팝업이 닫힌다", async () => {
+  it("[COM-2-2@2 S5] 작성자를 누르면 handle 없이 회원 id 프로필로 이동하고 팝업이 닫힌다", async () => {
     mockSessions();
     const { user } = renderBookmarks();
     await user.click(mapCard("파리 미식 지도"));
@@ -163,7 +163,7 @@ describe("BookmarksView — 상세 팝업", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("sessionId 가 없는 저장은 요청 없이 관련 세션 영역을 그리지 않는다", async () => {
+  it("[COM-2-2@2 S1] sessionId 가 없는 저장은 요청 없이 관련 세션 영역을 그리지 않는다", async () => {
     const sessionIds = mockSessions();
     const { user } = renderBookmarks();
     await user.click(mapCard("# 화장실 # 놀이"));
@@ -208,7 +208,7 @@ describe("BookmarksView — 원래 마인드맵에서 보기", () => {
     mockSessions();
   });
 
-  it("팝업을 열어도 원본을 부르지 않고, 누르면 그 북마크의 원본을 불러 저장한 노드만 강조한다", async () => {
+  it("[COM-2-2@2 S2] 팝업을 열어도 원본을 부르지 않고, 누르면 그 북마크의 원본을 불러 저장한 노드만 강조한다", async () => {
     const ids = mockOriginal();
     const { user } = renderBookmarks();
     await user.click(mapCard("동유럽 3주 살이 전체 동선"));
@@ -230,7 +230,7 @@ describe("BookmarksView — 원래 마인드맵에서 보기", () => {
     expect(hasRing(node("비엔나"))).toBe(false);
   });
 
-  it("기다리는 동안 버튼이 잠기고 불러오는 중으로 바뀐다", async () => {
+  it("[COM-2-2@2 S2] 기다리는 동안 버튼이 잠기고 불러오는 중으로 바뀐다", async () => {
     mockOriginal(() => new Promise<never>(() => {}));
     const { user } = renderBookmarks();
     await user.click(mapCard("동유럽 3주 살이 전체 동선"));
@@ -239,7 +239,7 @@ describe("BookmarksView — 원래 마인드맵에서 보기", () => {
     expect(button).toBeDisabled();
   });
 
-  it("실패하면 팝업 안에 안내하고 다시 시도하면 전체 보기가 열린다", async () => {
+  it("[COM-2-2@2 S4] 실패하면 팝업 안에 안내하고 다시 시도하면 전체 보기가 열린다", async () => {
     let failing = true;
     const ids = mockOriginal(() => (failing ? fail(500, SERVER_ERROR) : ok(BOOKMARK_ORIGINAL)));
     const { user } = renderBookmarks();
@@ -255,7 +255,7 @@ describe("BookmarksView — 원래 마인드맵에서 보기", () => {
     expect(ids).toHaveLength(2);
   });
 
-  it("원본을 볼 수 없으면 전체 보기 대신 볼 수 없다고 알려 준다", async () => {
+  it("[COM-2-2@2 S4] 원본을 볼 수 없으면 전체 보기 대신 볼 수 없다고 알려 준다", async () => {
     mockOriginal(() => ok(BOOKMARK_ORIGINAL_GONE));
     const { user } = renderBookmarks();
     await user.click(mapCard("동유럽 3주 살이 전체 동선"));
@@ -294,6 +294,31 @@ describe("BookmarksView — 원래 마인드맵에서 보기", () => {
   });
 });
 
+describe("BookmarksView — 요구사항 기준", () => {
+  it("[COM-2-2@1 S1] 카드에 미리보기가 그려지고, 저장 시점은 방금 전 · N분 전 · N시간 전 · N일 전으로 보인다", () => {
+    const at = (minutesAgo: number) => new Date(BOOKMARK_NOW - minutesAgo * 60_000).toISOString();
+    const items = [0, 5, 3 * 60, 4 * 24 * 60].map((m, i) => bookmarkMindmap({ bookmarkId: 900 + i, title: `카드 ${i}`, savedAt: at(m) }));
+    renderBookmarks({ mindmaps: tabOf(saved(...items)) });
+    ["방금 전", "5분 전", "3시간 전", "4일 전"].forEach((ago, i) => {
+      const card = mapCard(`카드 ${i}`);
+      expect(within(card).getByText(new RegExp(`· 저장 ${ago}$`))).toBeInTheDocument();
+      expect(card.querySelector("svg")).not.toBeNull();
+    });
+  });
+
+  it("[COM-2-2@2 S4] 원본을 볼 수 없으면 제목과 함께 공개 범위 변경 · 삭제 가능성을 설명한다", async () => {
+    vi.spyOn(window, "requestAnimationFrame").mockReturnValue(0);
+    mockSessions();
+    mockOriginal(() => ok(BOOKMARK_ORIGINAL_GONE));
+    const { user } = renderBookmarks();
+    await user.click(mapCard("동유럽 3주 살이 전체 동선"));
+    await user.click(screen.getByRole("button", ORIGINAL_BUTTON));
+    const status = await within(screen.getByRole("dialog")).findByRole("status");
+    expect(status).toHaveTextContent("원래 마인드맵을 볼 수 없어요");
+    expect(status).toHaveTextContent("작성자가 공개 범위를 바꿨거나 삭제했을 수 있어요.");
+  });
+});
+
 describe("BookmarksView — 빈 · 오류 상태", () => {
   it("빈 탭에서만 빈 안내를 보여준다", async () => {
     const { user } = renderBookmarks({ bundles: tabOf<SavedBundle>([]) });
@@ -303,7 +328,7 @@ describe("BookmarksView — 빈 · 오류 상태", () => {
     expect(screen.getByRole("status")).toHaveTextContent("아직 북마크한 항목이 없어요");
   });
 
-  it("보이는 항목을 다 해제했어도 더 있으면 빈 안내 대신 더 보기를 보여준다", () => {
+  it("[COM-2-1@1 R2] 보이는 항목을 다 해제했어도 더 있으면 빈 안내 대신 더 보기를 보여준다", () => {
     renderBookmarks({ mindmaps: tabOf<SavedMindmap>([], { hasNext: true }) });
     expect(screen.queryByText("아직 북마크한 항목이 없어요")).toBeNull();
     expect(screen.getByRole("button", { name: "더 보기" })).toBeInTheDocument();
@@ -351,7 +376,7 @@ describe("toSavedMindmap", () => {
     expect(toSavedMindmap(item, now).savedAgo).toBe("1분 전");
   });
 
-  it("닉네임이 없으면 이름 없는 사용자, URL 만 공개에 태그도 없으면 안내 문구를 쓴다", () => {
+  it("[COM-2-2@1 S2] 닉네임이 없으면 이름 없는 사용자, URL 만 공개에 태그도 없으면 안내 문구를 쓴다", () => {
     const item = bookmarkMindmap({ bookmarkId: 1, title: null, snippet: null, hashtags: [], owner: { userId: 7, nickname: null } });
     const { post, ownerId } = toSavedMindmap(item, BOOKMARK_NOW);
     expect(post.user.name).toBe("이름 없는 사용자");
@@ -386,7 +411,7 @@ describe("toOriginalView", () => {
     view.highlightIds.forEach((id) => expect(view.mindmap.nodes.some((n) => n.id === id)).toBe(true));
   });
 
-  it("볼 수 없으면 null 이다 — 그래프가 비어 sourceAvailable 만 false 로 올 때도 같다", () => {
+  it("[COM-2-2@2 R1] 볼 수 없으면 null 이다 — 그래프가 비어 sourceAvailable 만 false 로 올 때도 같다", () => {
     expect(toOriginalView(BOOKMARK_ORIGINAL_GONE)).toBeNull();
     expect(toOriginalView({ ...BOOKMARK_ORIGINAL, sourceAvailable: false })).toBeNull();
   });

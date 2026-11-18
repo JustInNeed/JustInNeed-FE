@@ -3,7 +3,7 @@ import { http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderPersonal } from "@/test/render";
 import { API, SERVER_ERROR, fail, ok, server } from "@/test/msw/server";
-import { EXCLUDED_URLS } from "@/test/fixtures/settings";
+import { EXCLUDED_URLS, INTEGRATIONS } from "@/test/fixtures/settings";
 import type { ExcludedUrl } from "@/lib/viewTypes";
 import { SettingsView } from "./SettingsView";
 
@@ -53,7 +53,7 @@ beforeEach(() => {
 
 describe("설정 화면", () => {
   describe("섹션 메뉴", () => {
-    it("데이터 수집 · 확장 프로그램 · 계정 3개만 있고 외부 플랫폼은 숨겨져 있다", () => {
+    it("[X-SET-01 S1·R1] 데이터 수집 · 확장 프로그램 · 계정 3개만 있고 외부 플랫폼은 숨겨져 있다", () => {
       renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       const nav = screen.getByRole("navigation");
       expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual(["데이터 수집", "확장 프로그램", "계정"]);
@@ -101,7 +101,7 @@ describe("설정 화면", () => {
       spy.mockRestore();
     });
 
-    it("회원 탈퇴 화면에서 계정 메뉴를 다시 누르면 계정 설정으로 돌아온다", async () => {
+    it("[X-SET-01 S3] 회원 탈퇴 화면에서 계정 메뉴를 다시 누르면 계정 설정으로 돌아온다", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(screen.getByRole("button", { name: "계정" }));
       await user.click(screen.getByRole("button", { name: "회원 탈퇴" }));
@@ -110,6 +110,38 @@ describe("설정 화면", () => {
       await user.click(screen.getByRole("button", { name: "계정" }));
       expect(screen.queryByRole("heading", { name: "마지막으로 확인해 주세요" })).not.toBeInTheDocument();
       expect(screen.getByText("연결된 계정")).toBeInTheDocument();
+    });
+
+    it("[X-SET-01 S2] '계정' 을 누르면 계정 범주로 스크롤하고 목차에 현재 범주로 표시된다", async () => {
+      const scrolled: string[] = [];
+      const spy = vi
+        .spyOn(HTMLElement.prototype, "scrollIntoView")
+        .mockImplementation(function (this: HTMLElement) {
+          scrolled.push(this.id);
+        });
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      await user.click(screen.getByRole("button", { name: "계정" }));
+
+      expect(scrolled).toEqual(["settings-account"]);
+      expect(screen.getByRole("button", { name: "계정" })).toHaveAttribute("aria-current", "true");
+      expect(screen.getByRole("button", { name: "데이터 수집" })).not.toHaveAttribute("aria-current");
+      spy.mockRestore();
+    });
+
+    it("[X-SET-01 R1] 연동 목록을 넘겨도 외부 플랫폼 범주와 연동 카드는 그리지 않는다", () => {
+      renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} integrations={INTEGRATIONS} />);
+      expect(screen.queryByText("연동된 외부 플랫폼")).not.toBeInTheDocument();
+      expect(screen.queryByText("Notion")).not.toBeInTheDocument();
+      expect(document.getElementById("settings-integration")).toBeNull();
+    });
+
+    it("[X-SET-06 S1] 계정의 '회원 탈퇴' 를 누르면 되돌릴 수 없다는 경고 배너가 있는 탈퇴 화면이 열린다", async () => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      await user.click(screen.getByRole("button", { name: "회원 탈퇴" }));
+      expect(screen.getByRole("heading", { name: "마지막으로 확인해 주세요" })).toBeInTheDocument();
+      expect(
+        screen.getByText("탈퇴하면 되돌릴 수 없어요. 지금까지 모은 세션 기록은 모두 삭제돼요."),
+      ).toBeInTheDocument();
     });
 
     it("탈퇴 화면의 '← 계정 설정으로' 로 계정 설정에 돌아온다", async () => {
@@ -122,7 +154,7 @@ describe("설정 화면", () => {
   });
 
   describe("수집 제외 URL 목록", () => {
-    it("도메인별로 묶고 알파벳 순으로 보인다 — 꺼짐 여부와 상관없이, 묶음 안에서는 상위 도메인이 먼저 (QA-029-3)", () => {
+    it("[MEM-5-1 S4·R1] 도메인별로 묶고 알파벳 순으로 보인다 — 꺼짐 여부와 상관없이, 묶음 안에서는 상위 도메인이 먼저 (QA-029-3)", () => {
       renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       expect(shownUrls()).toEqual([
         "instagram.com",
@@ -141,13 +173,58 @@ describe("설정 화면", () => {
       expect(heads[0]).toHaveTextContent("tistory.com3");
     });
 
+    it("[MEM-5-1 S3] 같은 도메인 URL 이 2개 이상이면 폴더 아이콘 + 도메인 + 개수 머리 아래로 묶인다", () => {
+      renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      const head = document.querySelector(".exGroupHead") as HTMLElement;
+      expect(head.querySelector("svg")).not.toBeNull();
+      expect(head).toHaveTextContent("tistory.com");
+      expect(head.querySelector(".exGroupCount")).toHaveTextContent("3");
+      const group = head.parentElement as HTMLElement;
+      expect(Array.from(group.querySelectorAll(".exUrl")).map((el) => el.textContent)).toEqual([
+        "tistory.com",
+        "tistory.com/feed",
+        "tistory.com/skin",
+      ]);
+    });
+
+    it("[MEM-5-2 S1] 내가 추가한 URL 의 체크를 해제하면 바로 흐리게 바뀌고 해제 값을 저장한다", async () => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      expect(row("tistory.com/feed")).toHaveStyle({ opacity: "1" });
+
+      await user.click(within(row("tistory.com/feed")).getByRole("checkbox"));
+      expect(within(row("tistory.com/feed")).getByRole("checkbox")).not.toBeChecked();
+      expect(row("tistory.com/feed")).toHaveStyle({ opacity: "0.55" });
+      await waitFor(() =>
+        expect(saved).toEqual([
+          {
+            method: "PATCH",
+            path: "/settings/collection/excluded-urls/selections",
+            body: { excludedUrlIds: [6], isExcluded: false },
+          },
+        ]),
+      );
+    });
+
+    it("[MEM-5-2 S3] 켜진 기본 URL 체크박스는 비활성이고 title 로 '기본 제외 URL 은 해제할 수 없어요' 를 단다", () => {
+      renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      for (const url of ["instagram.com", "mail.google.com", "youtube.com/shorts", "tiktok.com"]) {
+        const box = within(row(url)).getByRole("checkbox");
+        expect(box).toBeDisabled();
+        expect(box).toHaveAttribute("title", "기본 제외 URL 은 해제할 수 없어요");
+      }
+      expect(within(row("tistory.com")).getByRole("checkbox")).not.toHaveAttribute("title");
+    });
+
+    // 요구사항과 다름: 서버 문구가 없는 실패도 ApiError("요청에 실패했습니다. (HTTP n)") 라 대체 문구가 나오지 않는다
+    it.todo("MEM-5-2 S2 미일치 — 저장 실패 응답에 서버 문구가 없으면 '저장에 실패했습니다. 다시 시도해 주세요.' 를 보여준다");
+
     it("켜진 항목은 체크, 꺼진 항목은 체크 해제로 보인다", () => {
       renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       expect(within(row("instagram.com")).getByRole("checkbox")).toBeChecked();
       expect(within(row("twitter.com")).getByRole("checkbox")).not.toBeChecked();
     });
 
-    it("체크박스를 누르면 켜짐/꺼짐이 바뀌고 그 값을 저장한다", async () => {
+    it("[MEM-5-2 S1] 체크박스를 누르면 켜짐/꺼짐이 바뀌고 그 값을 저장한다", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(within(row("twitter.com")).getByRole("checkbox"));
       expect(within(row("twitter.com")).getByRole("checkbox")).toBeChecked();
@@ -167,7 +244,7 @@ describe("설정 화면", () => {
       });
     });
 
-    it("켜진 기본 URL 은 체크를 해제할 수 없다 (QA-029-4)", async () => {
+    it("[MEM-5-2 S3] 켜진 기본 URL 은 체크를 해제할 수 없다 (QA-029-4)", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       const box = within(row("instagram.com")).getByRole("checkbox");
       expect(box).toBeDisabled();
@@ -185,7 +262,7 @@ describe("설정 화면", () => {
       expect(box).toBeDisabled();
     });
 
-    it("체크 저장에 실패하면 원래 값으로 돌아가고 서버 문구를 토스트로 보여준다", async () => {
+    it("[MEM-5-2 S2] 체크 저장에 실패하면 원래 값으로 돌아가고 서버 문구를 토스트로 보여준다", async () => {
       server.use(http.patch(SELECTIONS, () => fail(404, "수집 제외 URL을 찾을 수 없습니다.")));
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(within(row("tistory.com")).getByRole("checkbox"));
@@ -194,13 +271,13 @@ describe("설정 화면", () => {
       expect(within(row("tistory.com")).getByRole("checkbox")).toBeChecked();
     });
 
-    it("기본 항목은 '기본' 배지만 있고 삭제할 수 없다", () => {
+    it("[MEM-5-4 S3] 기본 항목은 '기본' 배지만 있고 삭제할 수 없다", () => {
       renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       expect(within(row("instagram.com")).getByText("기본")).toBeInTheDocument();
       expect(within(row("instagram.com")).queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
     });
 
-    it("직접 추가한 항목은 삭제 버튼으로 목록에서 지우고 서버에서도 삭제한다", async () => {
+    it("[MEM-5-4 S1] 직접 추가한 항목은 삭제 버튼으로 목록에서 지우고 서버에서도 삭제한다", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(within(row("naver.com/blog")).getByRole("button", { name: "삭제" }));
       expect(shownUrls()).not.toContain("naver.com/blog");
@@ -213,7 +290,7 @@ describe("설정 화면", () => {
       );
     });
 
-    it("삭제에 실패하면 항목이 돌아오고 서버 문구를 토스트로 보여준다", async () => {
+    it("[MEM-5-4 S2] 삭제에 실패하면 항목이 돌아오고 서버 문구를 토스트로 보여준다", async () => {
       server.use(http.delete(URLS, () => fail(500, SERVER_ERROR)));
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(within(row("naver.com/blog")).getByRole("button", { name: "삭제" }));
@@ -240,7 +317,7 @@ describe("설정 화면", () => {
       expect(screen.queryByText("아직 등록한 URL이 없어요")).not.toBeInTheDocument();
     });
 
-    it("불러오기에 실패하면 오류 안내 + 다시 시도 버튼이 보이고, 입력칸 · 목록은 숨긴다", async () => {
+    it("[MEM-5-1 S6] 불러오기에 실패하면 오류 안내 + 다시 시도 버튼이 보이고, 입력칸 · 목록은 숨긴다", async () => {
       const onRetry = vi.fn();
       const { user } = renderPersonal(
         <SettingsView excludedUrls={[]} error="수집 제외 URL을 불러오지 못했어요." onRetry={onRetry} />,
@@ -262,7 +339,7 @@ describe("설정 화면", () => {
   });
 
   describe("수집 제외 URL 추가", () => {
-    it("프로토콜 · www. · 끝 슬래시를 떼고 도메인은 소문자로 바꿔 저장하고 켜진 상태로 추가한다", async () => {
+    it("[MEM-5-3 S1] 프로토콜 · www. · 끝 슬래시를 떼고 도메인은 소문자로 바꿔 저장하고 켜진 상태로 추가한다", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.type(urlInput(), "https://www.Example.com/path/");
       await user.click(addBtn());
@@ -276,13 +353,38 @@ describe("설정 화면", () => {
       expect(urlInput()).toHaveValue("");
     });
 
-    it("추가한 항목도 맨 아래가 아니라 알파벳 자리에 들어간다 (QA-029-3)", async () => {
+    it("[MEM-5-1 S4] 추가한 항목도 맨 아래가 아니라 알파벳 자리에 들어간다 (QA-029-3)", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.type(urlInput(), "aaa.com{Enter}");
       await waitFor(() => expect(shownUrls()[0]).toBe("aaa.com"));
       await user.type(urlInput(), "zzz.com{Enter}");
       await waitFor(() => expect(shownUrls().at(-1)).toBe("zzz.com"));
     });
+
+    it.each([
+      ["https://www.tistory.com/feed/", "tistory.com/feed"],
+      ["tistory.com/feed", "tistory.com/feed"],
+      ["https://mail.naver.com", "mail.naver.com"],
+    ])("[MEM-5-3 S1·S2·S3] %s 를 추가하면 %s 로 저장되어 목록에 들어간다", async (input, expected) => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS.slice(0, 5)} />);
+      await user.type(urlInput(), input);
+      await user.click(addBtn());
+
+      await waitFor(() => expect(shownUrls()).toContain(expected));
+      expect(saved).toEqual([{ method: "POST", path: "/settings/collection/excluded-urls", body: { url: expected } }]);
+    });
+
+    it.each(["https://user@example.com", "example", "https://exa mple.com"])(
+      "[MEM-5-3 S4] 형식이 틀린 %s 는 보내지 않고 입력칸 아래 '올바른 URL 형식이 아니에요.' 를 띄운다",
+      async (input) => {
+        const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+        await user.type(urlInput(), input);
+        await user.click(addBtn());
+
+        expect(screen.getByRole("alert")).toHaveTextContent("올바른 URL 형식이 아니에요.");
+        expect(saved).toEqual([]);
+      },
+    );
 
     it("Enter 로도 추가된다", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
@@ -299,7 +401,7 @@ describe("설정 화면", () => {
       await waitFor(() => expect(saved.at(-1)?.body).toEqual({ excludedUrlIds: [100], isExcluded: false }));
     });
 
-    it("서버가 거절하면 그 문구를 입력칸 아래에 보여주고 입력값을 남긴다", async () => {
+    it("[MEM-5-3 S5] 서버가 거절하면 그 문구를 입력칸 아래에 보여주고 입력값을 남긴다", async () => {
       server.use(http.post(URLS, () => fail(409, "이미 등록된 URL입니다.")));
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.type(urlInput(), "example.org");
@@ -317,7 +419,7 @@ describe("설정 화면", () => {
       expect(saved).toHaveLength(1);
     });
 
-    it("입력한 게 없으면(공백만 포함) 추가 버튼이 꺼져 있고, 입력하면 켜진다 (QA-029-1)", async () => {
+    it("[MEM-5-3 S7] 입력한 게 없으면(공백만 포함) 추가 버튼이 꺼져 있고, 입력하면 켜진다 (QA-029-1)", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       expect(addBtn()).toBeDisabled();
       await user.type(urlInput(), "   ");
@@ -332,7 +434,7 @@ describe("설정 화면", () => {
       expect(addBtn()).toBeEnabled();
     });
 
-    it("형식이 틀리면 '올바른 URL 형식이 아니에요.' 가 뜨고, 다시 입력하면 사라진다", async () => {
+    it("[MEM-5-3 S4] 형식이 틀리면 '올바른 URL 형식이 아니에요.' 가 뜨고, 다시 입력하면 사라진다", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.type(urlInput(), "not a url");
       await user.click(addBtn());
@@ -346,7 +448,7 @@ describe("설정 화면", () => {
       expect(urlInput()).not.toHaveAttribute("aria-invalid");
     });
 
-    it("정규화하면 이미 있는 URL 이면 '이미 등록된 URL입니다.' 가 뜨고 추가되지 않는다", async () => {
+    it("[MEM-5-3 S5] 정규화하면 이미 있는 URL 이면 '이미 등록된 URL입니다.' 가 뜨고 추가되지 않는다", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.type(urlInput(), "https://www.instagram.com/");
       await user.click(addBtn());
@@ -356,7 +458,7 @@ describe("설정 화면", () => {
       expect(saved).toEqual([]);
     });
 
-    it("이미 100개면 더 추가하지 못한다", async () => {
+    it("[MEM-5-3 S6] 이미 100개면 더 추가하지 못한다", async () => {
       const full: ExcludedUrl[] = Array.from({ length: 100 }, (_, i) => ({ id: i + 1, url: `site${i}.com`, on: true, isDefault: false }));
       const { user } = renderPersonal(<SettingsView excludedUrls={full} />);
       await user.type(urlInput(), "example.com");
@@ -368,14 +470,14 @@ describe("설정 화면", () => {
   });
 
   describe("확장 프로그램", () => {
-    it("우클릭 컨텍스트 메뉴는 아직 구현 전이라 보이지 않는다 (QA-027)", async () => {
+    it("[X-SET-03 R2] 우클릭 컨텍스트 메뉴는 아직 구현 전이라 보이지 않는다 (QA-027)", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
       expect(screen.queryByRole("switch", { name: "우클릭 컨텍스트 메뉴" })).not.toBeInTheDocument();
       expect(screen.getAllByRole("switch")).toHaveLength(2);
     });
 
-    it("설정값이 없으면 두 토글이 모두 켜진 상태로 시작하고, 누르면 각각 꺼졌다 켜진다", async () => {
+    it("[X-SET-03 S1] 설정값이 없으면 두 토글이 모두 켜진 상태로 시작하고, 누르면 각각 꺼졌다 켜진다", async () => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
 
@@ -398,7 +500,7 @@ describe("설정 화면", () => {
       expect(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" })).toHaveAttribute("aria-checked", "true");
     });
 
-    it("불러온 값으로 시작한다", async () => {
+    it("[X-SET-03 S2] 불러온 값으로 시작한다", async () => {
       const { user } = renderPersonal(
         <SettingsView
           excludedUrls={EXCLUDED_URLS}
@@ -414,7 +516,7 @@ describe("설정 화면", () => {
     it.each([
       ["확장 프로그램 팝업 노출", "popup-visible"],
       ["자동 종료 알림", "auto-end-notification"],
-    ])("%s 토글은 %s 경로로 저장한다", async (name, path) => {
+    ])("[MEM-6 S1] [X-SET-04 S1] %s 토글은 %s 경로로 저장한다", async (name, path) => {
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
       await user.click(screen.getByRole("switch", { name }));
@@ -424,7 +526,30 @@ describe("설정 화면", () => {
       );
     });
 
-    it("저장에 실패하면 원래 값으로 돌아가고 서버 문구를 토스트로 보여준다", async () => {
+    it("[MEM-6 S1] [X-SET-04 S1·R1] 두 토글의 라벨과 설명이 보이고, 자동 종료 알림은 꺼도 자동 종료는 동작한다고 안내한다", async () => {
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
+
+      expect(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" })).toBeInTheDocument();
+      expect(screen.getByText("브라우저에 떠있는 수집 상태 팝업을 켭니다")).toBeInTheDocument();
+      expect(screen.getByRole("switch", { name: "자동 종료 알림" })).toBeInTheDocument();
+      expect(
+        screen.getByText("30분 이상 활동 없으면 종료 전에 5초 알림을 띄워요. 꺼도 자동 종료는 동작해요"),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/자동 종료(를|가) (꺼|끕|멈)/)).not.toBeInTheDocument();
+    });
+
+    it("[MEM-6 S2] 팝업 노출 저장에 실패하면 켜진 상태로 돌아가고 오류 토스트를 띄운다", async () => {
+      server.use(http.patch(`${EXTENSION}/popup-visible`, () => fail(500, SERVER_ERROR)));
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
+      await user.click(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" }));
+
+      expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
+      expect(screen.getByRole("switch", { name: "확장 프로그램 팝업 노출" })).toHaveAttribute("aria-checked", "true");
+    });
+
+    it("[X-SET-04 S2] 저장에 실패하면 원래 값으로 돌아가고 서버 문구를 토스트로 보여준다", async () => {
       server.use(http.patch(`${EXTENSION}/:toggle`, () => fail(500, SERVER_ERROR)));
       const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
       await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
@@ -434,7 +559,7 @@ describe("설정 화면", () => {
       expect(screen.getByRole("switch", { name: "자동 종료 알림" })).toHaveAttribute("aria-checked", "true");
     });
 
-    it("불러오는 중에는 안내만, 실패하면 오류 + 다시 시도가 보이고 토글은 숨긴다", async () => {
+    it("[X-SET-03 S3] 불러오는 중에는 안내만, 실패하면 오류 + 다시 시도가 보이고 토글은 숨긴다", async () => {
       const onRetry = vi.fn();
       const { user, rerender } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} extensionLoading />);
       await user.click(screen.getByRole("button", { name: "확장 프로그램" }));

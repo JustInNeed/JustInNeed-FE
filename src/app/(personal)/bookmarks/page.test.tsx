@@ -58,7 +58,7 @@ const titled = (count: number) =>
   Array.from({ length: count }, (_, i) => bookmarkMindmap({ bookmarkId: 100 + i, title: `카드 ${i}` }));
 
 describe("/bookmarks 페이지 — 목록", () => {
-  it("두 탭을 크기 10 으로 함께 불러와 실제 데이터로 보여준다", async () => {
+  it("[COM-2-1@1 S1] 두 탭을 크기 10 으로 함께 불러와 실제 데이터로 보여준다", async () => {
     const urls = mockLists();
     renderPersonal(<BookmarksPage />);
     expect(screen.getByText("불러오는 중…")).toBeInTheDocument();
@@ -79,7 +79,7 @@ describe("/bookmarks 페이지 — 목록", () => {
     expect(screen.getByText("by foodtrip · 저장 1일 전")).toBeInTheDocument();
   });
 
-  it("저장한 것이 없으면 탭마다 빈 안내를 보여준다", async () => {
+  it("[COM-2-1@1 S2] 저장한 것이 없으면 탭마다 빈 안내를 보여준다", async () => {
     mockLists({ mindmaps: () => ok(EMPTY_MINDMAPS), bundles: () => ok(EMPTY_BUNDLES) });
     const { user } = renderPersonal(<BookmarksPage />);
     expect(await screen.findByRole("status")).toHaveTextContent("아직 북마크한 항목이 없어요");
@@ -87,7 +87,7 @@ describe("/bookmarks 페이지 — 목록", () => {
     expect(screen.getByRole("status")).toHaveTextContent("아직 북마크한 항목이 없어요");
   });
 
-  it("마인드맵 탭이 실패해도 묶음 탭은 그대로 보이고, 다시 시도하면 실패한 탭만 다시 부른다", async () => {
+  it("[COM-2-1@1 S2] 마인드맵 탭이 실패해도 묶음 탭은 그대로 보이고, 다시 시도하면 실패한 탭만 다시 부른다", async () => {
     let failing = true;
     const urls = mockLists({ mindmaps: () => (failing ? fail(500, SERVER_ERROR) : ok(BOOKMARK_MINDMAPS_PAGE)) });
     const { user } = renderPersonal(<BookmarksPage />);
@@ -101,13 +101,13 @@ describe("/bookmarks 페이지 — 목록", () => {
     expect(urls.filter((u) => u.pathname.endsWith("mindmaps"))).toHaveLength(2);
   });
 
-  it("응답 모양이 어긋나면 검색 문구가 아니라 북마크 문구로 알려 준다", async () => {
+  it("[COM-2-1@1 S2] 응답 모양이 어긋나면 검색 문구가 아니라 북마크 문구로 알려 준다", async () => {
     mockLists({ mindmaps: () => ok({}) });
     renderPersonal(<BookmarksPage />);
     expect(await screen.findByRole("alert")).toHaveTextContent("북마크를 불러오지 못했어요.");
   });
 
-  it("더 보기를 누르면 다음 페이지를 뒤에 붙이고, 끝나면 버튼이 사라진다", async () => {
+  it("[COM-2-1@1 S1] 더 보기를 누르면 다음 페이지를 뒤에 붙이고, 끝나면 버튼이 사라진다", async () => {
     const urls = mockLists({ mindmaps: pagedMindmaps(titled(12)) });
     const { user } = renderPersonal(<BookmarksPage />);
     expect(await screen.findByRole("button", { name: "마인드맵 (10+)" })).toBeInTheDocument();
@@ -176,7 +176,7 @@ async function renderLoaded() {
 }
 
 describe("/bookmarks 페이지 — 북마크 해제", () => {
-  it("해제하면 응답을 기다리지 않고 바로 빠지고, 지운 뒤 되돌리기가 있는 안내가 뜬다", async () => {
+  it("[COM-4-3@2 S1·R1] 해제하면 응답을 기다리지 않고 바로 빠지고, 지운 뒤 되돌리기가 있는 안내가 뜬다", async () => {
     let finish = () => {};
     const gate = new Promise<void>((resolve) => (finish = resolve));
     mockLists();
@@ -196,7 +196,7 @@ describe("/bookmarks 페이지 — 북마크 해제", () => {
     expect(screen.getByText("북마크를 해제했어요.")).toBeInTheDocument();
   });
 
-  it("해제에 실패하면 받은 자리로 돌아오고 서버 문구를 알려 주며 되돌리기는 없다", async () => {
+  it("[COM-4-3@2 S3] 해제에 실패하면 받은 자리로 돌아오고 서버 문구를 알려 주며 되돌리기는 없다", async () => {
     mockLists();
     mockWrites({ remove: () => fail(500, SERVER_ERROR) });
     const { user } = await renderLoaded();
@@ -287,7 +287,7 @@ describe("/bookmarks 페이지 — 북마크 해제", () => {
     expect(mapTitles()).toEqual(Array.from({ length: 21 }, (_, i) => `카드 ${i + 1}`));
   }, SLOW_TEST_MS);
 
-  it("불러온 항목을 다 해제해도 더 보기로 남은 항목을 받는다", async () => {
+  it("[COM-2-1@1 R2] 불러온 항목을 다 해제해도 더 보기로 남은 항목을 받는다", async () => {
     const rows = titled(11);
     mockLists({ mindmaps: (url) => pagedMindmaps(rows)(url) });
     server.use(
@@ -306,7 +306,7 @@ describe("/bookmarks 페이지 — 북마크 해제", () => {
 });
 
 describe("/bookmarks 페이지 — 되돌리기", () => {
-  it("카드 저장은 카드 API 로 sessionId 에 다시 저장하고 맨 위에 새 id 로 돌아온다", async () => {
+  it("[COM-4-3@2 S2·R3] 카드 저장은 카드 API 로 sessionId 에 다시 저장하고 맨 위에 새 id 로 돌아온다", async () => {
     mockLists();
     const calls = mockWrites();
     const { user } = await renderLoaded();
@@ -326,7 +326,7 @@ describe("/bookmarks 페이지 — 되돌리기", () => {
     await waitFor(() => expect(calls.deleted).toEqual([String(CARD_BOOKMARK.bookmarkId), "600"]));
   });
 
-  it("해제한 자리가 아니라 목록 맨 위로 돌아온다", async () => {
+  it("[COM-4-3@2 S2] 해제한 자리가 아니라 목록 맨 위로 돌아온다", async () => {
     mockLists();
     mockWrites();
     const { user } = await renderLoaded();
@@ -363,7 +363,7 @@ describe("/bookmarks 페이지 — 되돌리기", () => {
     expect(calls.patched).toEqual([]);
   });
 
-  it("묶음은 이름과 함께 다시 저장하고 맨 위로 돌아온다", async () => {
+  it("[COM-4-3@2 S2] 묶음은 이름과 함께 다시 저장하고 맨 위로 돌아온다", async () => {
     mockLists();
     const calls = mockWrites({ post: () => ok({ code: 201, bookmarkId: 700 }, { status: 201 }) });
     const { user } = await renderLoaded();
@@ -402,7 +402,7 @@ describe("/bookmarks 페이지 — 되돌리기", () => {
     expect(calls.posted[0]).not.toHaveProperty("name");
   });
 
-  it("되돌리기에 실패하면 서버 문구를 알려 주고 항목은 돌아오지 않는다", async () => {
+  it("[COM-4-3@2 S4] 되돌리기에 실패하면 서버 문구를 알려 주고 항목은 돌아오지 않는다", async () => {
     mockLists();
     mockWrites({ patch: () => fail(404, "찾을 수 없습니다.") });
     const { user } = await renderLoaded();
@@ -413,7 +413,7 @@ describe("/bookmarks 페이지 — 되돌리기", () => {
     expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (2)");
   });
 
-  it("지금 저장할 수 있는 대상이 없으면 요청 없이 되돌리지 못했다고 알려 준다", async () => {
+  it("[COM-4-3@2 S4] 지금 저장할 수 있는 대상이 없으면 요청 없이 되돌리지 못했다고 알려 준다", async () => {
     mockLists({ mindmaps: () => ok({ mindmaps: [{ ...PICKED_BOOKMARK, targetIds: [] }], hasNext: false }) });
     const calls = mockWrites();
     const { user } = renderPersonal(<BookmarksPage />);
@@ -490,7 +490,7 @@ describe("/bookmarks 페이지 — 되돌리기", () => {
 });
 
 describe("/bookmarks 페이지 — 상세 팝업 · 원래 마인드맵", () => {
-  it("카드를 눌러 관련 세션을 보고, 원래 마인드맵을 눌러야 원본을 불러온다", async () => {
+  it("[COM-2-2@2 S1·S2·S5] 카드를 눌러 관련 세션을 보고, 원래 마인드맵을 눌러야 원본을 불러온다", async () => {
     const original: string[] = [];
     mockLists();
     server.use(
@@ -514,4 +514,18 @@ describe("/bookmarks 페이지 — 상세 팝업 · 원래 마인드맵", () => 
     expect(within(full).getByText("저장한 노드 2개만 강조했어요")).toBeInTheDocument();
     expect(original).toEqual([String(CARD_BOOKMARK.bookmarkId)]);
   });
+});
+
+describe("/bookmarks 페이지 — 요구사항 기준", () => {
+  it("[COM-2-1@1 S2] 비어 있으면 빈 안내 제목과 커뮤니티로 안내하는 설명을 함께 보여준다", async () => {
+    mockLists({ mindmaps: () => ok(EMPTY_MINDMAPS), bundles: () => ok(EMPTY_BUNDLES) });
+    renderPersonal(<BookmarksPage />);
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("아직 북마크한 항목이 없어요");
+    expect(status).toHaveTextContent("커뮤니티에서 마음에 드는 마인드맵이나 해시태그를 북마크해 보세요.");
+    expect(screen.queryByRole("button", { name: "더 보기" })).toBeNull();
+  });
+
+  // 불일치: 서버가 message 없이 실패하면 api 클라이언트가 "요청에 실패했습니다. (HTTP 500)" 을 만들어 기본 문구가 나오지 않는다
+  it.todo("[COM-4-3@2 S3] 해제 실패 응답에 서버 문구가 없으면 '북마크를 해제하지 못했어요. 다시 시도해 주세요.' 를 보여준다");
 });

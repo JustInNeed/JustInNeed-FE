@@ -38,7 +38,7 @@ describe("MindmapFullView", () => {
     expect(open).toHaveBeenCalledWith("https://wise.com/kr/currency-converter/eur-to-krw-rate", "_blank", "noopener,noreferrer");
   });
 
-  it("'내용까지' 공개한 노드를 누르면 원문을 바로 열지 않고 원문 미리보기(형광펜 · 원문 열기)를 띄운다 (QA-049)", async () => {
+  it("[COM-3-1 S4] '내용까지' 공개한 노드를 누르면 원문을 바로 열지 않고 원문 미리보기(형광펜 · 원문 열기)를 띄운다 (QA-049)", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     const url = "https://wise.com/kr/currency-converter/eur-to-krw-rate";
     const { user, node, dialog } = renderFullView({
@@ -80,7 +80,7 @@ describe("MindmapFullView", () => {
     expect(open).toHaveBeenCalledWith("https://www.nightjet.com/en", "_blank", "noopener,noreferrer");
   });
 
-  it("URL 이 없는 노드는 원문을 열지 않고 선택만 된다", async () => {
+  it("[COM-3-1 S2] URL 이 없는 노드는 원문을 열지 않고 선택만 된다", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     const { user, node } = renderFullView();
     await user.click(node("파리"));
@@ -89,7 +89,7 @@ describe("MindmapFullView", () => {
     expect(hasRing(node("파리"))).toBe(true);
   });
 
-  it("노드를 끌어 옮긴 뒤의 클릭으로는 원문을 열지 않는다", () => {
+  it("[COM-3-1 S3] 노드를 끌어 옮긴 뒤의 클릭으로는 원문을 열지 않는다", () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     const { node } = renderFullView();
     fireEvent.mouseDown(node("예산"), { clientX: 0, clientY: 0 });

@@ -71,7 +71,7 @@ describe("크롬 확장 연결 도구", () => {
   });
 
   describe("연결", () => {
-    it("웹 토큰으로 연결 코드를 받아 JIN_CONNECT 로 넘기고, 확장이 저장한 회원 id 를 돌려준다", async () => {
+    it("[MEM-2-3 S1] 웹 토큰으로 연결 코드를 받아 JIN_CONNECT 로 넘기고, 확장이 저장한 회원 id 를 돌려준다", async () => {
       setTokens({ accessToken: "web-a", refreshToken: "web-r" });
       const auths = issueOk("ext-code-1");
       const sent = installFakeExtension(loggedOutExtension(12));
@@ -81,7 +81,7 @@ describe("크롬 확장 연결 도구", () => {
       expect(sent.map((s) => s.message)).toEqual([{ type: "JIN_STATUS" }, { type: "JIN_CONNECT", code: "ext-code-1" }]);
     });
 
-    it("확장이 없으면 연결 코드를 받기 전에 ExtensionMissingError (1회용 코드를 헛되이 쓰지 않는다)", async () => {
+    it("[MEM-2-3 R1] 확장이 없으면 연결 코드를 받기 전에 ExtensionMissingError (1회용 코드를 헛되이 쓰지 않는다)", async () => {
       setTokens({ accessToken: "web-a", refreshToken: "web-r" });
       // extension-code 핸들러를 등록하지 않았으므로 요청이 나가면 테스트가 실패한다
       await expect(connectExtension()).rejects.toBeInstanceOf(ExtensionMissingError);
@@ -118,7 +118,7 @@ describe("크롬 확장 연결 도구", () => {
       expect(await p).toBeNull();
     });
 
-    it("로그아웃 알림도 5초 뒤 넘어간다 — 웹 로그아웃이 멈추지 않는다", async () => {
+    it("[MEM-3@1 S3·R3] 로그아웃 알림도 5초 뒤 넘어간다 — 웹 로그아웃이 멈추지 않는다", async () => {
       vi.useFakeTimers();
       installFakeExtension(() => NO_REPLY);
       const p = logoutExtension();
@@ -175,13 +175,13 @@ describe("크롬 확장 연결 도구", () => {
   });
 
   describe("로그아웃", () => {
-    it("확장에 JIN_LOGOUT 을 보낸다", async () => {
+    it("[MEM-3@1 S3] 확장에 JIN_LOGOUT 을 보낸다", async () => {
       const sent = installFakeExtension(loggedOutExtension());
       await logoutExtension();
       expect(sent.map((s) => s.message)).toEqual([{ type: "JIN_LOGOUT" }]);
     });
 
-    it("확장이 없어도 오류 없이 끝난다 (웹 로그아웃을 막지 않는다)", async () => {
+    it("[MEM-3@1 R3] 확장이 없어도 오류 없이 끝난다 (웹 로그아웃을 막지 않는다)", async () => {
       await expect(logoutExtension()).resolves.toBeUndefined();
     });
   });

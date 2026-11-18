@@ -19,7 +19,7 @@ const STATUSES = [
 ];
 
 describe("세션 상세 — 분석 완료 전 · 실패 상태 화면", () => {
-  it.each(STATUSES)("$label 세션은 제목 · 상태 · 안내를 보여 준다", async ({ label, detail, copy }) => {
+  it.each(STATUSES)("[SUR-4 S1] $label 세션은 제목 · 상태 · 안내를 보여 준다", async ({ label, detail, copy }) => {
     await renderDetail(detail);
     expect(screen.getByRole("heading", { level: 1, name: detail.title })).toBeInTheDocument();
     expect(screen.getByText(label)).toBeInTheDocument();
@@ -31,7 +31,7 @@ describe("세션 상세 — 분석 완료 전 · 실패 상태 화면", () => {
     expect(screen.getByText(label).querySelector("svg")).toBeNull();
   });
 
-  it.each(STATUSES)("$label 세션에는 본문 화면의 요소가 하나도 없다", async ({ detail }) => {
+  it.each(STATUSES)("[SUR-4 S3] $label 세션에는 본문 화면의 요소가 하나도 없다", async ({ detail }) => {
     await renderDetail(detail);
     for (const name of ["즐겨찾기", "비공개", "공개", "편집", "추가", "줄글 보기", "마인드맵 보기"]) {
       expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
@@ -43,7 +43,7 @@ describe("세션 상세 — 분석 완료 전 · 실패 상태 화면", () => {
     expect(screen.queryByRole("button", { name: ".md 파일 다운로드" })).not.toBeInTheDocument();
   });
 
-  it("← 세션 목록을 누르면 목록으로 간다", async () => {
+  it("[SUR-4 S3] ← 세션 목록을 누르면 목록으로 간다", async () => {
     const { user } = await renderDetail(ANALYZING_DETAIL);
     await user.click(screen.getByRole("button", { name: "← 세션 목록" }));
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions");
@@ -62,7 +62,7 @@ describe("세션 상세 — 상태 화면의 삭제", () => {
     return ids;
   }
 
-  it.each(STATUSES)("$label 세션도 확인창을 거쳐 삭제하고 목록으로 간다", async ({ detail }) => {
+  it.each(STATUSES)("[REC-6 S1] [SUR-4 S3] $label 세션도 확인창을 거쳐 삭제하고 목록으로 간다", async ({ detail }) => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     const ids = onDelete(() => ok(null));
     const { user } = await renderDetail(detail);
@@ -92,7 +92,7 @@ describe("세션 상세 — 상태 화면의 삭제", () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("내 세션이 아니면 삭제 버튼이 없다", async () => {
+  it("[SUR-4 S3] 내 세션이 아니면 삭제 버튼이 없다", async () => {
     await renderDetail({ ...ANALYZING_DETAIL, isOwner: false });
     expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "← 세션 목록" })).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe("세션 상세 — 재분석", () => {
     return ids;
   }
 
-  it("실패 세션에는 안내 문장과 재분석 버튼이 보인다", async () => {
+  it("[SUR-4 S1] 실패 세션에는 안내 문장과 재분석 버튼이 보인다", async () => {
     await renderDetail(FAILED_DETAIL);
     const alert = within(screen.getByRole("alert"));
     expect(alert.getByText("분석에 실패했어요.")).toBeInTheDocument();
@@ -137,7 +137,7 @@ describe("세션 상세 — 재분석", () => {
   it.each([
     { status: "ANALYZING" as const, label: "분석 중", copy: "아직 분석 중이에요. 잠시 후 다시 확인해주세요." },
     { status: "READY" as const, label: "분석 대기", copy: "분석을 기다리고 있어요. 잠시 후 다시 확인해주세요." },
-  ])("재분석에 성공하면 응답의 새 상태($status)를 보여 준다", async ({ status, label, copy }) => {
+  ])("[SUR-4 S2] 재분석에 성공하면 응답의 새 상태($status)를 보여 준다", async ({ status, label, copy }) => {
     const ids = onReanalyze(() => ok({ ...FAILED_DETAIL, status }));
     const { user } = await renderDetail(FAILED_DETAIL);
     await user.click(button());
@@ -149,7 +149,7 @@ describe("세션 상세 — 재분석", () => {
     expect(ids).toEqual([String(FAILED_DETAIL.id)]);
   });
 
-  it("응답을 기다리는 동안 버튼이 잠기고 연달아 눌러도 요청은 한 번만 나간다", async () => {
+  it("[SUR-4 S2·R3] 응답을 기다리는 동안 버튼이 잠기고 연달아 눌러도 요청은 한 번만 나간다", async () => {
     const g = gate();
     const ids = onReanalyze(async () => {
       await g.opened;
