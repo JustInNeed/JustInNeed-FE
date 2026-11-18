@@ -6,6 +6,8 @@
 //   @DisplayName("[COM-1-6 S2] 공개 세션만 …")                 ← BE 도 같은 규칙
 //
 // 사용: node scripts/requirements/coverage.mjs <요구사항.md> [--be <BE src/test 폴더>] [--out <결과.md>]
+// 같은 ID 가 여러 제목에 쓰이면(예: MEM-1-1 이 기능 4개) 문서 순서대로 @1 · @2 … 를 붙여 구분한다:
+//   it("[MEM-1-1@2 S1] OAuth 콜백에서 …")                     ← 두 번째 '### MEM-1-1 …' 제목의 S1
 // 단위 테스트로 확인할 수 없는 기준(CSS 미디어 쿼리 등)은 not-unit-testable.json 에 이유와 함께 적는다.
 // 요구사항 문서가 비공개 문서 레포에 있어 지금은 로컬에서만 돌린다. 실패시키지 않는다.
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -29,6 +31,7 @@ const exempt = JSON.parse(readFileSync(join(here, "not-unit-testable.json"), "ut
 
 // ---- 요구사항 문서: ### ID 제목 아래의 `S1` `R1` ----
 const ID = "[A-Z]+(?:-[A-Z]+)?-\\d+(?:-\\d+)?";
+const TAG_ID = `${ID}(?:@\\d+)?`;
 const requirements = [];
 let current = null;
 for (const line of readFileSync(docPath, "utf8").split("\n")) {
@@ -43,8 +46,18 @@ for (const line of readFileSync(docPath, "utf8").split("\n")) {
   if (crit) current.criteria.push({ key: crit[1], text: crit[2].trim() });
 }
 
+// 같은 ID 가 여러 제목이면 @순번을 붙인다
+const seen = new Map();
+for (const r of requirements) seen.set(r.id, (seen.get(r.id) ?? 0) + 1);
+const order = new Map();
+for (const r of requirements) {
+  if (seen.get(r.id) < 2) continue;
+  order.set(r.id, (order.get(r.id) ?? 0) + 1);
+  r.id = `${r.id}@${order.get(r.id)}`;
+}
+
 // ---- 테스트 파일에서 [ID S1·R2] 태그 모으기 ----
-const TAG = new RegExp(`\\[(${ID})\\s+([SR]\\d+(?:\\s*[·,]\\s*[SR]\\d+)*)\\]`, "g");
+const TAG = new RegExp(`\\[(${TAG_ID})\\s+([SR]\\d+(?:\\s*[·,]\\s*[SR]\\d+)*)\\]`, "g");
 const walk = (dir, match, out = []) => {
   if (!existsSync(dir)) return out;
   for (const name of readdirSync(dir)) {
@@ -60,7 +73,10 @@ const unknownTags = [];
 const known = new Set(requirements.flatMap((r) => r.criteria.map((c) => `${r.id} ${c.key}`)));
 function collect(files, label, root) {
   for (const file of files) {
-    for (const m of readFileSync(file, "utf8").matchAll(TAG)) {
+    const text = readFileSync(file, "utf8");
+    for (const m of text.matchAll(TAG)) {
+      // it.todo("[ID S1] …") 는 아직 없는 테스트(요구사항과 다른 동작을 적어 둔 것)라 세지 않는다
+      if (/\.todo\(\s*["'`]$/.test(text.slice(Math.max(0, m.index - 20), m.index))) continue;
       for (const key of m[2].split(/[·,]/).map((s) => s.trim())) {
         const tag = `${m[1]} ${key}`;
         const where = `${label} ${relative(root, file)}`;

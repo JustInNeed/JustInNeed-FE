@@ -31,13 +31,13 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("가입 > 닉네임 온보딩 화면", () => {
   describe("들어올 수 있는 사람", () => {
-    it("로그인 토큰이 없으면 /login 으로 보낸다", () => {
+    it("[MEM-1-2 R4] 로그인 토큰이 없으면 /login 으로 보낸다", () => {
       const { container } = renderApp(<NicknameOnboardingPage />, { authed: false });
       expect(mockRouter.replace).toHaveBeenCalledWith("/login");
       expect(container).toBeEmptyDOMElement();
     });
 
-    it("이미 닉네임이 있는 회원이면 /home 으로 보낸다", async () => {
+    it("[MEM-1-2 R4] 이미 닉네임이 있는 회원이면 /home 으로 보낸다", async () => {
       server.use(http.get(`${API}/members/me`, () => ok(MEMBER)));
       renderApp(<NicknameOnboardingPage />);
       await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/home"));
@@ -65,7 +65,7 @@ describe("가입 > 닉네임 온보딩 화면", () => {
       expect(consumeAuthToast()).toEqual({ kind: "expired" });
     });
 
-    it("가입 중인 회원이면 닉네임 단계와 '카카오 계정 인증 완료' 가 보인다", async () => {
+    it("[MEM-1-2 S1] 가입 중인 회원이면 닉네임 단계와 '카카오 계정 인증 완료' 가 보인다", async () => {
       await openAsNewMember();
       expect(screen.getByLabelText("2단계 닉네임")).toHaveAttribute("aria-current", "step");
       expect(screen.getByText("카카오 계정 인증 완료")).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe("가입 > 닉네임 온보딩 화면", () => {
   });
 
   describe("닉네임 저장 (PATCH /members/me/nickname)", () => {
-    it("성공하면 완료 화면(3단계)에 '환영해요, {닉네임}님!' 이 뜨고, 시작하기로 /home 에 간다", async () => {
+    it("[MEM-1-2 S5] [MEM-1-3 S2] 성공하면 완료 화면(3단계)에 '환영해요, {닉네임}님!' 이 뜨고, 시작하기로 /home 에 간다", async () => {
       let body: unknown = null;
       server.use(
         http.patch(`${API}/members/me/nickname`, async ({ request }) => {
@@ -93,7 +93,7 @@ describe("가입 > 닉네임 온보딩 화면", () => {
       expect(mockRouter.replace).toHaveBeenCalledWith("/home");
     });
 
-    it("완료 화면이 환영 인사를 하므로, 콜백이 예약한 가입 환영 토스트는 지운다", async () => {
+    it("[MEM-1-3 R1] 완료 화면이 환영 인사를 하므로, 콜백이 예약한 가입 환영 토스트는 지운다", async () => {
       setAuthToast({ kind: "login", justSignedUp: true });
       server.use(http.patch(`${API}/members/me/nickname`, () => ok({ ...NEW_MEMBER, nickname: "newbie" })));
       const { user } = await openAsNewMember();
@@ -104,7 +104,7 @@ describe("가입 > 닉네임 온보딩 화면", () => {
       expect(consumeAuthToast()).toBeNull();
     });
 
-    it("저장하는 동안 버튼이 '처리 중…' 으로 꺼진다", async () => {
+    it("[MEM-1-2 S5] 저장하는 동안 버튼이 '처리 중…' 으로 꺼진다", async () => {
       let release!: () => void;
       const gate = new Promise<void>((r) => (release = r));
       server.use(
@@ -123,7 +123,7 @@ describe("가입 > 닉네임 온보딩 화면", () => {
       await screen.findByRole("heading", { name: /환영해요/ });
     });
 
-    it("409(중복)면 닉네임 단계에 남아 서버의 중복 메시지를 보여주고, 다시 제출할 수 있다", async () => {
+    it("[MEM-1-2 S6] 409(중복)면 닉네임 단계에 남아 서버의 중복 메시지를 보여주고, 다시 제출할 수 있다", async () => {
       server.use(http.patch(`${API}/members/me/nickname`, () => fail(409, "이미 사용 중인 닉네임입니다.")));
       const { user } = await openAsNewMember();
       await fillNickname(user, "admin");

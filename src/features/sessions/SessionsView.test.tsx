@@ -53,7 +53,7 @@ const favFilter = () => screen.getByText("즐겨찾기", { selector: "button" })
 const END = "모든 기록을 확인했습니다.";
 
 describe("세션 목록 — 불러오기", () => {
-  it("불러오는 동안 안내가 보이고, 받아 오면 카드가 보인다", async () => {
+  it("[X-SES-03 S1] 불러오는 동안 안내가 보이고, 받아 오면 카드가 보인다", async () => {
     renderSessions();
     expect(screen.getByText("불러오는 중…")).toBeInTheDocument();
     expect(await screen.findByRole("heading", { level: 3, name: ROME.title })).toBeInTheDocument();
@@ -74,7 +74,7 @@ describe("세션 목록 — 불러오기", () => {
     expect(screen.queryByText(/개 세션 · .*개 즐겨찾기/)).not.toBeInTheDocument();
   });
 
-  it("세션이 하나도 없으면 빈 상태 안내가 보인다", async () => {
+  it("[X-SES-03 S3] 세션이 하나도 없으면 빈 상태 안내가 보인다", async () => {
     serveSessions([]);
     renderSessions();
     expect(await screen.findByText("아직 세션이 없습니다")).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe("세션 목록 — 불러오기", () => {
     expect(screen.queryByText(END)).not.toBeInTheDocument();
   });
 
-  it("목록을 못 불러오면 서버 메시지와 다시 시도 버튼이 보이고, 다시 시도하면 0페이지부터 다시 받는다", async () => {
+  it("[X-SES-03 S2] 목록을 못 불러오면 서버 메시지와 다시 시도 버튼이 보이고, 다시 시도하면 0페이지부터 다시 받는다", async () => {
     server.use(http.get(`${API}/sessions`, () => fail(500, SERVER_ERROR), { once: true }));
     const { user } = renderSessions();
     expect(await screen.findByRole("alert")).toHaveTextContent(SERVER_ERROR);
@@ -94,7 +94,7 @@ describe("세션 목록 — 불러오기", () => {
 });
 
 describe("세션 목록 — 카드", () => {
-  it("카드에 제목 · 걸린 시간 · URL 수 · 날짜 · 해시태그가 보인다", async () => {
+  it("[REC-1 S2·S3] [X-SES-01 S4] 카드에 제목 · 걸린 시간 · URL 수 · 날짜 · 해시태그가 보인다", async () => {
     renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
     const rome = within(card(ROME.title));
@@ -111,7 +111,7 @@ describe("세션 목록 — 카드", () => {
     expect(within(card("유레일패스 vs 개별 구매")).getByText("39분")).toBeInTheDocument();
   });
 
-  it("해시태그가 4개를 넘으면 앞의 4개만 보인다", async () => {
+  it("[REC-1 S3] [X-SES-01 S4] 해시태그가 4개를 넘으면 앞의 4개만 보인다", async () => {
     renderSessions();
     await screen.findByRole("heading", { level: 3, name: MANY_TAGS_SESSION.title });
     const chips = Array.from(card(MANY_TAGS_SESSION.title).querySelectorAll(".chip"));
@@ -131,7 +131,7 @@ describe("세션 목록 — 카드", () => {
     expect(isFilled(starOf(FLIGHTS.title))).toBe(false);
   });
 
-  it("별 · 머리말 보기 버튼은 켜짐 상태를 aria-pressed 로 알린다 (QA-039)", async () => {
+  it("[REC-10-3 S1] 별 · 머리말 보기 버튼은 켜짐 상태를 aria-pressed 로 알린다 (QA-039)", async () => {
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
     expect(starOf(ROME.title)).toHaveAttribute("aria-pressed", "true");
@@ -192,7 +192,7 @@ describe("세션 목록 — 상태별 카드", () => {
     requests = serveSessions(STATUS_SESSIONS);
   });
 
-  it.each([...LOCKED, FAILED])("$label 세션 카드는 걸린 시간 자리에 상태가 보이고 URL 개수는 숨긴다", async ({ label, session, duration }) => {
+  it.each([...LOCKED, FAILED])("[X-SES-01 S1] $label 세션 카드는 걸린 시간 자리에 상태가 보이고 URL 개수는 숨긴다", async ({ label, session, duration }) => {
     renderSessions();
     await screen.findByRole("heading", { level: 3, name: session.title });
     const c = within(card(session.title));
@@ -202,7 +202,7 @@ describe("세션 목록 — 상태별 카드", () => {
     expect(c.getByText(session.startedAt.slice(0, 10))).toBeInTheDocument();
   });
 
-  it.each(LOCKED)("$label 세션 카드는 눌러도 · Enter · Space 를 눌러도 상세로 이동하지 않는다", async ({ session }) => {
+  it.each(LOCKED)("[X-SES-01 S2·R1] $label 세션 카드는 눌러도 · Enter · Space 를 눌러도 상세로 이동하지 않는다", async ({ session }) => {
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: session.title });
     const c = card(session.title);
@@ -216,7 +216,7 @@ describe("세션 목록 — 상태별 카드", () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("분석 실패 세션 카드는 재분석하러 들어갈 수 있게 눌러서 · Enter · Space 로 상세로 이동한다", async () => {
+  it("[X-SES-01 S3] 분석 실패 세션 카드는 재분석하러 들어갈 수 있게 눌러서 · Enter · Space 로 상세로 이동한다", async () => {
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: FAILED.session.title });
     const c = card(FAILED.session.title);
@@ -231,7 +231,7 @@ describe("세션 목록 — 상태별 카드", () => {
     expect(mockRouter.push.mock.calls).toEqual([["/sessions/9104"], ["/sessions/9104"], ["/sessions/9104"]]);
   });
 
-  it("Tab 으로 갈 때 진행 중 카드는 건너뛰고 그 카드의 별 버튼으로 간다", async () => {
+  it("[X-SES-01 S2] Tab 으로 갈 때 진행 중 카드는 건너뛰고 그 카드의 별 버튼으로 간다", async () => {
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: STATUS_SESSIONS[0].title });
     // 머리말 버튼 2개 다음 — 첫 카드(수집 중) 자체가 아니라 별 버튼
@@ -259,7 +259,7 @@ describe("세션 목록 — 상태별 카드", () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("같은 목록의 분석 완료 세션 카드는 걸린 시간 · URL 수가 보이고 누르면 상세로 이동한다", async () => {
+  it("[X-SES-01 S4] 같은 목록의 분석 완료 세션 카드는 걸린 시간 · URL 수가 보이고 누르면 상세로 이동한다", async () => {
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
     const rome = card(ROME.title);
@@ -287,7 +287,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
     return patches;
   }
 
-  it("별을 누르면 바로 채워지고 PATCH /sessions/{id} 에 { isFavorite: true } 를 보낸다", async () => {
+  it("[REC-11 S1] 별을 누르면 바로 채워지고 PATCH /sessions/{id} 에 { isFavorite: true } 를 보낸다", async () => {
     const patches = onPatch((id, body) => ok(patchedSession(id, body)));
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: FLIGHTS.title });
@@ -299,7 +299,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("별을 끄면 바로 비워진다", async () => {
+  it("[REC-11 S1] 별을 끄면 바로 비워진다", async () => {
     onPatch((id, body) => ok(patchedSession(id, body)));
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
@@ -329,7 +329,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("서버가 실패하면 별을 원래대로 되돌리고 서버 메시지를 토스트로 띄운다", async () => {
+  it("[REC-11 R1] 서버가 실패하면 별을 원래대로 되돌리고 서버 메시지를 토스트로 띄운다", async () => {
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
     onPatch(async () => {
@@ -348,7 +348,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
     expect(groupCalls).toBe(1); // 실패하면 그룹은 다시 부르지 않는다
   });
 
-  it("그룹 보기에서 아직 목록에 안 불러온 세션의 별을 눌러도 바로 채워지고 PATCH 를 보낸다", async () => {
+  it("[REC-11 S1] 그룹 보기에서 아직 목록에 안 불러온 세션의 별을 눌러도 바로 채워지고 PATCH 를 보낸다", async () => {
     const patches = onPatch(() => ok(null));
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
@@ -361,10 +361,30 @@ describe("세션 목록 — 즐겨찾기 별", () => {
     expect(isFilled(starOf(exchange.title))).toBe(true);
     await waitFor(() => expect(patches).toEqual([{ id: 9025, body: { isFavorite: true } }]));
   });
+
+  it("[REC-11 S1] 목록에서 별을 끄면 그룹 보기의 같은 세션 카드도 바로 비워진다", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    onPatch(async (id, body) => {
+      await gate;
+      return ok(patchedSession(id, body));
+    });
+    const { user } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: ROME.title });
+
+    await user.click(starOf(ROME.title));
+    expect(isFilled(starOf(ROME.title))).toBe(false);
+
+    // 응답 전에 그룹 보기로 — # 로마 그룹의 같은 카드도 이미 비워져 있다
+    await user.click(screen.getByRole("button", { name: "해시태그" }));
+    expect(isFilled(starOf(ROME.title))).toBe(false);
+    expect(starOf(ROME.title)).toHaveAttribute("aria-pressed", "false");
+    release();
+  });
 });
 
 describe("세션 목록 — 무한 스크롤", () => {
-  it("처음엔 0페이지 10개만 받고, 스크롤이 80% 를 넘으면 다음 페이지를 받아 이어 붙인다", async () => {
+  it("[REC-10-1 S2·S4] 처음엔 0페이지 10개만 받고, 스크롤이 80% 를 넘으면 다음 페이지를 받아 이어 붙인다", async () => {
     const { scroll } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
     expect(cardTitles()).toEqual(titles(SESSION_LIST.slice(0, 10)));
@@ -383,7 +403,7 @@ describe("세션 목록 — 무한 스크롤", () => {
     expect(screen.getByText(END)).toBeInTheDocument();
   });
 
-  it("마지막 페이지를 받은 뒤에는 스크롤해도 더 요청하지 않는다", async () => {
+  it("[REC-10-1 S4] 마지막 페이지를 받은 뒤에는 스크롤해도 더 요청하지 않는다", async () => {
     const { scroll } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
     scroll.toBottom();
@@ -411,7 +431,7 @@ describe("세션 목록 — 무한 스크롤", () => {
     expect(requests).toEqual([]); // 덮어쓴 응답만 썼고 다음 페이지는 요청하지 않았다
   });
 
-  it("끝 안내에 이어서 내 전체 세션 · 즐겨찾기 · 그룹 개수를 보여 준다 (REC-10-1)", async () => {
+  it("[REC-10-1 S6] 끝 안내에 이어서 내 전체 세션 · 즐겨찾기 · 그룹 개수를 보여 준다 (REC-10-1)", async () => {
     server.use(
       http.get(`${API}/sessions`, () =>
         ok({ sessions: SESSION_LIST.slice(0, 10), hasNext: false, totalCount: 42, favoriteCount: 7 }),
@@ -456,7 +476,7 @@ describe("세션 목록 — 무한 스크롤", () => {
     expect(requests).toEqual([q(0)]);
   });
 
-  it("다음 페이지를 받는 동안엔 계속 스크롤해도 한 번만 요청하고, 아래에 불러오는 중 안내가 보인다", async () => {
+  it("[REC-10-1 S4·R1] 다음 페이지를 받는 동안엔 계속 스크롤해도 한 번만 요청하고, 아래에 불러오는 중 안내가 보인다", async () => {
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
     let page1 = 0;
@@ -485,7 +505,7 @@ describe("세션 목록 — 무한 스크롤", () => {
     expect(requests).toEqual([q(0), q(1)]);
   });
 
-  it("다음 페이지를 못 불러오면 토스트를 띄우고, 다시 스크롤하면 다시 요청한다", async () => {
+  it("[REC-10-1 S5] 다음 페이지를 못 불러오면 토스트를 띄우고, 다시 스크롤하면 다시 요청한다", async () => {
     let failed = 0;
     server.use(
       http.get(`${API}/sessions`, ({ request }) => {
@@ -519,7 +539,7 @@ describe("세션 목록 — 무한 스크롤", () => {
     expect(requests).toEqual([q(0)]);
   });
 
-  it("첫 10개가 화면을 다 못 채우면 스크롤이 생길 때까지 다음 페이지를 이어서 받는다", async () => {
+  it("[REC-10-1 S3] 첫 10개가 화면을 다 못 채우면 스크롤이 생길 때까지 다음 페이지를 이어서 받는다", async () => {
     const view = renderPersonal(<SessionsView />);
     const body = view.container.querySelector<HTMLElement>(".body")!;
     // 보이는 높이가 카드 15장(1500px) 정도로 크면 → 20장까지 받아야 스크롤이 생긴다
@@ -534,7 +554,7 @@ describe("세션 목록 — 무한 스크롤", () => {
 });
 
 describe("세션 목록 — 즐겨찾기 보기", () => {
-  it("즐겨찾기를 켜면 favorite=true 로 0페이지부터 다시 받고, 버튼이 눌린 상태가 된다", async () => {
+  it("[REC-10-3 S1] 즐겨찾기를 켜면 favorite=true 로 0페이지부터 다시 받고, 버튼이 눌린 상태가 된다", async () => {
     const { user, scroll } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
 
@@ -561,7 +581,7 @@ describe("세션 목록 — 즐겨찾기 보기", () => {
     expect(requests).toEqual([q(0), q(1), q(0, true)]);
   });
 
-  it("즐겨찾기를 다시 끄면 전체 목록을 0페이지부터 다시 받는다", async () => {
+  it("[REC-10-3 S1] 즐겨찾기를 다시 끄면 전체 목록을 0페이지부터 다시 받는다", async () => {
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
     await user.click(favFilter());
@@ -573,7 +593,7 @@ describe("세션 목록 — 즐겨찾기 보기", () => {
     expect(requests).toEqual([q(0), q(0, true), q(0)]);
   });
 
-  it("즐겨찾기한 세션이 없으면 별을 눌러 보라고 안내한다", async () => {
+  it("[REC-10-3 S3] 즐겨찾기한 세션이 없으면 별을 눌러 보라고 안내한다", async () => {
     const none: SessionListItem[] = SESSION_LIST.map((s) => ({ ...s, isFavorite: false }));
     serveSessions(none);
     const { user } = renderSessions();
@@ -584,7 +604,7 @@ describe("세션 목록 — 즐겨찾기 보기", () => {
     expect(screen.getByText("세션 카드의 별을 눌러 즐겨찾기에 추가해보세요.")).toBeInTheDocument();
   });
 
-  it("즐겨찾기 보기에서 별을 끄면 카드가 빠지고, 다음 페이지로 당겨진 세션도 빠짐없이 받는다", async () => {
+  it("[REC-10-3 S2] [REC-10-1 S2] 즐겨찾기 보기에서 별을 끄면 카드가 빠지고, 다음 페이지로 당겨진 세션도 빠짐없이 받는다", async () => {
     // 서버 상태 — PATCH 를 반영한다
     let db = SESSION_LIST;
     requests = serveSessions(() => db);
@@ -613,6 +633,51 @@ describe("세션 목록 — 즐겨찾기 보기", () => {
     expect(requests).toEqual([q(0), q(0, true), q(0, true)]);
     expect(screen.getByText(END)).toBeInTheDocument();
   });
+
+  it("[REC-10-3 S2] 즐겨찾기 보기에서 별을 끈 저장이 실패하면 빠졌던 카드가 되살아난다", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    server.use(
+      http.patch(`${API}/sessions/:id`, async () => {
+        await gate;
+        return fail(500, SERVER_ERROR);
+      }),
+    );
+    const { user } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: ROME.title });
+    await user.click(favFilter());
+    await waitFor(() => expect(cardTitles()).toEqual(titles(FAVORITES.slice(0, 10))));
+
+    await user.click(starOf(ROME.title));
+    expect(screen.queryByRole("heading", { level: 3, name: ROME.title })).not.toBeInTheDocument();
+    release();
+
+    expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
+    await waitFor(() => expect(cardTitles()).toEqual(titles(FAVORITES.slice(0, 10))));
+    expect(isFilled(starOf(ROME.title))).toBe(true);
+  });
+
+  it("[REC-10-3 R1] 즐겨찾기로 바꾸기 전에 보낸 전체 목록 요청이 늦게 와도 새 목록에 섞이지 않는다", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    // 처음의 전체 0페이지만 잡아 뒀다가 serveSessions 로 넘긴다
+    server.use(
+      http.get(`${API}/sessions`, async ({ request }) => {
+        if (new URL(request.url).searchParams.get("favorite") !== "false") return;
+        await gate;
+      }),
+    );
+    const { user } = renderSessions();
+    await user.click(favFilter());
+    await waitFor(() => expect(cardTitles()).toEqual(titles(FAVORITES.slice(0, 10))));
+
+    release();
+    await waitFor(() => expect(requests).toEqual([q(0, true), q(0)]));
+    // 늦게 온 전체 목록 응답은 버린다
+    await new Promise((r) => setTimeout(r, 30));
+    expect(cardTitles()).toEqual(titles(FAVORITES.slice(0, 10)));
+    expect(favFilter()).toHaveAttribute("aria-pressed", "true");
+  });
 });
 
 describe("세션 목록 — 해시태그(그룹) 보기 전환", () => {
@@ -621,7 +686,7 @@ describe("세션 목록 — 해시태그(그룹) 보기 전환", () => {
       Array.from(el.querySelectorAll(".chip"), (c) => c.textContent),
     );
 
-  it("해시태그를 누르면 그룹 보기로 바뀌고, 다시 누르면 목록으로 돌아온다", async () => {
+  it("[REC-10-2 S1] 해시태그를 누르면 그룹 보기로 바뀌고, 다시 누르면 목록으로 돌아온다", async () => {
     const { user } = renderSessions();
     await screen.findByRole("heading", { level: 3, name: ROME.title });
     const toggle = screen.getByRole("button", { name: "해시태그" });
@@ -686,7 +751,7 @@ describe("분석 중 세션 자동 새로고침 (QA-015)", () => {
     vi.useRealTimers();
   });
 
-  it("분석 중 세션이 있으면 5초마다 다시 받아, 분석이 끝나면 카드가 완료 상태로 바뀐다", async () => {
+  it("[X-SES-05 S1·R2] 분석 중 세션이 있으면 5초마다 다시 받아, 분석이 끝나면 카드가 완료 상태로 바뀐다", async () => {
     let list = [analyzing];
     const requests = serveSessions(() => list);
     renderSessions();
@@ -709,7 +774,7 @@ describe("분석 중 세션 자동 새로고침 (QA-015)", () => {
     expect(requests).toHaveLength(after);
   });
 
-  it("그사이 새로 등록된 세션은 목록 맨 앞에 붙는다", async () => {
+  it("[X-SES-05 S2] 그사이 새로 등록된 세션은 목록 맨 앞에 붙는다", async () => {
     const newcomer: SessionListItem = { ...analyzing, id: 9302, title: "방금 끝난 세션", status: "READY" };
     let list = [analyzing];
     serveSessions(() => list);
@@ -722,11 +787,43 @@ describe("분석 중 세션 자동 새로고침 (QA-015)", () => {
     expect(cardTitles().slice(0, 2)).toEqual([newcomer.title, analyzing.title]);
   });
 
-  it("완료된 세션만 있으면 다시 받지 않는다", async () => {
+  it("[X-SES-05 R2] 완료된 세션만 있으면 다시 받지 않는다", async () => {
     const requests = serveSessions([done]);
     renderSessions();
     await screen.findByRole("heading", { level: 3, name: done.title });
     await vi.advanceTimersByTimeAsync(15000);
     expect(requests).toHaveLength(1);
+  });
+
+  it("[X-SES-05 S3] 그룹 보기에서도 분석이 끝나면 해시태그 그룹을 다시 받는다", async () => {
+    let list = [analyzing];
+    serveSessions(() => list);
+    const { user } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: analyzing.title });
+    await user.click(screen.getByRole("button", { name: "해시태그" }));
+    expect(groupCalls).toBe(1);
+
+    list = [done];
+    await vi.advanceTimersByTimeAsync(5000);
+    // 화면 변화가 없어 waitFor 대신 vi.waitFor 로 기다린다
+    await vi.waitFor(() => expect(groupCalls).toBe(2));
+  });
+
+  it("[X-SES-05 R1] 브라우저 탭이 숨겨져 있으면 5초가 지나도 요청하지 않는다", async () => {
+    const requests = serveSessions([analyzing]);
+    renderSessions();
+    await screen.findByRole("heading", { level: 3, name: analyzing.title });
+
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    try {
+      await vi.advanceTimersByTimeAsync(15000);
+      expect(requests).toHaveLength(1);
+    } finally {
+      delete (document as { hidden?: boolean }).hidden;
+    }
+
+    // 다시 보이면 다음 주기에 요청한다
+    await vi.advanceTimersByTimeAsync(5000);
+    await vi.waitFor(() => expect(requests).toHaveLength(2));
   });
 });

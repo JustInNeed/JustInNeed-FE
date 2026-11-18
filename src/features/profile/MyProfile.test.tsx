@@ -42,7 +42,7 @@ const pinRow = (id: number) => screen.getByText(titleOf(id)).closest("label")!;
 const pinTitles = () => [...document.querySelectorAll(".pinTitle")].map((el) => el.textContent);
 
 describe("내 프로필 — 불러오기", () => {
-  it("서버 값으로 통계 · 해시태그 · 카드 · 세션을 그린다", async () => {
+  it("[X-PRF-02 S1] 서버 값으로 통계 · 해시태그 · 카드 · 세션을 그린다", async () => {
     const fake = serveMyProfile();
     const { user } = renderPersonal(<MyProfile />);
 
@@ -58,7 +58,7 @@ describe("내 프로필 — 불러오기", () => {
     expect(fake.sessionQueries).toEqual(["?page=0&size=12&publicOnly=false"]);
   });
 
-  it("핀 표시는 고정한 카드에만, 비공개 표시는 비공개 카드 · 세션에만 붙는다", async () => {
+  it("[X-PRF-03 S2] [COM-1-6 S1] 핀 표시는 고정한 카드에만, 비공개 표시는 비공개 카드 · 세션에만 붙는다", async () => {
     serveMyProfile();
     const { user } = renderPersonal(<MyProfile />);
     await screen.findByText("고정한 카드");
@@ -115,7 +115,14 @@ describe("내 프로필 — 불러오기", () => {
     ]);
   });
 
-  it("프로필을 못 받으면 오류가 보이고 다시 시도로 받는다", async () => {
+  it("[X-PRF-01 S2] 닉네임이 없으면 이름 자리에 '이름 없는 사용자' 가 보인다", async () => {
+    serveMyProfile({ profile: { ...API_MY_PROFILE, nickname: null } });
+    renderPersonal(<MyProfile />, { member: { ...MEMBER, nickname: null } });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "이름 없는 사용자" })).toBeInTheDocument();
+  });
+
+  it("[X-PRF-01 S3] 프로필을 못 받으면 오류가 보이고 다시 시도로 받는다", async () => {
     serveMyProfile();
     server.use(http.get(`${ME}/profile`, () => fail(500, SERVER_ERROR)));
     const { user } = renderPersonal(<MyProfile />);
@@ -173,7 +180,7 @@ describe("내 프로필 — 불러오기", () => {
     expect(sessionTitles()).toEqual(MY_SESSIONS.slice(3, 6).map((s) => s.title));
   });
 
-  it("아무것도 없는 프로필은 각 탭 빈 상태와 수정 화면의 공개 세션 안내를 보여준다", async () => {
+  it("[COM-1-6 S6] [COM-1-3@2 S3] [COM-1-7 S1] 아무것도 없는 프로필은 각 탭 빈 상태와 수정 화면의 공개 세션 안내를 보여준다", async () => {
     const empty = {
       ...API_MY_PROFILE,
       bio: null,
@@ -203,7 +210,7 @@ describe("내 프로필 — 불러오기", () => {
     expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
   });
 
-  it("카드 팝업은 내 주소에서 관련 세션과 전체 마인드맵을 받는다", async () => {
+  it("[X-PRF-03 S4] 카드 팝업은 내 주소에서 관련 세션과 전체 마인드맵을 받는다", async () => {
     vi.spyOn(window, "requestAnimationFrame").mockReturnValue(0);
     serveMyProfile({ cards: MY_CARDS });
     const { user } = renderPersonal(<MyProfile />);
@@ -219,7 +226,7 @@ describe("내 프로필 — 불러오기", () => {
 });
 
 describe("프로필 수정 — 핀고정 후보", () => {
-  it("공개 세션만 후보로 받고 비공개 세션은 보이지 않는다", async () => {
+  it("[COM-1-3@2 S1] 공개 세션만 후보로 받고 비공개 세션은 보이지 않는다", async () => {
     const fake = serveMyProfile();
     const { user } = renderPersonal(<MyProfile />);
 
@@ -231,7 +238,7 @@ describe("프로필 수정 — 핀고정 후보", () => {
     expect(fake.sessionQueries.filter((q) => PUBLIC_ONLY.test(q))).toEqual(["?page=0&size=12&publicOnly=true"]);
   });
 
-  it("고정 행은 프로필 응답에서 바로 보이고 후보는 그 카드의 더 보기로 이어 받는다", async () => {
+  it("[COM-1-3@2 S1] 고정 행은 프로필 응답에서 바로 보이고 후보는 그 카드의 더 보기로 이어 받는다", async () => {
     const onlyPublic = MY_SESSIONS.filter((s) => s.isPublic);
     const extra = [{ ...onlyPublic[4], id: 9100, title: "더 받은 공개 세션" }];
     serveMyProfile({ sessions: [...onlyPublic, ...extra], perPage: 4 });
@@ -263,7 +270,7 @@ describe("프로필 수정 — 핀고정 후보", () => {
     expect(fake.puts).toEqual([]);
   });
 
-  it("아직 안 받은 후보 페이지의 고정 세션을 풀어도 목록에 남아 다시 고정할 수 있다", async () => {
+  it("[COM-1-4 S1] 아직 안 받은 후보 페이지의 고정 세션을 풀어도 목록에 남아 다시 고정할 수 있다", async () => {
     // 후보 첫 페이지엔 없는 고정 세션 — 프로필 응답에만 있다
     const pinned = { ...MY_SESSIONS[0], id: 9200, title: "뒤 페이지의 고정 세션" };
     serveMyProfile({ profile: { ...API_MY_PROFILE, pinnedSessions: [pinned] }, sessions: MY_SESSIONS.slice(4, 5) });
@@ -282,7 +289,7 @@ describe("프로필 수정 — 핀고정 후보", () => {
 });
 
 describe("프로필 저장", () => {
-  it("정해진 모양의 PUT 본문 하나만 보낸다 — 끈 태그 id · 고정 순서 포함", async () => {
+  it("[COM-1-1 S2] [COM-1-2 S2] [COM-1-5 S2] 정해진 모양의 PUT 본문 하나만 보낸다 — 끈 태그 id · 고정 순서 포함", async () => {
     const fake = serveMyProfile();
     const { user } = renderPersonal(<MyProfile />);
     await (await openEdit(user)).findByText(titleOf(9004));
@@ -333,7 +340,7 @@ describe("프로필 저장", () => {
     );
   });
 
-  it("저장하면 입력값이 아니라 다시 받은 서버 값을 보여주고 카드 · 세션도 새로 받는다", async () => {
+  it("[X-PRF-06 S1] 저장하면 입력값이 아니라 다시 받은 서버 값을 보여주고 카드 · 세션도 새로 받는다", async () => {
     const fake = serveMyProfile();
     const { user } = renderPersonal(<MyProfile />);
     await screen.findByText("고정한 카드");
@@ -374,7 +381,7 @@ describe("프로필 저장", () => {
     expect(fake.puts).toHaveLength(1);
   });
 
-  it("저장 중에는 저장 · 취소가 잠기고 다시 눌러도 요청은 하나다", async () => {
+  it("[X-PRF-06 S1] 저장 중에는 저장 · 취소가 잠기고 다시 눌러도 요청은 하나다", async () => {
     let release!: () => void;
     let calls = 0;
     serveMyProfile();
@@ -401,7 +408,7 @@ describe("프로필 저장", () => {
     expect(calls).toBe(1);
   });
 
-  it("거절되면 서버 메시지를 토스트로 알리고 수정 화면과 입력값이 그대로 남아 다시 저장할 수 있다", async () => {
+  it("[X-PRF-06 S2] 거절되면 서버 메시지를 토스트로 알리고 수정 화면과 입력값이 그대로 남아 다시 저장할 수 있다", async () => {
     serveMyProfile();
     const { user } = renderPersonal(<MyProfile />);
     await (await openEdit(user)).findByText(titleOf(9004));
@@ -469,7 +476,7 @@ describe("프로필 저장", () => {
       return bodies;
     };
 
-    it("닉네임을 먼저 저장하고 그다음 프로필을 저장한다", async () => {
+    it("[MEM-4 S6] [X-PRF-06 S1] [X-PRF-01 R1] 닉네임을 먼저 저장하고 그다음 프로필을 저장한다", async () => {
       const order: string[] = [];
       const fake = serveMyProfile();
       server.use(

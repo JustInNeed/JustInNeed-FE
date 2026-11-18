@@ -84,7 +84,7 @@ describe("내 프로필", () => {
   const cardOf = (title: string) => screen.getByText(title).closest<HTMLElement>('[role="button"]')!;
   const sessionCardOf = (id: number) => screen.getByRole("heading", { level: 3, name: titleOf(id) }).closest<HTMLElement>('[role="button"]')!;
 
-  it("이름 · 핸들은 프로필 데이터가 아니라 로그인 회원 닉네임으로 보이고 소개 · 통계가 보인다", () => {
+  it("[X-PRF-01 S1] [X-PRF-02 S1·S2] 이름 · 핸들은 프로필 데이터가 아니라 로그인 회원 닉네임으로 보이고 소개 · 통계가 보인다", () => {
     renderMine();
 
     expect(screen.getByRole("heading", { level: 1, name: "yesong" })).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe("내 프로필", () => {
     expect(screen.queryByText("나도 탐색중")).not.toBeInTheDocument();
   });
 
-  it("자주 쓴 해시태그는 노드 수와 함께, 관심 해시태그는 그 뒤에 보인다", () => {
+  it("[COM-3-3 S1] [COM-3-4 S1] [COM-4-4 S5] 자주 쓴 해시태그는 노드 수와 함께, 관심 해시태그는 그 뒤에 보인다", () => {
     renderMine();
     const row = within(tagRow());
 
@@ -112,7 +112,7 @@ describe("내 프로필", () => {
     expect(row.queryAllByRole("button")).toHaveLength(0);
   });
 
-  it("비공개 해시태그는 내 프로필에서만 잠금 아이콘과 함께 흐리게 보인다", () => {
+  it("[COM-3-3 S1] [COM-1-2 S3] 비공개 해시태그는 내 프로필에서만 잠금 아이콘과 함께 흐리게 보인다", () => {
     renderMine();
     const row = within(tagRow());
 
@@ -142,7 +142,7 @@ describe("내 프로필", () => {
     expect(within(screen.getByText("로마 3박 4일 동선").parentElement!).queryByText("# 먹거리")).not.toBeInTheDocument();
   });
 
-  it("핀 표시는 고정한 카드에만, 비공개 표시는 비공개 카드에만 보인다", () => {
+  it("[X-PRF-03 S2] 핀 표시는 고정한 카드에만, 비공개 표시는 비공개 카드에만 보인다", () => {
     renderMine();
 
     expect(screen.getAllByTitle("핀고정됨")).toHaveLength(2);
@@ -155,7 +155,7 @@ describe("내 프로필", () => {
     expect(mark).toHaveAttribute("title", "비공개 · 나만 보여요");
   });
 
-  it("세션 탭은 받은 내 세션을 공개 · 비공개 모두 응답 순서대로 보여주고 수를 붙이지 않는다", async () => {
+  it("[COM-1-6 S1] 세션 탭은 받은 내 세션을 공개 · 비공개 모두 응답 순서대로 보여주고 수를 붙이지 않는다", async () => {
     const { user } = renderMine();
 
     await user.click(screen.getByRole("button", { name: "세션" }));
@@ -164,7 +164,7 @@ describe("내 프로필", () => {
     expect(sessionCardTitles()).toEqual(MY_SESSIONS.map((s) => s.title));
   });
 
-  it("세션 카드는 비공개면 비공개 표시, 고정했으면 핀 표시가 붙고 둘 다 아니면 없다", async () => {
+  it("[COM-1-6 S1] 세션 카드는 비공개면 비공개 표시, 고정했으면 핀 표시가 붙고 둘 다 아니면 없다", async () => {
     const { user } = renderMine();
 
     await user.click(screen.getByRole("button", { name: "세션" }));
@@ -178,7 +178,7 @@ describe("내 프로필", () => {
     expect(screen.getAllByText("비공개")).toHaveLength(2);
   });
 
-  it("세션 카드를 누르면 그 세션 상세로 이동한다", async () => {
+  it("[COM-1-6 S3] 세션 카드를 누르면 그 세션 상세로 이동한다", async () => {
     const { user } = renderMine();
 
     await user.click(screen.getByRole("button", { name: "세션" }));
@@ -187,7 +187,7 @@ describe("내 프로필", () => {
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9003");
   });
 
-  it("세션이 없으면 세션 탭에 빈 상태가 보이고 핀고정 안내는 없다", async () => {
+  it("[COM-1-6 S6] 세션이 없으면 세션 탭에 빈 상태가 보이고 핀고정 안내는 없다", async () => {
     const { user } = renderMine(MY_PROFILE_PAGE, sessionsSection({ sessions: [] }));
 
     await user.click(screen.getByRole("button", { name: "세션" }));
@@ -235,7 +235,7 @@ describe("내 프로필", () => {
     expect(screen.getByRole("status")).toHaveTextContent("아직 마인드맵이 없어요.");
   });
 
-  it("마인드맵 카드를 누르면 내가 작성자인 상세 팝업이 관련 세션과 함께 뜬다", async () => {
+  it("[X-PRF-03 S4] 마인드맵 카드를 누르면 내가 작성자인 상세 팝업이 관련 세션과 함께 뜬다", async () => {
     serveMyDetail();
     const { user } = renderMine();
 
@@ -307,14 +307,39 @@ describe("내 프로필", () => {
     expect(await screen.findByRole("dialog", { name: "yesong님의 전체 마인드맵" })).toBeInTheDocument();
   });
 
-  it("프로필 수정 옆에 설정 버튼은 없다", () => {
+  it("[COM-3-4 S1] 관심 해시태그 칩은 '#' 이 붙어 자주 쓴 해시태그 칩들 뒤에 이어진다", () => {
+    renderMine();
+
+    const chips = [...tagRow().children].map((el) => ({
+      text: el.textContent!.replace(/\d+$/, ""),
+      interest: el.classList.contains("interest"),
+    }));
+    const firstInterest = chips.findIndex((c) => c.interest);
+    expect(chips.slice(0, firstInterest).map((c) => c.text)).toEqual(MY_PROFILE.topTags.map((t) => t.tag));
+    expect(chips.slice(firstInterest).map((c) => c.text)).toEqual(MY_PROFILE.interests);
+    expect(chips.slice(firstInterest).every((c) => c.interest && c.text.startsWith("#"))).toBe(true);
+  });
+
+  it("[X-PRF-03 S3] [COM-4-2@2 R1] 내 카드는 좋아요 · 북마크 버튼 대신 숫자만 보이고 나도 탐색 버튼이 없다", () => {
+    renderMine();
+
+    const card = cardOf("로마 3박 4일 동선");
+    const mine = MY_MINDMAPS.find((m) => m.title === "로마 3박 4일 동선")!;
+    expect(within(card).getByText(`♡ ${mine.likes}`)).toBeInTheDocument();
+    expect(within(card).getByText(`◇ ${mine.bookmarks}`)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "마인드맵 좋아요" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "마인드맵 북마크" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /나도 탐색|탐색중/ })).not.toBeInTheDocument();
+  });
+
+  it("[X-PRF-04 S1] 프로필 수정 옆에 설정 버튼은 없다", () => {
     renderMine();
 
     expect(screen.getByRole("button", { name: "프로필 수정" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "설정" })).not.toBeInTheDocument();
   });
 
-  it("프로필 수정을 누르면 수정 화면으로 바뀐다", async () => {
+  it("[X-PRF-04 S1] 프로필 수정을 누르면 수정 화면으로 바뀐다", async () => {
     server.use(http.get(`${API}/community/me/sessions`, () => ok({ sessions: [], hasNext: false })));
     const { user } = renderMine();
 
@@ -332,7 +357,7 @@ describe("다른 사용자 프로필", () => {
   const otherTitle = (id: number) => OTHER_SESSIONS.find((s) => s.id === id)!.title;
   const cardOf = (title: string) => screen.getByText(title).closest<HTMLElement>('[role="button"]')!;
 
-  it("그 사람의 이름 · 핸들 · 소개와 좋아요 · 팔로우 버튼이 보이고 프로필 수정은 없다", () => {
+  it("[X-PRF-04 S2·R1] 그 사람의 이름 · 핸들 · 소개와 좋아요 · 팔로우 버튼이 보이고 프로필 수정은 없다", () => {
     renderOther();
 
     expect(screen.getByRole("heading", { level: 1, name: "wanderlust" })).toBeInTheDocument();
@@ -343,7 +368,7 @@ describe("다른 사용자 프로필", () => {
     expect(screen.queryByRole("button", { name: "프로필 수정" })).not.toBeInTheDocument();
   });
 
-  it("노드 수 · 공개 세션 수 · 나도 탐색중 수가 함께 보인다", () => {
+  it("[X-OPRF-01 S4] 노드 수 · 공개 세션 수 · 나도 탐색중 수가 함께 보인다", () => {
     renderOther();
 
     expect(stat("노드")).toBe("142");
@@ -370,7 +395,7 @@ describe("다른 사용자 프로필", () => {
     const serveFollow = () =>
       servePatch<{ following: boolean }>("/community/profiles/7/follow", ({ following }) => ok({ following }));
 
-    it("처음 상태는 응답의 내 좋아요 · 팔로우를 따르고 좋아요 수를 또 더하지 않는다", () => {
+    it("[X-OPRF-03 S1] 처음 상태는 응답의 내 좋아요 · 팔로우를 따르고 좋아요 수를 또 더하지 않는다", () => {
       renderOther({ ...OTHER_PROFILE_PAGE, likedByMe: true, following: true });
 
       expect(screen.getByRole("button", { name: "좋아요" })).toHaveClass("active");
@@ -378,7 +403,7 @@ describe("다른 사용자 프로필", () => {
       expect(stat("좋아요")).toBe("284");
     });
 
-    it("좋아요를 누르면 바로 바뀌고 서버가 준 수로 맞춘다", async () => {
+    it("[COM-4-1 S1] 좋아요를 누르면 바로 바뀌고 서버가 준 수로 맞춘다", async () => {
       const bodies = serveLike(300);
       const { user } = renderOther();
       const like = screen.getByRole("button", { name: "좋아요" });
@@ -390,7 +415,7 @@ describe("다른 사용자 프로필", () => {
       expect(bodies).toEqual([{ liked: true }]);
     });
 
-    it("좋아요를 취소하면 liked false 를 보낸다", async () => {
+    it("[COM-4-1 S2] 좋아요를 취소하면 liked false 를 보낸다", async () => {
       const bodies = serveLike(283);
       const { user } = renderOther({ ...OTHER_PROFILE_PAGE, likedByMe: true });
 
@@ -401,7 +426,7 @@ describe("다른 사용자 프로필", () => {
       expect(bodies).toEqual([{ liked: false }]);
     });
 
-    it("좋아요가 실패하면 되돌리고 서버 메시지를 토스트로 보여준다", async () => {
+    it("[COM-4-1 S3] 좋아요가 실패하면 되돌리고 서버 메시지를 토스트로 보여준다", async () => {
       server.use(http.patch(`${API}/community/profiles/7/like`, () => fail(500, SERVER_ERROR)));
       const { user } = renderOther();
       const like = screen.getByRole("button", { name: "좋아요" });
@@ -413,7 +438,7 @@ describe("다른 사용자 프로필", () => {
       expect(like).not.toHaveClass("active");
     });
 
-    it("응답을 기다리는 동안 다시 눌러도 요청은 하나만 간다", async () => {
+    it("[COM-4-1 R2] 응답을 기다리는 동안 다시 눌러도 요청은 하나만 간다", async () => {
       let release = () => {};
       const gate = new Promise<void>((resolve) => (release = resolve));
       let calls = 0;
@@ -436,7 +461,22 @@ describe("다른 사용자 프로필", () => {
       expect(calls).toBe(1);
     });
 
-    it("팔로우를 누르면 following 을 보내고 팔로잉으로 바뀐다", async () => {
+    it("[X-OPRF-03 S1] 팔로우 전에는 primary '팔로우', 팔로우하면 secondary '팔로잉' 버튼이다", async () => {
+      serveFollow();
+      const { user } = renderOther();
+      expect(screen.getByRole("button", { name: "팔로우" })).toHaveClass("primary");
+
+      await user.click(screen.getByRole("button", { name: "팔로우" }));
+
+      const following = await screen.findByRole("button", { name: "팔로잉" });
+      expect(following).toHaveClass("secondary");
+      expect(following).not.toHaveClass("primary");
+    });
+
+    // 요구사항과 다름: 네트워크 오류도 ApiError("서버에 연결할 수 없습니다…")로 와서 대체 문구가 보이지 않는다
+    it.todo("팔로우가 네트워크 오류로 실패하면 되돌리고 '팔로우를 바꾸지 못했어요. 다시 시도해 주세요.' 를 보여준다");
+
+    it("[X-OPRF-03 S1] 팔로우를 누르면 following 을 보내고 팔로잉으로 바뀐다", async () => {
       const bodies = serveFollow();
       const { user } = renderOther();
 
@@ -460,7 +500,7 @@ describe("다른 사용자 프로필", () => {
       const TITLE = "동유럽 3주 살이 전체 동선";
       const CARD_ID = OTHER_MINDMAPS[0].id;
 
-      it("좋아요를 누르면 서버 값으로 맞추고 상세 팝업은 열리지 않는다", async () => {
+      it("[X-OPRF-02 S3] 좋아요를 누르면 서버 값으로 맞추고 상세 팝업은 열리지 않는다", async () => {
         const bodies = servePatch<{ liked: boolean }>(`/community/mindmaps/${CARD_ID}/like`, () => ok({ likeCount: 290, likedByMe: true }));
         const { user } = renderOther();
         const like = within(cardOf(TITLE)).getByRole("button", { name: "마인드맵 좋아요" });
@@ -473,7 +513,7 @@ describe("다른 사용자 프로필", () => {
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       });
 
-      it("북마크를 누르면 저장 표시로 바뀌고, 저장된 카드는 해제를 보낸다", async () => {
+      it("[X-OPRF-02 S3] 북마크를 누르면 저장 표시로 바뀌고, 저장된 카드는 해제를 보낸다", async () => {
         const bodies = servePatch<{ bookmarked: boolean }>(`/community/mindmaps/${CARD_ID}/bookmark`, ({ bookmarked }) =>
           ok({ bookmarkCount: bookmarked ? 92 : 91, bookmarkId: bookmarked ? 5 : null }),
         );
@@ -488,7 +528,7 @@ describe("다른 사용자 프로필", () => {
         expect(bodies).toEqual([{ bookmarked: true }, { bookmarked: false }]);
       });
 
-      it("나도 탐색을 누르면 그 카드만 바뀌고 프로필의 나도 탐색중 수도 함께 움직인다", async () => {
+      it("[COM-4-2@2 S1] 나도 탐색을 누르면 그 카드만 바뀌고 프로필의 나도 탐색중 수도 함께 움직인다", async () => {
         const bodies = servePatch<{ exploring: boolean }>(`/community/mindmaps/${CARD_ID}/exploring`, ({ exploring }) =>
           ok({ exploringCount: exploring ? 1 : 0, exploringByMe: exploring }),
         );
@@ -507,7 +547,7 @@ describe("다른 사용자 프로필", () => {
       it.each([
         ["좋아요", "like", "마인드맵 좋아요", "♡ 284"],
         ["북마크", "bookmark", "마인드맵 북마크", "◇ 91"],
-      ])("%s 가 실패하면 되돌리고 토스트를 보여준다", async (_, path, name, text) => {
+      ])("[X-OPRF-02 S3] %s 가 실패하면 되돌리고 토스트를 보여준다", async (_, path, name, text) => {
         server.use(http.patch(`${API}/community/mindmaps/${CARD_ID}/${path}`, () => fail(500, SERVER_ERROR)));
         const { user } = renderOther();
         const button = within(cardOf(TITLE)).getByRole("button", { name });
@@ -529,6 +569,24 @@ describe("다른 사용자 프로필", () => {
         expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
         expect(within(card).getByRole("button", { name: "+ 나도 탐색" })).toBeInTheDocument();
         expect(stat("나도 탐색중")).toBe("12");
+      });
+
+      // 요구사항과 다름: 네트워크 오류도 ApiError 로 와서 대체 문구 대신 "서버에 연결할 수 없습니다…" 가 보인다
+      it.todo("나도 탐색이 네트워크 오류로 실패하면 되돌리고 '나도 탐색을 바꾸지 못했어요. 다시 시도해 주세요.' 를 보여준다");
+
+      it("[COM-4-2@2 S2] 탐색중인 카드를 다시 누르면 해제되고 카드 수 · 프로필 나도 탐색중 수가 함께 1 줄어든다", async () => {
+        const exploring = { ...OTHER_MINDMAPS[0], exploringByMe: true, exploring: 5 };
+        const bodies = servePatch<{ exploring: boolean }>(`/community/mindmaps/${CARD_ID}/exploring`, () =>
+          ok({ exploringCount: 4, exploringByMe: false }),
+        );
+        const { user } = renderOther({ ...OTHER_PROFILE_PAGE, mindmaps: [exploring] });
+        const card = cardOf(TITLE);
+
+        await user.click(within(card).getByRole("button", { name: "✓ 탐색중" }));
+
+        expect(await within(card).findByRole("button", { name: "+ 나도 탐색" })).not.toHaveClass("exploreBtnOn");
+        expect(stat("나도 탐색중")).toBe("11");
+        await waitFor(() => expect(bodies).toEqual([{ exploring: false }]));
       });
 
       it("상세 팝업의 좋아요 수는 카드에서 바뀐 값을 따른다", async () => {
@@ -553,7 +611,7 @@ describe("다른 사용자 프로필", () => {
     });
   });
 
-  it("마인드맵 카드가 모두 보이고 핀 표시는 고정한 카드에만 있다", () => {
+  it("[X-OPRF-02 S1] 마인드맵 카드가 모두 보이고 핀 표시는 고정한 카드에만 있다", () => {
     renderOther();
 
     for (const m of OTHER_MINDMAPS) expect(screen.getByText(m.title)).toBeInTheDocument();
@@ -562,7 +620,7 @@ describe("다른 사용자 프로필", () => {
     expect(screen.getAllByRole("button", { name: "+ 나도 탐색" })).toHaveLength(OTHER_MINDMAPS.length);
   });
 
-  it("세션 카드는 고정한 세션에만 핀 표시가 있고 비공개 표시는 없다", async () => {
+  it("[COM-1-6 S2·R1] 세션 카드는 고정한 세션에만 핀 표시가 있고 비공개 표시는 없다", async () => {
     const { user } = renderOther();
 
     await user.click(screen.getByRole("button", { name: "세션 (4)" }));
@@ -572,7 +630,7 @@ describe("다른 사용자 프로필", () => {
     expect(screen.queryByText("비공개")).not.toBeInTheDocument();
   });
 
-  it("카드를 누르면 이 사람이 작성자인 상세 팝업이 뜨고 크게 보기에서 그 사람의 전체 마인드맵을 본다", async () => {
+  it("[X-OPRF-02 S2] 카드를 누르면 이 사람이 작성자인 상세 팝업이 뜨고 크게 보기에서 그 사람의 전체 마인드맵을 본다", async () => {
     const { user } = renderOther();
 
     await user.click(screen.getByText("동유럽 3주 살이 전체 동선"));
@@ -583,6 +641,16 @@ describe("다른 사용자 프로필", () => {
     await user.click(within(dialog).getByRole("button", { name: "마인드맵 크게 보기" }));
     const full = await screen.findByRole("dialog", { name: "wanderlust님의 전체 마인드맵" });
     expect(within(full).getByText(`노드 ${API_MINDMAP.hashtags.length + API_MINDMAP.nodes.length}개`)).toBeInTheDocument();
+  });
+
+  it("[X-OPRF-02 S2] 상세 팝업에서 작성자 이름을 누르면 이미 그 사람 프로필이라 팝업만 닫힌다", async () => {
+    const { user } = renderOther();
+
+    await user.click(screen.getByText("동유럽 3주 살이 전체 동선"));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "🌿 wanderlust" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
   it("관련 세션은 팝업을 열 때 받고, 같은 카드를 다시 열면 또 받지 않는다", async () => {
@@ -671,7 +739,7 @@ describe("다른 사용자 프로필", () => {
     expect(calls).toBe(2);
   });
 
-  it("공개 세션은 응답 순서대로 보이고 카드를 누르면 세션 상세로 이동한다", async () => {
+  it("[COM-1-6 S2·S3] 공개 세션은 응답 순서대로 보이고 카드를 누르면 세션 상세로 이동한다", async () => {
     const { user } = renderOther();
 
     await user.click(screen.getByRole("button", { name: "세션 (4)" }));
@@ -681,7 +749,7 @@ describe("다른 사용자 프로필", () => {
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9107");
   });
 
-  it("공유한 마인드맵 · 세션이 없으면 빈 상태가 보이고 핀고정 안내는 없다", async () => {
+  it("[X-OPRF-02 S1] [COM-1-6 S6] 공유한 마인드맵 · 세션이 없으면 빈 상태가 보이고 핀고정 안내는 없다", async () => {
     const { user } = renderOther({ ...OTHER_PROFILE_PAGE, mindmaps: [], sharedSessionCount: 0 }, sessionsSection({ sessions: [] }));
 
     expect(screen.getByRole("status")).toHaveTextContent("공유한 마인드맵이 없어요.");
@@ -696,7 +764,7 @@ describe("다른 사용자 프로필", () => {
       await user.click(screen.getByRole("button", { name: /^# 비엔나\s?28$/ }));
     };
 
-    it("해시태그를 고르면 N개 선택 바가 뜨고 같은 태그를 다시 누르면 선택이 풀린다", async () => {
+    it("[COM-4-4 S1] 해시태그를 고르면 N개 선택 바가 뜨고 같은 태그를 다시 누르면 선택이 풀린다", async () => {
       const { user } = renderOther();
       expect(screen.queryByText(/개 선택$/)).not.toBeInTheDocument();
 
@@ -750,7 +818,7 @@ describe("다른 사용자 프로필", () => {
         expect(within(tagRow()).queryAllByRole("button", { pressed: true })).toHaveLength(0);
       };
 
-      it("미니 마인드맵은 이름을 묻지 않고 바로 저장하고 선택을 푼다", async () => {
+      it("[COM-4-4 S3] 미니 마인드맵은 이름을 묻지 않고 바로 저장하고 선택을 푼다", async () => {
         serveTags();
         serveSave();
         const sent = spyFetch();
@@ -768,7 +836,7 @@ describe("다른 사용자 프로필", () => {
         expectCleared();
       });
 
-      it("해시태그 묶음은 이름 입력이 뜨고, 저장을 누르기 전엔 요청이 나가지 않는다", async () => {
+      it("[COM-4-3@3 S1] 해시태그 묶음은 이름 입력이 뜨고, 저장을 누르기 전엔 요청이 나가지 않는다", async () => {
         const sent = spyFetch();
         const { user } = renderOther();
         await pick(user);
@@ -781,7 +849,20 @@ describe("다른 사용자 프로필", () => {
         expect(sent.count()).toBe(0);
       });
 
-      it("Enter 를 누르면 앞뒤 공백을 뺀 이름으로 묶음을 저장한다", async () => {
+      it("[COM-4-3@3 S1] 이름 입력에는 '묶음 이름 (선택)' 안내 · 태그로 표시된다는 설명 · 취소 / 저장 버튼이 있다", async () => {
+        const { user } = renderOther();
+        await pick(user);
+
+        const input = await openNameForm(user);
+
+        expect(input).toHaveAttribute("placeholder", "묶음 이름 (선택)");
+        const form = within(screen.getByRole("group", { name: "묶음 이름 입력" }));
+        expect(form.getByText("비워 두면 태그로 표시돼요")).toBeInTheDocument();
+        expect(form.getByRole("button", { name: "취소" })).toBeInTheDocument();
+        expect(form.getByRole("button", { name: "저장" })).toBeInTheDocument();
+      });
+
+      it("[COM-4-3@3 S1·S2] [COM-4-4 S2] Enter 를 누르면 앞뒤 공백을 뺀 이름으로 묶음을 저장한다", async () => {
         serveTags();
         serveSave();
         const sent = spyFetch();
@@ -816,7 +897,7 @@ describe("다른 사용자 프로필", () => {
         expect(sent.posted()).toEqual([{ targetType: "HASHTAG", targetIds: [14, 12], saveType: "HASHTAG_BUNDLE", sourceMindmapId: 7 }]);
       });
 
-      it("한글 조합을 끝내는 Enter 로는 저장하지 않는다", async () => {
+      it("[COM-4-3@3 S1] 한글 조합을 끝내는 Enter 로는 저장하지 않는다", async () => {
         const sent = spyFetch();
         const { user } = renderOther();
         await pick(user);
@@ -846,7 +927,7 @@ describe("다른 사용자 프로필", () => {
         expect(await openNameForm(user)).toHaveValue("");
       });
 
-      it("저장 중에 다시 눌러도 요청은 하나만 가고, 응답을 기다리는 동안 닫거나 선택을 바꿀 수 없다", async () => {
+      it("[COM-4-4 R1] 저장 중에 다시 눌러도 요청은 하나만 가고, 응답을 기다리는 동안 닫거나 선택을 바꿀 수 없다", async () => {
         let release = () => {};
         const gate = new Promise<void>((resolve) => (release = resolve));
         serveTags();
@@ -926,7 +1007,7 @@ describe("다른 사용자 프로필", () => {
         expect(screen.getByText("2개 선택")).toBeInTheDocument();
       });
 
-      it("id 가 없는 태그가 섞이면 일부만 저장하지 않고 그 태그를 알려준다", async () => {
+      it("[COM-4-3@3 R3] [COM-4-4 S4] id 가 없는 태그가 섞이면 일부만 저장하지 않고 그 태그를 알려준다", async () => {
         serveTags(TAGS.filter((t) => t.name !== "카페투어"));
         const sent = spyFetch();
         const { user } = renderOther();
@@ -955,7 +1036,7 @@ describe("다른 사용자 프로필", () => {
       });
     });
 
-    it("× 를 누르면 고른 해시태그가 모두 풀린다", async () => {
+    it("[COM-4-4 S1] × 를 누르면 고른 해시태그가 모두 풀린다", async () => {
       const { user } = renderOther();
       await pick(user);
 
@@ -983,7 +1064,7 @@ describe("다른 사용자 프로필", () => {
 });
 
 describe("프로필을 불러오는 중 · 실패 · 없음", () => {
-  it("없는 프로필이면 찾을 수 없다는 안내와 커뮤니티로 가는 버튼이 보인다", async () => {
+  it("[X-OPRF-01 S1·S2] 없는 프로필이면 찾을 수 없다는 안내와 커뮤니티로 가는 버튼이 보인다", async () => {
     const { user } = renderPersonal(<ProfileView notFound data={null} />);
 
     expect(screen.getByRole("status")).toHaveTextContent("프로필을 찾을 수 없어요");
@@ -991,6 +1072,15 @@ describe("프로필을 불러오는 중 · 실패 · 없음", () => {
 
     await user.click(screen.getByRole("button", { name: "커뮤니티로" }));
     expect(mockRouter.push).toHaveBeenCalledWith("/community");
+  });
+
+  it("[X-OPRF-01 S1·S2] 없는 프로필 안내에는 '탈퇴했거나 주소가 잘못됐어요.' 설명이 함께 보인다", () => {
+    renderPersonal(<ProfileView notFound data={null} />);
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("프로필을 찾을 수 없어요");
+    expect(status).toHaveTextContent("탈퇴했거나 주소가 잘못됐어요.");
+    expect(screen.getByRole("button", { name: "커뮤니티로" })).toBeInTheDocument();
   });
 
   it.each([
@@ -1007,7 +1097,7 @@ describe("프로필을 불러오는 중 · 실패 · 없음", () => {
   it.each([
     ["내 프로필", undefined],
     ["다른 사용자 프로필", 7],
-  ])("%s을 불러오지 못하면 오류와 다시 시도가 보이고 누르면 onRetry 가 불린다", async (_, userId) => {
+  ])("[X-PRF-01 S3] %s을 불러오지 못하면 오류와 다시 시도가 보이고 누르면 onRetry 가 불린다", async (_, userId) => {
     const onRetry = vi.fn();
     const { user } = renderPersonal(
       <ProfileView userId={userId} data={MY_PROFILE_PAGE} error="서버에 연결할 수 없습니다." onRetry={onRetry} />,

@@ -48,19 +48,19 @@ describe("SearchView — 검색창 · 탭", () => {
     expect(onInputChange).toHaveBeenCalledWith("로");
   });
 
-  it("탭마다 불러온 수를 보여주고, 뒤에 더 있으면 + 를 붙인다", () => {
+  it("[COM-5-1@2 S3] 탭마다 불러온 수를 보여주고, 뒤에 더 있으면 + 를 붙인다", () => {
     renderSearch();
     expect(tabButton("마인드맵 (3+)")).toHaveClass("active");
     expect(tabButton("사용자 (2)")).not.toHaveClass("active");
   });
 
-  it("사용자 쪽에 더 있으면 사용자 탭에만 + 를 붙인다", () => {
+  it("[COM-5-1@2 S3] 사용자 쪽에 더 있으면 사용자 탭에만 + 를 붙인다", () => {
     renderSearch({ mindmaps: tab(MINDMAPS.items), profiles: { ...PROFILES, hasNext: true } });
     expect(tabButton("마인드맵 (3)")).toBeInTheDocument();
     expect(tabButton("사용자 (2+)")).toBeInTheDocument();
   });
 
-  it("결과 문구에는 정리한 검색어만 쓰고 개수는 넣지 않는다", () => {
+  it("[COM-5-1@2 S2] 결과 문구에는 정리한 검색어만 쓰고 개수는 넣지 않는다", () => {
     renderSearch();
     const head = document.querySelector(".resultHead")!;
     expect(head).toHaveTextContent('"파리" 검색 결과');
@@ -75,7 +75,7 @@ describe("SearchView — 검색창 · 탭", () => {
 });
 
 describe("SearchView — 마인드맵 카드", () => {
-  it("카드는 그 세션을 열고, 작성자 이름은 작성자 프로필로 간다", () => {
+  it("[COM-5-2 S1·S2] 카드는 그 세션을 열고, 작성자 이름은 작성자 프로필로 간다", () => {
     renderSearch();
     const reacted = card(REACTED_CARD.title!);
     expect(reacted.getByRole("link", { name: new RegExp(`^${REACTED_CARD.title}`) })).toHaveAttribute("href", `/sessions/${REACTED_CARD.mindmapId}`);
@@ -83,12 +83,12 @@ describe("SearchView — 마인드맵 카드", () => {
     expect(reacted.getByText(`노드 ${REACTED_CARD.nodeCount}`)).toBeInTheDocument();
   });
 
-  it("관련 세션 목록은 보여주지 않는다", () => {
+  it("[COM-5-2 R1] 관련 세션 목록은 보여주지 않는다", () => {
     renderSearch();
     expect(screen.queryByText(/관련 세션/)).toBeNull();
   });
 
-  it("URL 만 공개한 카드는 제목 자리에 해시태그를 보여주고 소개글은 없다", () => {
+  it("[COM-5-2 S3] URL 만 공개한 카드는 제목 자리에 해시태그를 보여주고 소개글은 없다", () => {
     renderSearch();
     const title = "# 미술관 # 로마";
     const urlOnly = card(title);
@@ -97,7 +97,7 @@ describe("SearchView — 마인드맵 카드", () => {
     expect(screen.queryByText(CONTENT_CARD.snippet!)).toBeNull();
   });
 
-  it("공개 해시태그도 없는 URL 전용 카드는 안내 문구를 제목 자리에 쓴다", () => {
+  it("[COM-5-2 S3] 공개 해시태그도 없는 URL 전용 카드는 안내 문구를 제목 자리에 쓴다", () => {
     renderSearch({ mindmaps: tab([toFeedPost({ ...URL_ONLY_CARD, hashtags: [] })]) });
     expect(screen.getByRole("link", { name: new RegExp(`^${URL_ONLY_CARD_TITLE}`) })).toBeInTheDocument();
   });
@@ -111,7 +111,7 @@ describe("SearchView — 마인드맵 카드", () => {
 describe("SearchView — 사용자 카드", () => {
   const openProfiles = async (user: ReturnType<typeof renderSearch>["user"]) => user.click(tabButton("사용자 (2)"));
 
-  it("드롭다운과 같은 정보를 보여주고, 누르면 그 사람 프로필로 간다", async () => {
+  it("[COM-5-1@3 S1·S2] 드롭다운과 같은 정보를 보여주고, 누르면 그 사람 프로필로 간다", async () => {
     const { user } = renderSearch();
     await openProfiles(user);
     const person = screen.getByRole("link", { name: /parisienne/ });
@@ -138,7 +138,7 @@ describe("SearchView — 사용자 카드", () => {
 });
 
 describe("SearchView — 상태", () => {
-  it("검색어가 없으면 안내만 보여주고 결과 문구는 없다", () => {
+  it("[COM-5-1@2 S1] 검색어가 없으면 안내만 보여주고 결과 문구는 없다", () => {
     renderSearch({ input: "#", q: "", mindmaps: tab<never>([], { status: "idle" }), profiles: tab<never>([], { status: "idle" }) });
     expect(screen.getByRole("status")).toHaveTextContent("검색어를 입력해 주세요");
     expect(document.querySelector(".resultHead")).toBeNull();
@@ -150,7 +150,7 @@ describe("SearchView — 상태", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("결과가 없으면 빈 상태를 보여준다", () => {
+  it("[COM-5-1@2 S6] 결과가 없으면 빈 상태를 보여준다", () => {
     renderSearch({ mindmaps: tab([]) });
     expect(screen.getByRole("status")).toHaveTextContent("일치하는 결과가 없어요.다른 해시태그로 검색해보세요."); // 둘러보기 검색바와 같은 문구 (QA-050)
   });
@@ -182,7 +182,7 @@ describe("SearchView — 더 보기", () => {
     expect(screen.getByRole("button", { name: "불러오는 중…" })).toBeDisabled();
   });
 
-  it("더 보기가 실패해도 카드는 그대로 두고, 다시 시도하면 다시 불러온다", async () => {
+  it("[COM-5-1@2 S5] 더 보기가 실패해도 카드는 그대로 두고, 다시 시도하면 다시 불러온다", async () => {
     const loadMore = vi.fn();
     const { user } = renderSearch({ mindmaps: { ...MINDMAPS, moreError: "서버 오류", loadMore } });
     expect(screen.getByRole("alert")).toHaveTextContent("서버 오류");

@@ -53,7 +53,7 @@ const editorTag = (tag: string) => within(editorTags()).getByRole("button", { na
 const serverTagsLoaded = () => within(editor()).findByText(`전체 해시태그 (${SESSION_HASHTAGS.length})`);
 
 describe("해시태그 그룹 보기", () => {
-  it("그룹마다 해시태그 칩과 세션 개수, 그 그룹 세션 카드가 보인다", async () => {
+  it("[REC-10-2 S1] 그룹마다 해시태그 칩과 세션 개수, 그 그룹 세션 카드가 보인다", async () => {
     await renderGroups();
     expect(sectionHeads()).toEqual([["# 로마", "# 콜로세움"], ["# 항공권", "# 예산"], ["# React", "# TypeScript"]]);
 
@@ -65,14 +65,14 @@ describe("해시태그 그룹 보기", () => {
     expect(within(sectionOf("로마")).getByText("1개 세션")).toBeInTheDocument();
   });
 
-  it("해시태그를 가진 세션이 없는 그룹은 비어 있다고 안내한다", async () => {
+  it("[REC-10-2 S3] 해시태그를 가진 세션이 없는 그룹은 비어 있다고 안내한다", async () => {
     await renderGroups();
     const react = within(sectionOf("React"));
     expect(react.getByText("0개 세션")).toBeInTheDocument();
     expect(react.getByText("이 그룹의 해시태그를 가진 세션이 없습니다.")).toBeInTheDocument();
   });
 
-  it("서버가 순서를 섞어 보내도 position 순으로 보인다", async () => {
+  it("[REC-10-2 S1] 서버가 순서를 섞어 보내도 position 순으로 보인다", async () => {
     groups = [TAG_GROUPS[2], TAG_GROUPS[0], TAG_GROUPS[1]];
     await renderGroups();
     expect(sectionHeads()).toEqual([["# 로마", "# 콜로세움"], ["# 항공권", "# 예산"], ["# React", "# TypeScript"]]);
@@ -123,7 +123,7 @@ describe("해시태그 그룹 보기", () => {
     await waitFor(() => expect(bodies).toEqual([["9002", { isFavorite: true }]]));
   });
 
-  it("그룹이 없으면 빈 상태 안내와 '새 그룹 만들기' 버튼이 보이고, 누르면 편집기가 열린다", async () => {
+  it("[X-SES-03 S4] 그룹이 없으면 빈 상태 안내와 '새 그룹 만들기' 버튼이 보이고, 누르면 편집기가 열린다", async () => {
     groups = [];
     const { user } = await renderGroups();
     expect(screen.getByRole("heading", { level: 3, name: "아직 만든 그룹이 없습니다" })).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe("해시태그 그룹 보기", () => {
     await serverTagsLoaded();
   });
 
-  it("그룹 목록을 못 불러오면 해시태그 보기에서 오류와 다시 시도가 보인다", async () => {
+  it("[X-SES-03 S2] 그룹 목록을 못 불러오면 해시태그 보기에서 오류와 다시 시도가 보인다", async () => {
     let attempt = 0;
     server.use(
       http.get(`${API}/tag-groups`, () => {
@@ -163,7 +163,7 @@ describe("해시태그 그룹 만들기", () => {
     return bodies;
   }
 
-  it("전체 해시태그는 편집기를 열 때 GET /sessions/hashtags 로 받은 내 세션 전체 해시태그를 서버 순서대로 보여 준다", async () => {
+  it("[REC-7-5 S1] 전체 해시태그는 편집기를 열 때 GET /sessions/hashtags 로 받은 내 세션 전체 해시태그를 서버 순서대로 보여 준다", async () => {
     const { user } = await renderGroups();
     expect(hashtagCalls).toBe(0); // 편집기를 열기 전엔 받지 않는다
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
@@ -198,7 +198,7 @@ describe("해시태그 그룹 만들기", () => {
     expect(within(editor()).getByText("전체 해시태그 (0)")).toBeInTheDocument();
   });
 
-  it("태그를 고르고 순서를 바꿔 만들면 POST /tag-groups 에 이름 없이 태그만 보내고 새 그룹이 맨 뒤에 붙는다 (QA-011)", async () => {
+  it("[REC-7-5 S2·S4] [REC-7-4 S1] 태그를 고르고 순서를 바꿔 만들면 POST /tag-groups 에 이름 없이 태그만 보내고 새 그룹이 맨 뒤에 붙는다 (QA-011)", async () => {
     const bodies = onCreate((body) => ok(tagGroup(4, body.hashtags ?? [], 3)));
     const { user } = await renderGroups();
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
@@ -228,7 +228,7 @@ describe("해시태그 그룹 만들기", () => {
     expect(sectionHeads().at(-1)).toEqual(["# 루브르", "# 파리", "# 파르테논", "# 미술관"]);
   });
 
-  it("만들기에 실패하면 서버 메시지를 토스트로 띄우고 편집기는 열어 둔다", async () => {
+  it("[REC-7-5 R3] 만들기에 실패하면 서버 메시지를 토스트로 띄우고 편집기는 열어 둔다", async () => {
     onCreate(() => fail(400, "해시태그는 최대 10개까지 입력할 수 있습니다."));
     const { user } = await renderGroups();
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
@@ -241,7 +241,7 @@ describe("해시태그 그룹 만들기", () => {
     expect(sections()).toHaveLength(3);
   });
 
-  it("취소하면 아무 요청 없이 편집기가 닫힌다", async () => {
+  it("[REC-7-5 S6] 취소하면 아무 요청 없이 편집기가 닫힌다", async () => {
     const bodies = onCreate(() => ok(null));
     const { user } = await renderGroups();
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
@@ -252,7 +252,7 @@ describe("해시태그 그룹 만들기", () => {
     expect(bodies).toEqual([]);
   });
 
-  it("편집기는 제목이 붙은 대화상자이고, Tab · Shift+Tab 이 창 안에서만 돈다 (QA-040)", async () => {
+  it("[REC-7-5 S6] 편집기는 제목이 붙은 대화상자이고, Tab · Shift+Tab 이 창 안에서만 돈다 (QA-040)", async () => {
     const { user } = await renderGroups();
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
     await serverTagsLoaded();
@@ -273,7 +273,7 @@ describe("해시태그 그룹 만들기", () => {
     expect(within(dialog).getByRole("button", { name: "닫기" })).toHaveFocus();
   });
 
-  it("Esc 를 누르면 취소처럼 아무 요청 없이 닫힌다 (QA-040)", async () => {
+  it("[REC-7-5 S6] Esc 를 누르면 취소처럼 아무 요청 없이 닫힌다 (QA-040)", async () => {
     const bodies = onCreate(() => ok(null));
     const { user } = await renderGroups();
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
@@ -299,7 +299,7 @@ describe("해시태그 그룹 수정", () => {
     return requests;
   }
 
-  it("수정을 누르면 그 그룹 태그가 골라진 채 열리고, 수정 완료하면 PATCH /tag-groups/{id} 에 hashtags 만 보낸다", async () => {
+  it("[REC-7-5 S4] 수정을 누르면 그 그룹 태그가 골라진 채 열리고, 수정 완료하면 PATCH /tag-groups/{id} 에 hashtags 만 보낸다", async () => {
     const requests = onUpdate((id, body) => {
       const cur = TAG_GROUPS.find((g) => g.id === id)!;
       return ok(tagGroup(id, body.hashtags ?? cur.hashtags, cur.position));
@@ -321,7 +321,7 @@ describe("해시태그 그룹 수정", () => {
     expect(within(sections()[1]).getByText(`${expected}개 세션`)).toBeInTheDocument();
   });
 
-  it("수정에 실패하면 토스트를 띄우고 그룹은 그대로 둔다", async () => {
+  it("[REC-7-5 R3] 수정에 실패하면 토스트를 띄우고 그룹은 그대로 둔다", async () => {
     onUpdate(() => fail(404, "해시태그 그룹을 찾을 수 없습니다."));
     const { user } = await renderGroups();
     await user.click(within(sectionOf("로마")).getByRole("button", { name: "수정" }));
@@ -346,7 +346,7 @@ describe("해시태그 그룹 삭제", () => {
     return ids;
   }
 
-  it("확인창에서 확인하면 DELETE /tag-groups/{id} 를 보내고 그 그룹이 사라진다", async () => {
+  it("[REC-7-5 S5] 확인창에서 확인하면 DELETE /tag-groups/{id} 를 보내고 그 그룹이 사라진다", async () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     const ids = onDelete(() => ok(null));
     const { user } = await renderGroups();
@@ -366,7 +366,7 @@ describe("해시태그 그룹 삭제", () => {
     expect(ids).toEqual([]);
   });
 
-  it("삭제에 실패하면 그룹을 되살리고 토스트를 띄운다", async () => {
+  it("[REC-7-5 R3] 삭제에 실패하면 그룹을 되살리고 토스트를 띄운다", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     onDelete(() => fail(404, "해시태그 그룹을 찾을 수 없습니다."));
     const { user } = await renderGroups();
@@ -390,13 +390,13 @@ describe("해시태그 그룹 순서", () => {
     return bodies;
   }
 
-  it("첫 그룹은 위로 이동할 수 없다", async () => {
+  it("[X-SES-02 S2] 첫 그룹은 위로 이동할 수 없다", async () => {
     await renderGroups();
     expect(within(sections()[0]).getByRole("button", { name: "위로 이동" })).toBeDisabled();
     expect(within(sections()[1]).getByRole("button", { name: "위로 이동" })).toBeEnabled();
   });
 
-  it("위로 이동하면 PATCH /tag-groups/order 에 내 그룹 전체를 바뀐 순서로 보내고 서버 순서대로 보인다", async () => {
+  it("[X-SES-02 S1] 위로 이동하면 PATCH /tag-groups/order 에 내 그룹 전체를 바뀐 순서로 보내고 서버 순서대로 보인다", async () => {
     const bodies = onReorder(({ groupIds }) =>
       ok(groupIds.map((id, position) => ({ ...TAG_GROUPS.find((g) => g.id === id)!, position }))),
     );
@@ -408,7 +408,7 @@ describe("해시태그 그룹 순서", () => {
     expect(sectionHeads()).toEqual([["# 로마", "# 콜로세움"], ["# React", "# TypeScript"], ["# 항공권", "# 예산"]]);
   });
 
-  it("순서 변경에 실패하면 원래 순서로 되돌리고 토스트를 띄운다", async () => {
+  it("[X-SES-02 R1] 순서 변경에 실패하면 원래 순서로 되돌리고 토스트를 띄운다", async () => {
     onReorder(() => fail(400, "정렬할 그룹 목록이 올바르지 않습니다."));
     const { user } = await renderGroups();
     await user.click(within(sectionOf("항공권")).getByRole("button", { name: "위로 이동" }));

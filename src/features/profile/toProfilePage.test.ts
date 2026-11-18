@@ -191,7 +191,7 @@ describe("toFullMindmap", () => {
     expect(node("node:1", res).label).toBe("야간열차 예약");
   });
 
-  it("'내용까지' 공개한 노드만 근거 원문을 갖고, 원문 URL만이면 내용이 와도 넘기지 않는다 (QA-049)", () => {
+  it("[COM-3-1 R2] '내용까지' 공개한 노드만 근거 원문을 갖고, 원문 URL만이면 내용이 와도 넘기지 않는다 (QA-049)", () => {
     const res: CommunityProfileMindmap = {
       ...API_MINDMAP,
       nodes: [
@@ -205,7 +205,7 @@ describe("toFullMindmap", () => {
     });
   });
 
-  it("sourceUrl 이 있는 노드만 원문 주소를 갖는다", () => {
+  it("[COM-3-1 S2] sourceUrl 이 있는 노드만 원문 주소를 갖는다", () => {
     const res = {
       ...API_MINDMAP,
       nodes: [API_MINDMAP.nodes[0], { ...API_MINDMAP.nodes[1], sourceUrl: null, label: "메모" }],
@@ -214,7 +214,7 @@ describe("toFullMindmap", () => {
     expect(toFullMindmap(res).nodeUrls).toEqual({ "node:1": "https://www.nightjet.com/en" });
   });
 
-  it("웹 주소가 아닌 sourceUrl 은 열리지 않게 뺀다", () => {
+  it("[COM-3-1 R1] 웹 주소가 아닌 sourceUrl 은 열리지 않게 뺀다", () => {
     const res = { ...API_MINDMAP, nodes: [{ ...API_MINDMAP.nodes[0], sourceUrl: "javascript:alert(1)" }] };
 
     expect(toFullMindmap(res).nodeUrls).toEqual({});

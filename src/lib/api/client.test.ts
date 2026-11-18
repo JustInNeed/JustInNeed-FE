@@ -90,7 +90,7 @@ describe("API 클라이언트", () => {
     expect(err).toMatchObject({ message: "회원을 찾을 수 없습니다.", status: 404 });
   });
 
-  it("401 이면 refresh 로 토큰을 새로 받아 한 번 다시 요청한다", async () => {
+  it("[MEM-2-1 S1] 401 이면 refresh 로 토큰을 새로 받아 한 번 다시 요청한다", async () => {
     setTokens({ accessToken: "expired", refreshToken: "r1" });
     server.use(
       http.get(`${API}/members/me`, ({ request }) =>
@@ -126,7 +126,7 @@ describe("토큰 재발급이 겹칠 때", () => {
       expect(request.mock.calls[0][0]).toBe("jin-token-refresh");
     });
 
-    it("락을 기다리는 사이 다른 탭이 재발급했으면 요청 없이 새 access 토큰으로 원래 요청을 다시 보낸다", async () => {
+    it("[MEM-2-1 S3] 락을 기다리는 사이 다른 탭이 재발급했으면 요청 없이 새 access 토큰으로 원래 요청을 다시 보낸다", async () => {
       installLocks(() => setTokens(FRESH));
       setTokens({ accessToken: "expired", refreshToken: "r1" });
       const calls = rotatingRefreshServer("r1", FRESH);
@@ -146,7 +146,7 @@ describe("토큰 재발급이 겹칠 때", () => {
       expect(calls.count).toBe(0);
     });
 
-    it("같은 저장소를 쓰는 두 탭이 동시에 401 을 받아도 재발급은 한 번이고 둘 다 성공한다", async () => {
+    it("[MEM-2-1 S3] 같은 저장소를 쓰는 두 탭이 동시에 401 을 받아도 재발급은 한 번이고 둘 다 성공한다", async () => {
       installLocks();
       setTokens({ accessToken: "expired", refreshToken: "r1" });
       const calls = rotatingRefreshServer("r1", FRESH);
@@ -222,7 +222,7 @@ describe("세션 만료 (재발급 최종 실패)", () => {
     return location;
   }
 
-  it("토큰을 지우고 만료 안내를 남긴 뒤 /login 으로 보내고, 요구사항 문구로 ApiError 를 던진다", async () => {
+  it("[MEM-2-1 S4] 토큰을 지우고 만료 안내를 남긴 뒤 /login 으로 보내고, 요구사항 문구로 ApiError 를 던진다", async () => {
     const location = expiredAt("/sessions");
 
     const err = await getMe().catch((e) => e);
@@ -248,7 +248,7 @@ describe("세션 만료 (재발급 최종 실패)", () => {
     expect(location.href).toBe("/login");
   });
 
-  it.each(["/login", "/oauth/callback"])("이미 %s 에 있으면 이동이 없으니 만료 안내도 남기지 않는다", async (pathname) => {
+  it.each(["/login", "/oauth/callback"])("[MEM-2-1 R3] 이미 %s 에 있으면 이동이 없으니 만료 안내도 남기지 않는다", async (pathname) => {
     const location = expiredAt(pathname);
 
     const err = await getMe().catch((e) => e);

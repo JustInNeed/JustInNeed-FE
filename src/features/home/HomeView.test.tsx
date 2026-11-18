@@ -17,14 +17,14 @@ const chipsIn = (el: HTMLElement) => Array.from(el.querySelectorAll(".chip"), (c
 const sitesIn = (el: HTMLElement) => Array.from(el.querySelectorAll(".site")).map((s) => s.lastChild?.textContent);
 
 describe("홈 대시보드", () => {
-  it("통계 카드에 누적 노드 · 이번 주 세션 · Deep Reading 값이 보이고, Deep Reading 은 회색 부제 '지난주 대비'와 %p 증감이다 (QA-047)", () => {
+  it("[X-HOME-05 S1] [ANA-2-3 S1] [ANA-3-1 S3] 통계 카드에 누적 노드 · 이번 주 세션 · Deep Reading 값이 보이고, Deep Reading 은 회색 부제 '지난주 대비'와 %p 증감이다 (QA-047)", () => {
     renderPersonal(<HomeView data={HOME_DATA} />);
     expect(statCard("누적 노드")).toHaveTextContent("218+12해시태그 47개");
     expect(statCard("이번 주 세션")).toHaveTextContent("14+3평균 42분 / 세션");
     expect(statCard("Deep Reading")).toHaveTextContent(/^Deep Reading68%↑ 8%p지난주 대비$/);
   });
 
-  it("지난주보다 줄었으면 감소로, 변화가 없으면 증감 없이 보인다", () => {
+  it("[ANA-3-1 S3] 지난주보다 줄었으면 감소로, 변화가 없으면 증감 없이 보인다", () => {
     const stats = { ...HOME_DATA.stats, nodeDelta: -2, sessionDelta: 0, deepReadingDelta: -5 };
     renderPersonal(<HomeView data={{ ...HOME_DATA, stats }} />);
     expect(statCard("누적 노드")).toHaveTextContent("218-2해시태그");
@@ -32,7 +32,7 @@ describe("홈 대시보드", () => {
     expect(statCard("Deep Reading")).toHaveTextContent("68%↓ 5%p지난주 대비");
   });
 
-  it("이번 주 활동에 기간과 요일별 탐색 시간이 보이고, 가장 긴 요일 막대가 꽉 찬다", () => {
+  it("[X-HOME-06 S1] 이번 주 활동에 기간과 요일별 탐색 시간이 보이고, 가장 긴 요일 막대가 꽉 찬다", () => {
     renderPersonal(<HomeView data={HOME_DATA} />);
     const activity = card("이번 주 활동");
     expect(within(activity).getByText("4.20 — 4.26")).toBeInTheDocument();
@@ -61,7 +61,7 @@ describe("홈 대시보드", () => {
     expect(consoleError).not.toHaveBeenCalled();
   });
 
-  it("상위 해시태그 10개가 개수와 함께 많은 순으로 보인다", () => {
+  it("[X-HOME-07 S1] 상위 해시태그 10개가 개수와 함께 많은 순으로 보인다", () => {
     renderPersonal(<HomeView data={HOME_DATA} />);
     const rows = Array.from(card("상위 해시태그").querySelectorAll(".topTagRow")).map((r) => r.textContent);
     expect(rows).toEqual([
@@ -87,7 +87,7 @@ describe("홈 대시보드", () => {
     expect(name.parentElement).toHaveTextContent(/^# 반려견행동교정훈련법정리14$/);
   });
 
-  it("오늘의 탐색 타임라인에 시간대별 해시태그와 방문 사이트가 보인다", () => {
+  it("[ANA-2-1 S1] [ANA-2-2 S1] 오늘의 탐색 타임라인에 시간대별 해시태그와 방문 사이트가 보인다", () => {
     renderPersonal(<HomeView data={HOME_DATA} />);
     expect(screen.getByRole("heading", { name: "오늘의 탐색 타임라인" })).toBeInTheDocument();
     expect(screen.queryByText("시간대별 수집 해시태그 · 방문 사이트")).not.toBeInTheDocument(); // QA-010
@@ -110,7 +110,7 @@ describe("홈 대시보드", () => {
       vi.useRealTimers();
     });
 
-    it("'이번 주'를 누르면 최근 7일이 날짜 (요일)로 보이고 오늘 표시가 붙는다", async () => {
+    it("[ANA-2-1 S2] '이번 주'를 누르면 최근 7일이 날짜 (요일)로 보이고 오늘 표시가 붙는다", async () => {
       const { user } = renderPersonal(<HomeView data={HOME_DATA} />);
       await user.click(screen.getByRole("button", { name: "이번 주" }));
 
@@ -129,14 +129,22 @@ describe("홈 대시보드", () => {
       }
     });
 
-    it("기록이 없는 날은 '기록 없음'으로 보인다", async () => {
+    it("[ANA-2-1 S3] 기록이 없는 날은 '기록 없음'으로 보인다", async () => {
       const { user } = renderPersonal(<HomeView data={HOME_DATA} />);
       await user.click(screen.getByRole("button", { name: "이번 주" }));
       expect(within(daySlot("4/21 (화)")).getByText("기록 없음")).toBeInTheDocument();
       expect(screen.getAllByText("기록 없음")).toHaveLength(1);
     });
 
-    it("날마다 대표 해시태그 · 사이트를 3개까지 보여준다", async () => {
+    it("[ANA-2-1 S3] 기록 없는 날도 행은 남고, 그날 점만 회색(빈 점)으로 보인다", async () => {
+      const { user } = renderPersonal(<HomeView data={HOME_DATA} />);
+      await user.click(screen.getByRole("button", { name: "이번 주" }));
+      expect(document.querySelectorAll(".slot")).toHaveLength(7);
+      expect(daySlot("4/21 (화)").querySelector(".slotDot")).toHaveClass("slotDotEmpty");
+      expect(daySlot("4/20 (월)").querySelector(".slotDot")).not.toHaveClass("slotDotEmpty");
+    });
+
+    it("[ANA-2-1 S2] [ANA-2-2 S2] 날마다 대표 해시태그 · 사이트를 3개까지 보여준다", async () => {
       const { user } = renderPersonal(<HomeView data={HOME_DATA} />);
       await user.click(screen.getByRole("button", { name: "이번 주" }));
       const mon = daySlot("4/20 (월)");
@@ -159,7 +167,7 @@ describe("홈 대시보드", () => {
 });
 
 describe("홈 데이터 없음 · 불러오기 실패", () => {
-  it("데이터가 없으면(null) 빈 상태 하나만 보이고 대시보드는 그리지 않는다", () => {
+  it("[ANA-2-1 S5] 데이터가 없으면(null) 빈 상태 하나만 보이고 대시보드는 그리지 않는다", () => {
     renderPersonal(<HomeView data={null} />);
     const empty = screen.getByRole("status");
     expect(empty).toHaveTextContent("아직 모인 탐색 기록이 없어요.");
@@ -168,7 +176,7 @@ describe("홈 데이터 없음 · 불러오기 실패", () => {
     expect(screen.queryByRole("button", { name: "필터" })).not.toBeInTheDocument();
   });
 
-  it("불러오기에 실패하면 오류 메시지와 '다시 시도'가 보이고, 누르면 onRetry 가 호출된다", async () => {
+  it("[ANA-2-1 S6] 불러오기에 실패하면 오류 메시지와 '다시 시도'가 보이고, 누르면 onRetry 가 호출된다", async () => {
     const onRetry = vi.fn();
     const { user } = renderPersonal(<HomeView data={null} error="홈 정보를 불러오지 못했어요." onRetry={onRetry} />);
     expect(screen.getByRole("alert")).toHaveTextContent("홈 정보를 불러오지 못했어요.");
@@ -197,7 +205,7 @@ describe("홈 데이터 없음 · 불러오기 실패", () => {
       vi.useRealTimers();
     });
 
-    it("통계는 0, 활동 막대는 0m, 그래프 · 해시태그 · 타임라인은 안내 문구로 보인다", async () => {
+    it("[X-HOME-01 S4] [X-HOME-05 R1] [X-HOME-07 S2] [ANA-2-1 S4] 통계는 0, 활동 막대는 0m, 그래프 · 해시태그 · 타임라인은 안내 문구로 보인다", async () => {
       const { user } = renderPersonal(<HomeView data={EMPTY_HOME_DATA} />);
       expect(statCard("누적 노드")).toHaveTextContent(/^누적 노드0해시태그 0개$/);
       expect(statCard("이번 주 세션")).toHaveTextContent(/^이번 주 세션0평균 0분 \/ 세션$/);

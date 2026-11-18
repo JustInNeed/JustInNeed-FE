@@ -108,7 +108,7 @@ describe("toTimelineSite", () => {
 });
 
 describe("toHomeData — 타임라인 · 해시태그", () => {
-  it("오늘 타임라인 시간대는 '시작 — 끝', 진행 중이면 '시작 — 진행 중'", () => {
+  it("[ANA-2-1 S1] 오늘 타임라인 시간대는 '시작 — 끝', 진행 중이면 '시작 — 진행 중'", () => {
     expect(toHomeData(HOME_RESPONSE).todayTimeline.map((s) => s.time)).toEqual(["09:00 — 10:30", "21:10 — 진행 중"]);
   });
 
@@ -314,7 +314,7 @@ describe("toHomeData — 깊이별 크기 · 색", () => {
     expect(shallow.k.size).toBe(DEPTH_SIZES[1]);
   });
 
-  it("여러 세션에 나온 노드(BE 크기가 큰 노드)는 같은 깊이에서 조금 더 크다", () => {
+  it("[X-HOME-01 S1] 여러 세션에 나온 노드(BE 크기가 큰 노드)는 같은 깊이에서 조금 더 크다", () => {
     const p = build(
       [n("core", "core", 28), n("s", "city", 16), n("k1", "logi", 12), n("k2", "logi", 18)],
       [["core", "s"], ["s", "k1"], ["s", "k2"]],

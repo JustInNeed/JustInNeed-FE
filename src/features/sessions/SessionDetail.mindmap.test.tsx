@@ -43,7 +43,7 @@ const toolbar = () => document.querySelector<HTMLElement>(".mapToolbar");
 const toolbarButton = (name: string) => within(toolbar()!).getByRole("button", { name });
 
 describe("세션 상세 — 줄글 / 마인드맵 탭", () => {
-  it("처음엔 줄글 보기가 선택돼 있고, 마인드맵 보기를 누르면 본문 대신 마인드맵이 보인다", async () => {
+  it("[REC-2-1 S1] 처음엔 줄글 보기가 선택돼 있고, 마인드맵 보기를 누르면 본문 대신 마인드맵이 보인다", async () => {
     const { user } = await renderDetail();
     expect(button("줄글 보기")).toHaveClass("tabActive");
     expect(map()).toBeNull();
@@ -59,7 +59,7 @@ describe("세션 상세 — 줄글 / 마인드맵 탭", () => {
     expect(screen.getByRole("heading", { level: 2, name: "한눈에 보기" })).toBeInTheDocument();
   });
 
-  it("응답의 키워드로 노드를 그리고 연결선을 잇는다, 출처 목록은 옆에 그대로 있다", async () => {
+  it("[REC-7-1 S1] [REC-2-2 S2] 응답의 키워드로 노드를 그리고 연결선을 잇는다, 출처 목록은 옆에 그대로 있다", async () => {
     await openMindmap();
     expect(nodeLabels()).toEqual(ROME_MINDMAP.nodes.map((n) => n.keyword));
     expect(map().querySelectorAll("line")).toHaveLength(ROME_MINDMAP.edges.length);
@@ -68,7 +68,7 @@ describe("세션 상세 — 줄글 / 마인드맵 탭", () => {
     expect(screen.getByRole("heading", { name: "출처 (3)" })).toBeInTheDocument();
   });
 
-  it("루트가 여럿이면 세션 제목 노드를 가운데 두고, related · 지름길 연결선은 쌍마다 하나만 그린다", async () => {
+  it("[REC-2-2 S2] 루트가 여럿이면 세션 제목 노드를 가운데 두고, related · 지름길 연결선은 쌍마다 하나만 그린다", async () => {
     await openMindmap(PARIS_DETAIL, PARIS_MINDMAP);
     expect(nodeLabels()).toEqual([PARIS_DETAIL.title, ...PARIS_MINDMAP.nodes.map((n) => n.keyword)]);
     expect(where(PARIS_DETAIL.title)).toEqual([500, 340]);
@@ -98,7 +98,7 @@ describe("세션 상세 — 마인드맵 불러오기", () => {
   const onMindmap = (respond: () => Response | Promise<Response>, options?: { once: boolean }) =>
     server.use(http.get(`${API}/sessions/:id/mindmap`, respond, options));
 
-  it("탭을 열기 전에는 요청하지 않는다", async () => {
+  it("[REC-2-2 S1] 탭을 열기 전에는 요청하지 않는다", async () => {
     const { mapRequests } = await renderDetail();
     await new Promise((r) => setTimeout(r, 30));
     expect(mapRequests).toEqual([]);
@@ -122,7 +122,7 @@ describe("세션 상세 — 마인드맵 불러오기", () => {
     expect(toolbar()).toBeInTheDocument();
   });
 
-  it("탭을 오가도 다시 받지 않는다", async () => {
+  it("[REC-2-2 S1] 탭을 오가도 다시 받지 않는다", async () => {
     const { user, mapRequests } = await openMindmap();
     await user.click(button("줄글 보기"));
     await user.click(mapTab());
@@ -130,7 +130,7 @@ describe("세션 상세 — 마인드맵 불러오기", () => {
     expect(mapRequests).toEqual(["9001"]);
   });
 
-  it("받지 못하면 서버 문구와 다시 시도가 보이고, 누르면 다시 받아 그린다", async () => {
+  it("[REC-2-2 S5] 받지 못하면 서버 문구와 다시 시도가 보이고, 누르면 다시 받아 그린다", async () => {
     const { user, mapRequests } = await renderDetail();
     onMindmap(() => fail(500, SERVER_ERROR), { once: true });
     await user.click(mapTab());
@@ -146,7 +146,7 @@ describe("세션 상세 — 마인드맵 불러오기", () => {
     expect(mapRequests).toEqual(["9001"]); // 기본 응답은 두 번째 요청에서 처음 쓰였다
   });
 
-  it("마인드맵이 비어 있으면 안내만 보이고 배치 도구는 없다", async () => {
+  it("[REC-2-2 S5] 마인드맵이 비어 있으면 안내만 보이고 배치 도구는 없다", async () => {
     const { user } = await renderDetail(ROME_DETAIL, undefined, EMPTY_MINDMAP);
     await user.click(mapTab());
     expect(await screen.findByText("아직 마인드맵이 없어요")).toBeInTheDocument();
@@ -181,7 +181,7 @@ describe("세션 상세 — 마인드맵 불러오기", () => {
 });
 
 describe("세션 상세 — 마인드맵 배치", () => {
-  it("처음엔 방사형이고, 계층형을 누르면 깊이마다 왼쪽에서 오른쪽 열로 늘어놓는다", async () => {
+  it("[REC-2-2 S3] 처음엔 방사형이고, 계층형을 누르면 깊이마다 왼쪽에서 오른쪽 열로 늘어놓는다", async () => {
     const { user } = await openMindmap();
     expect(toolbarButton("방사형")).toHaveAttribute("aria-pressed", "true");
     expect(where("로마 여행")).toEqual([500, 340]);
@@ -213,7 +213,18 @@ describe("세션 상세 — 마인드맵 배치", () => {
     expect(shortcutUnitX).toBeGreaterThan(topicX);
   });
 
-  it("노드를 끌어 옮긴 뒤 자동 정렬을 누르면 처음 배치로 돌아간다", async () => {
+  it("[REC-2-2 S4] 그래프 위에서 휠을 굴리면 확대 · 축소된다", async () => {
+    await openMindmap();
+    const zoom = () => Number(map().querySelector("svg > g")!.getAttribute("transform")!.match(/scale\(([\d.]+)\)/)![1]);
+    const before = zoom();
+    fireEvent.wheel(map(), { deltaY: -200 });
+    const zoomedIn = zoom();
+    expect(zoomedIn).toBeGreaterThan(before);
+    fireEvent.wheel(map(), { deltaY: 200 });
+    expect(zoom()).toBeLessThan(zoomedIn);
+  });
+
+  it("[REC-2-2 S3] 노드를 끌어 옮긴 뒤 자동 정렬을 누르면 처음 배치로 돌아간다", async () => {
     const { user } = await openMindmap();
     fireEvent.mouseDown(nodeOf("콜로세움"));
     fireEvent.mouseMove(map(), { clientX: 100, clientY: 120 });
@@ -238,7 +249,7 @@ describe("세션 상세 — 마인드맵 배치", () => {
 describe("세션 상세 — 인용(Citation) 팝업", () => {
   const popup = () => document.querySelector<HTMLElement>(".popup");
 
-  it("유닛 노드를 누르면 출처 제목 · 도메인 · 발췌문과 새 탭으로 여는 원문 열기 링크가 보인다", async () => {
+  it("[REC-3-2 S1] [REC-3-3 S1] 유닛 노드를 누르면 출처 제목 · 도메인 · 발췌문과 새 탭으로 여는 원문 열기 링크가 보인다", async () => {
     const { user } = await openMindmap();
     await user.click(nodeOf("통합권"));
 
@@ -261,7 +272,7 @@ describe("세션 상세 — 인용(Citation) 팝업", () => {
     expect(within(popup()!).getByText("오르세 미술관")).toBeInTheDocument();
   });
 
-  it("발췌문에 키워드가 있으면 그 부분을 형광펜으로 표시한다", async () => {
+  it("[REC-3-2 S1] 발췌문에 키워드가 있으면 그 부분을 형광펜으로 표시한다", async () => {
     const { user } = await openMindmap();
     await user.click(nodeOf("카초 에 페페"));
     const marks = popup()!.querySelectorAll("mark");
@@ -282,7 +293,7 @@ describe("세션 상세 — 인용(Citation) 팝업", () => {
     expect(popup()!.querySelector(".para")).toHaveTextContent(excerpt);
   });
 
-  it("발췌문에 키워드가 없으면 표시 없이 발췌문을 그대로 보여 준다", async () => {
+  it("[REC-3-2 R1] 발췌문에 키워드가 없으면 표시 없이 발췌문을 그대로 보여 준다", async () => {
     const { user } = await openMindmap();
     await user.click(nodeOf("사전 예약"));
     expect(popup()!.querySelector("mark")).toBeNull();
@@ -310,7 +321,7 @@ describe("세션 상세 — 인용(Citation) 팝업", () => {
     expect(popup()!.querySelector(".title")).toHaveTextContent("카초 에 페페");
   });
 
-  it.each(["로마 여행", "콜로세움"])("근거 원문이 없는 노드(%s)는 미리보기가 없다고 안내하고 원문 열기는 누를 수 없다", async (label) => {
+  it.each(["로마 여행", "콜로세움"])("[REC-3-2 S2] 근거 원문이 없는 노드(%s)는 미리보기가 없다고 안내하고 원문 열기는 누를 수 없다", async (label) => {
     const { user } = await openMindmap();
     await user.click(nodeOf(label));
     const p = within(popup()!);
@@ -337,7 +348,7 @@ describe("세션 상세 — 인용(Citation) 팝업", () => {
     expect(within(popup()!).getByText("이 노드에 연결된 본문 미리보기가 없습니다.")).toBeInTheDocument();
   });
 
-  it("닫기를 누르거나 같은 노드를 다시 누르면 팝업이 닫힌다", async () => {
+  it("[REC-2-2 S4] 닫기를 누르거나 같은 노드를 다시 누르면 팝업이 닫힌다", async () => {
     const { user } = await openMindmap();
     await user.click(nodeOf("통합권"));
     await user.click(within(popup()!).getByRole("button", { name: "닫기" }));
@@ -354,6 +365,16 @@ describe("세션 상세 — 인용(Citation) 팝업", () => {
     await user.click(nodeOf("통합권"));
     await user.click(nodeOf("사전 예약"));
     expect(within(popup()!).getByText("바티칸 박물관 예약")).toBeInTheDocument();
+  });
+
+  it("[REC-3-2 R2] 인용 팝업에는 북마크 버튼이 없다", async () => {
+    const { user } = await openMindmap();
+    await user.click(nodeOf("통합권"));
+    expect(within(popup()!).queryByRole("button", { name: /북마크/ })).not.toBeInTheDocument();
+    expect(within(popup()!).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent?.trim())).toEqual([
+      "닫기",
+      "원문 열기",
+    ]);
   });
 
   it("마인드맵 · 인용 팝업에도 하이라이트 · 인사이트는 없다", async () => {

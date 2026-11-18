@@ -19,7 +19,7 @@ const props = (over: Partial<GraphSearchProps> = {}): GraphSearchProps => ({
 });
 
 describe("GraphSearch — 세션 여는 중", () => {
-  it("이동 중인 세션 행에 '여는 중…'을 띄우고, 그동안 다른 결과를 눌러도 무시한다", async () => {
+  it("[X-HOME-04 S2·R1] 이동 중인 세션 행에 '여는 중…'을 띄우고, 그동안 다른 결과를 눌러도 무시한다", async () => {
     const user = userEvent.setup();
     const p = props({ openingSessionId: 9002 });
     render(<GraphSearch {...p} />);
@@ -35,7 +35,7 @@ describe("GraphSearch — 세션 여는 중", () => {
     expect(p.onSelectNode).not.toHaveBeenCalled();
   });
 
-  it("이동 중이 아니면 날짜를 보여 주고 누르면 그 세션을 고른다", async () => {
+  it("[X-HOME-04 S1] 이동 중이 아니면 날짜를 보여 주고 누르면 그 세션을 고른다", async () => {
     const user = userEvent.setup();
     const p = props();
     render(<GraphSearch {...p} />);

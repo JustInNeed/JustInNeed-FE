@@ -36,13 +36,13 @@ describe("세션 마인드맵 만들기 — 노드", () => {
     expect(nodes.map((n) => n.citation)).toEqual(ROME_MINDMAP.nodes.map((n) => n.citation));
   });
 
-  it("루트가 하나면 그 루트가 core 고, 주제는 logi · 유닛은 sub 다", () => {
+  it("[REC-2-2 S2] 루트가 하나면 그 루트가 core 고, 주제는 logi · 유닛은 sub 다", () => {
     const { nodes } = buildSessionMindmap(ROME_MINDMAP, TITLE);
     expect(nodes.map((n) => n.group)).toEqual(["core", "logi", "logi", "logi", "sub", "sub", "sub"]);
     expect(nodes.map((n) => n.id)).toEqual(ROME_MINDMAP.nodes.map((n) => n.id));
   });
 
-  it("루트가 여럿이면 세션 제목으로 core 를 하나 더하고 루트는 city 가 된다", () => {
+  it("[REC-2-2 S2] 루트가 여럿이면 세션 제목으로 core 를 하나 더하고 루트는 city 가 된다", () => {
     const { nodes } = buildSessionMindmap(PARIS_MINDMAP, TITLE);
     expect(nodes.filter((n) => n.group === "core")).toHaveLength(1);
     expect(nodes[0]).toMatchObject({ label: TITLE, group: "core", citation: null });
@@ -91,7 +91,7 @@ describe("세션 마인드맵 만들기 — 크기", () => {
     expect(buildSessionMindmap(PARIS_MINDMAP, TITLE).nodes[0].size).toBe(22);
   });
 
-  it("자식이 많을수록 커지고 기존 범위 9 ~ 22 를 넘지 않는다", () => {
+  it("[REC-2-2 S2] 자식이 많을수록 커지고 기존 범위 9 ~ 22 를 넘지 않는다", () => {
     expect(sizes([0, 1, 3, 6, 7, 100]).map((n) => n.size)).toEqual([9, 11, 15, 21, 22, 22]);
   });
 });
@@ -113,7 +113,7 @@ describe("세션 마인드맵 만들기 — 연결선", () => {
     ]);
   });
 
-  it("related · primary 아닌 연결선은 그리지만 배치 깊이에는 쓰지 않는다", () => {
+  it("[REC-2-2 S2] related · primary 아닌 연결선은 그리지만 배치 깊이에는 쓰지 않는다", () => {
     const { edges, treeEdges } = buildSessionMindmap(PARIS_MINDMAP, TITLE);
     const has = (list: [string, string][], a: string, b: string) =>
       list.some(([x, y]) => (x === a && y === b) || (x === b && y === a));

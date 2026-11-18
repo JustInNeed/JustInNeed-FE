@@ -34,7 +34,7 @@ const typeQuery = (value: string) => fireEvent.change(input(), { target: { value
 const settle = () => new Promise((resolve) => setTimeout(resolve, 350));
 
 describe("/search 페이지", () => {
-  it("입력하면 두 탭을 크기 10 으로 불러오고, 실제 데이터로 카드 · 탭 수를 보여준다", async () => {
+  it("[COM-5-1@2 S3] 입력하면 두 탭을 크기 10 으로 불러오고, 실제 데이터로 카드 · 탭 수를 보여준다", async () => {
     const urls = mockSearch();
     renderPersonal(<SearchPage />);
     typeQuery("파리");
@@ -65,7 +65,7 @@ describe("/search 페이지", () => {
     expect(urls.map((u) => u.searchParams.get("q"))).toEqual(["파리올", "파리올"]);
   });
 
-  it.each(["", "   ", "#", " ## "])("검색어가 없으면(%j) 요청 없이 안내만 보여준다", async (value) => {
+  it.each(["", "   ", "#", " ## "])("[COM-5-1@2 R1] 검색어가 없으면(%j) 요청 없이 안내만 보여준다", async (value) => {
     const urls = mockSearch();
     renderPersonal(<SearchPage />);
     typeQuery(value);
@@ -183,7 +183,7 @@ describe("/search 페이지", () => {
     expect(await screen.findByRole("link", { name: /^파리 미식 지도/ })).toBeInTheDocument();
   });
 
-  it("결과가 없으면 빈 상태를 보여주고 탭에는 0 을 쓴다", async () => {
+  it("[COM-5-1@2 S6] 결과가 없으면 빈 상태를 보여주고 탭에는 0 을 쓴다", async () => {
     mockSearch({ mindmaps: () => ok(EMPTY_MINDMAPS), profiles: () => ok(EMPTY_PROFILES) });
     renderPersonal(<SearchPage />);
     typeQuery("남극");
@@ -232,7 +232,7 @@ describe("/search 페이지 — 더 보기", () => {
     await screen.findByRole("button", { name: "사용자 (2)" });
   };
 
-  it("다음 페이지를 뒤에 붙이고, 끝나면 더 보기와 + 가 사라진다", async () => {
+  it("[COM-5-1@2 S3·S5] 다음 페이지를 뒤에 붙이고, 끝나면 더 보기와 + 가 사라진다", async () => {
     const urls = mockSearch({
       mindmaps: (url) => ok(pageOf(url) === 0 ? SEARCH_PAGE_MINDMAPS : { mindmaps: [moreCard], hasNext: false }),
     });
@@ -271,7 +271,7 @@ describe("/search 페이지 — 더 보기", () => {
     expect(callsTo(urls, "/mindmaps").map(pageOf)).toEqual([0, 1, 2]);
   });
 
-  it("다음 페이지에 이미 있는 카드가 또 오면 한 번만 보여주고 수도 세지 않는다", async () => {
+  it("[COM-5-1@2 S5] 다음 페이지에 이미 있는 카드가 또 오면 한 번만 보여주고 수도 세지 않는다", async () => {
     mockSearch({
       mindmaps: (url) =>
         ok(pageOf(url) === 0 ? SEARCH_PAGE_MINDMAPS : { mindmaps: [SEARCH_PAGE_MINDMAPS.mindmaps[2], moreCard], hasNext: false }),
@@ -303,7 +303,7 @@ describe("/search 페이지 — 더 보기", () => {
     expect(callsTo(urls, "/mindmaps")).toHaveLength(1);
   });
 
-  it("실패해도 불러온 카드와 탭 수는 남고, 다시 시도하면 같은 페이지를 부른다", async () => {
+  it("[COM-5-1@2 S5] 실패해도 불러온 카드와 탭 수는 남고, 다시 시도하면 같은 페이지를 부른다", async () => {
     let nextPageCalls = 0;
     const urls = mockSearch({
       mindmaps: (url) => {
@@ -426,7 +426,7 @@ describe("/search 페이지 — 주소의 검색어", () => {
     expect(screen.getByRole("status")).toHaveTextContent("검색어를 입력해 주세요");
   });
 
-  it("입력이 멈추면 정리한 검색어를 주소에 한 번만 남기고, 화면 위치는 그대로 둔다", async () => {
+  it("[COM-5-1@2 S2·R2] 입력이 멈추면 정리한 검색어를 주소에 한 번만 남기고, 화면 위치는 그대로 둔다", async () => {
     mockSearch();
     renderPersonal(<SearchPage />);
     ["파", "파리", " # 파리 "].forEach(typeQuery);
@@ -457,7 +457,7 @@ describe("/search 페이지 — 주소의 검색어", () => {
     await waitFor(() => expect(replaced()).toEqual([`/search?${qParam("파리")}`, "/search"]));
   });
 
-  it("바깥에서 주소가 바뀌면 입력과 결과가 따라가고, 주소를 다시 쓰지 않는다", async () => {
+  it("[COM-5-1@2 S2] 바깥에서 주소가 바뀌면 입력과 결과가 따라가고, 주소를 다시 쓰지 않는다", async () => {
     setMockSearchParams(qParam("파리"));
     const urls = mockSearch();
     const { rerender } = renderPersonal(<SearchPage />);
@@ -470,7 +470,7 @@ describe("/search 페이지 — 주소의 검색어", () => {
     expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 
-  it("사이드바로 q 없는 주소가 되면 입력을 비우고 안내로 돌아간다", async () => {
+  it("[COM-5-1@2 S2] 사이드바로 q 없는 주소가 되면 입력을 비우고 안내로 돌아간다", async () => {
     setMockSearchParams(qParam("파리"));
     mockSearch();
     const { rerender } = renderPersonal(<SearchPage />);
@@ -500,5 +500,37 @@ describe("/search 페이지 — 주소의 검색어", () => {
     await settle();
     expect(input()).toHaveValue("파리올");
     expect(replaced().at(-1)).toBe(`/search?${qParam("파리올")}`);
+  });
+});
+
+describe("/search 페이지 — 요구사항 기준", () => {
+  it("[COM-5-1@2 S1] 검색어 없이 처음 들어오면 요청 없이 '검색어를 입력해 주세요' 만 보인다", async () => {
+    const urls = mockSearch();
+    renderPersonal(<SearchPage />);
+    expect(screen.getByRole("status")).toHaveTextContent("검색어를 입력해 주세요");
+    await settle();
+    expect(urls).toHaveLength(0);
+    expect(screen.queryByText(/검색 결과/)).toBeNull();
+  });
+
+  it("[COM-5-1@2 S2] 입력이 멈추고 250ms 가 지나야 주소가 바뀌고, 결과 문구에 검색어가 보인다", async () => {
+    mockSearch();
+    renderPersonal(<SearchPage />);
+    typeQuery("#파리");
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith(`/search?${new URLSearchParams({ q: "파리" })}`, { scroll: false }));
+    await waitFor(() => expect(document.querySelector(".resultHead")).toHaveTextContent('"파리" 검색 결과'));
+  });
+
+  it("[COM-5-1@2 S5] 더 보기 응답을 쓸 수 없으면 불러온 카드는 두고 '결과를 더 불러오지 못했어요.' 와 다시 시도를 보여준다", async () => {
+    mockSearch({ mindmaps: (url) => ok(Number(url.searchParams.get("page")) === 0 ? SEARCH_PAGE_MINDMAPS : {}) });
+    const { user } = renderPersonal(<SearchPage />);
+    typeQuery("파리");
+    await user.click(await screen.findByRole("button", { name: "더 보기" }));
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("결과를 더 불러오지 못했어요.");
+    expect(within(alert).getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^파리 미식 지도/ })).toBeInTheDocument();
   });
 });

@@ -29,7 +29,7 @@ afterEach(() => window.history.replaceState(null, "", "/"));
 
 describe("OAuth 콜백", () => {
   // 교환 응답이 테스트가 끝난 뒤 도착해 다음 테스트에 토큰을 남기지 않도록, 코드 교환 테스트는 이동까지 기다린다
-  it("처리하는 동안 '로그인 처리 중…' 이 보인다", async () => {
+  it("[MEM-1-1@2 S3] 처리하는 동안 '로그인 처리 중…' 이 보인다", async () => {
     exchangeOk(false);
     arrive("?code=c1");
     render(<OauthCallbackPage />);
@@ -38,7 +38,7 @@ describe("OAuth 콜백", () => {
   });
 
   describe("일회용 코드 교환", () => {
-    it("코드를 POST /auth/token 으로 보내고 (Authorization 없이), 받은 토큰을 저장하고 프로바이더를 '최근 사용' 으로 확정한다", async () => {
+    it("[MEM-1-1@1 S3] 코드를 POST /auth/token 으로 보내고 (Authorization 없이), 받은 토큰을 저장하고 프로바이더를 '최근 사용' 으로 확정한다", async () => {
       // 이전 로그인 토큰이 남아 있어도 교환 요청에는 붙이지 않는다
       setTokens({ accessToken: "old-access", refreshToken: "old-refresh" });
       setPendingProvider("naver");
@@ -54,7 +54,7 @@ describe("OAuth 콜백", () => {
       expect(pendingProvider()).toBeNull();
     });
 
-    it("교환 응답을 기다리기 전에 주소창 · 히스토리에서 코드를 바로 지운다", async () => {
+    it("[MEM-1-1@2 S3] 교환 응답을 기다리기 전에 주소창 · 히스토리에서 코드를 바로 지운다", async () => {
       exchangeOk(false);
       arrive("?code=c1");
       render(<OauthCallbackPage />);
@@ -64,7 +64,7 @@ describe("OAuth 콜백", () => {
       await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/home"));
     });
 
-    it("기존 회원(needsNickname=false)이면 /home 으로 가고, 로그인 토스트를 예약한다", async () => {
+    it("[MEM-1-1@2 S2] 기존 회원(needsNickname=false)이면 /home 으로 가고, 로그인 토스트를 예약한다", async () => {
       exchangeOk(false);
       arrive("?code=c1");
       render(<OauthCallbackPage />);
@@ -72,7 +72,7 @@ describe("OAuth 콜백", () => {
       expect(consumeAuthToast()).toEqual({ kind: "login", justSignedUp: false });
     });
 
-    it("새 회원(needsNickname=true)이면 닉네임 온보딩으로 가고, 가입 직후 토스트로 예약한다", async () => {
+    it("[MEM-1-1@2 S1] 새 회원(needsNickname=true)이면 닉네임 온보딩으로 가고, 가입 직후 토스트로 예약한다", async () => {
       exchangeOk(true);
       arrive("?code=c1");
       render(<OauthCallbackPage />);
@@ -81,7 +81,7 @@ describe("OAuth 콜백", () => {
       expect(window.location.search).toBe("");
     });
 
-    it("코드가 만료 · 이미 사용돼 401 이면 /login?error=oauth 로 보내고, 토큰은 저장하지 않고 대기 프로바이더는 버린다", async () => {
+    it("[MEM-1-1@3 S2·R1] 코드가 만료 · 이미 사용돼 401 이면 /login?error=oauth 로 보내고, 토큰은 저장하지 않고 대기 프로바이더는 버린다", async () => {
       setPendingProvider("kakao");
       server.use(http.post(`${API}/auth/token`, () => fail(401, "로그인 정보가 만료되었어요. 다시 로그인해 주세요.")));
       arrive("?code=expired");
@@ -97,7 +97,7 @@ describe("OAuth 콜백", () => {
       expect(window.location.search).toBe("");
     });
 
-    it("확장 연결 페이지에서 로그인하러 왔으면 그 페이지로 돌아가고, 로그인 토스트는 예약하지 않는다", async () => {
+    it("[MEM-2-3 S2] 확장 연결 페이지에서 로그인하러 왔으면 그 페이지로 돌아가고, 로그인 토스트는 예약하지 않는다", async () => {
       markConnectAfterLogin();
       exchangeOk(false);
       arrive("?code=c1");
@@ -109,7 +109,7 @@ describe("OAuth 콜백", () => {
       expect(consumeConnectAfterLogin()).toBe(false);
     });
 
-    it("확장 연결 중이어도 가입 직후면 닉네임 온보딩이 먼저이고, 표시는 지운다", async () => {
+    it("[MEM-2-3 R4] 확장 연결 중이어도 가입 직후면 닉네임 온보딩이 먼저이고, 표시는 지운다", async () => {
       markConnectAfterLogin();
       exchangeOk(true);
       arrive("?code=c1");
@@ -119,7 +119,7 @@ describe("OAuth 콜백", () => {
       expect(consumeConnectAfterLogin()).toBe(false);
     });
 
-    it("StrictMode 로 effect 가 두 번 돌아도 교환 요청은 한 번만 보낸다 (일회용 코드)", async () => {
+    it("[MEM-1-1@2 R2] StrictMode 로 effect 가 두 번 돌아도 교환 요청은 한 번만 보낸다 (일회용 코드)", async () => {
       setPendingProvider("kakao");
       const calls = exchangeOk(false);
       arrive("?code=c1");
@@ -137,7 +137,17 @@ describe("OAuth 콜백", () => {
     });
   });
 
-  it("코드가 없으면 /login?error=oauth 로 보내고, 대기 중이던 프로바이더는 버린다", () => {
+  it("[MEM-1-1@2 S4] 받은 access · refresh 토큰은 localStorage 의 jin_access_token · jin_refresh_token 에 저장된다", async () => {
+    exchangeOk(false);
+    arrive("?code=c1");
+    render(<OauthCallbackPage />);
+
+    await vi.waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/home"));
+    expect(localStorage.getItem("jin_access_token")).toBe("a1");
+    expect(localStorage.getItem("jin_refresh_token")).toBe("r1");
+  });
+
+  it("[MEM-1-1@3 S2·R1] 코드가 없으면 /login?error=oauth 로 보내고, 대기 중이던 프로바이더는 버린다", () => {
     setPendingProvider("kakao");
     arrive("");
     render(<OauthCallbackPage />);
@@ -149,7 +159,7 @@ describe("OAuth 콜백", () => {
     expect(consumeAuthToast()).toBeNull();
   });
 
-  it("주소에 토큰이 바로 붙어 와도(예전 BE 방식) 저장하지 않고 /login?error=oauth 로 보내며, 주소창에서도 지운다", () => {
+  it("[MEM-1-1@2 R1] 주소에 토큰이 바로 붙어 와도(예전 BE 방식) 저장하지 않고 /login?error=oauth 로 보내며, 주소창에서도 지운다", () => {
     setPendingProvider("naver");
     arrive("?accessToken=a1&refreshToken=r1&needsNickname=false");
     render(<OauthCallbackPage />);

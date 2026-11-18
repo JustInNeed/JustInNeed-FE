@@ -52,7 +52,7 @@ const titles = () => screen.getAllByRole("heading", { level: 3 }).map((h) => h.t
 const stat = (label: string) => screen.getByText(label, { selector: ".statL" }).previousElementSibling?.textContent;
 
 describe("다른 사용자 프로필 세션 탭", () => {
-  it("핀고정한 세션만이 아니라 공개 세션 전부를 응답 순서대로 보여준다", async () => {
+  it("[COM-1-6 S2] 핀고정한 세션만이 아니라 공개 세션 전부를 응답 순서대로 보여준다", async () => {
     serveProfile();
     const queries = serveSessions([PINNED, PLAIN]);
     const { user } = renderPersonal(<OtherProfile id="7" />);
@@ -75,7 +75,7 @@ describe("다른 사용자 프로필 세션 탭", () => {
     expect(screen.queryByText("옛 핀 세션")).not.toBeInTheDocument();
   });
 
-  it("핀 표시는 고정한 세션에만 붙고 비공개 표시는 붙지 않는다", async () => {
+  it("[COM-1-6 S2·R1] 핀 표시는 고정한 세션에만 붙고 비공개 표시는 붙지 않는다", async () => {
     serveProfile();
     serveSessions([PINNED, PLAIN]);
     const { user } = renderPersonal(<OtherProfile id="7" />);
@@ -87,7 +87,7 @@ describe("다른 사용자 프로필 세션 탭", () => {
     expect(screen.queryByText("비공개")).not.toBeInTheDocument();
   });
 
-  it("마인드맵 탭도 고정한 카드에만 핀 표시가 붙는다", async () => {
+  it("[X-OPRF-02 S1] 마인드맵 탭도 고정한 카드에만 핀 표시가 붙는다", async () => {
     serveProfile(API_PROFILE, [apiCard({ mindmapId: 1, title: "고정한 카드", isPinned: true }), apiCard({ mindmapId: 2, title: "그냥 카드" })]);
     serveSessions([]);
     renderPersonal(<OtherProfile id="7" />);
@@ -97,7 +97,7 @@ describe("다른 사용자 프로필 세션 탭", () => {
     expect(within(await cardOf("그냥 카드")).queryByRole("img", { name: PIN })).not.toBeInTheDocument();
   });
 
-  it("세션 수는 받은 목록 길이가 아니라 응답의 sharedSessionCount 다", async () => {
+  it("[COM-1-6 S2] 세션 수는 받은 목록 길이가 아니라 응답의 sharedSessionCount 다", async () => {
     serveProfile({ ...API_PROFILE, sharedSessionCount: 25 });
     serveSessions([PINNED, PLAIN]);
     const { user } = renderPersonal(<OtherProfile id="7" />);
@@ -176,7 +176,7 @@ describe("다른 사용자 프로필 세션 탭", () => {
     expect(requested).toEqual(["0", "1", "1"]);
   });
 
-  it("URL 만 공개한 세션은 제목 자리에 해시태그, 없으면 안내 문구가 보이고 핀 표시는 그대로다", async () => {
+  it("[COM-1-6 S4] URL 만 공개한 세션은 제목 자리에 해시태그, 없으면 안내 문구가 보이고 핀 표시는 그대로다", async () => {
     serveProfile();
     serveSessions(API_SHARED_SESSIONS);
     const { user } = renderPersonal(<OtherProfile id="7" />);
@@ -192,7 +192,7 @@ describe("다른 사용자 프로필 세션 탭", () => {
   it.each([
     ["고정한", PINNED],
     ["고정하지 않은", PLAIN],
-  ])("%s 세션을 누르면 그 세션 상세로 이동한다", async (_, target) => {
+  ])("[COM-1-6 S3] %s 세션을 누르면 그 세션 상세로 이동한다", async (_, target) => {
     serveProfile();
     serveSessions([PINNED, PLAIN]);
     const { user } = renderPersonal(<OtherProfile id="7" />);
@@ -203,7 +203,7 @@ describe("다른 사용자 프로필 세션 탭", () => {
     expect(mockRouter.push).toHaveBeenCalledWith(`/sessions/${target.id}`);
   });
 
-  it("공개 세션이 없으면 빈 상태가 보인다", async () => {
+  it("[COM-1-6 S6] 공개 세션이 없으면 빈 상태가 보인다", async () => {
     serveProfile({ ...API_PROFILE, sharedSessionCount: 0 });
     serveSessions([]);
     const { user } = renderPersonal(<OtherProfile id="7" />);

@@ -4,12 +4,12 @@ import { FOREIGN_DETAIL, LINK_ONLY_DETAIL, PARIS_DETAIL } from "@/test/fixtures/
 import { renderDetail } from "./sessionDetailTestUtils";
 
 describe("세션 상세 — 다른 사람의 공개 세션 (읽기 전용)", () => {
-  it.each(["즐겨찾기", "공개", "비공개", "편집", "삭제", "추가"])("'%s' 버튼이 없다", async (name) => {
+  it.each(["즐겨찾기", "공개", "비공개", "편집", "삭제", "추가"])("[X-SDT-01 S2] [REC-11 R2] '%s' 버튼이 없다", async (name) => {
     await renderDetail(FOREIGN_DETAIL);
     expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
   });
 
-  it("해시태그는 보이지만 지우거나 끌어서 옮길 수 없다", async () => {
+  it("[X-SDT-01 S2] 해시태그는 보이지만 지우거나 끌어서 옮길 수 없다", async () => {
     await renderDetail(FOREIGN_DETAIL);
     for (const tag of FOREIGN_DETAIL.tags) expect(screen.getByText(`# ${tag}`)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /삭제$/ })).not.toBeInTheDocument();
@@ -17,7 +17,7 @@ describe("세션 상세 — 다른 사람의 공개 세션 (읽기 전용)", () 
     expect(document.querySelector("[draggable='true']")).not.toBeInTheDocument();
   });
 
-  it("본문 · 출처 · 마인드맵 탭 · 복사 · .md 는 그대로 있다", async () => {
+  it("[X-SDT-01 S2] 본문 · 출처 · 마인드맵 탭 · 복사 · .md 는 그대로 있다", async () => {
     await renderDetail(FOREIGN_DETAIL);
     expect(screen.getByRole("heading", { level: 2, name: "루브르" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "출처 (2)" })).toBeInTheDocument();
@@ -79,14 +79,14 @@ describe("세션 상세 — 작성자가 원문 URL만 공개한 세션", () => 
     expect(screen.getByRole("button", { name: "마인드맵 보기" })).toBeInTheDocument();
   });
 
-  it("제목 대신 안내를 보여주고 본문 자리에 링크만 공개됐다고 알린다", async () => {
+  it("[X-SDT-01 S3] 제목 대신 안내를 보여주고 본문 자리에 링크만 공개됐다고 알린다", async () => {
     await renderDetail(LINK_ONLY_DETAIL);
     expect(screen.getByRole("heading", { level: 1, name: "원문 링크만 공개된 세션" })).toBeInTheDocument();
     expect(screen.getByText("작성자가 원문 링크만 공개했어요.")).toBeInTheDocument();
     expect(screen.queryByText("요약 본문이 없습니다.")).not.toBeInTheDocument();
   });
 
-  it("출처는 도메인과 링크로 보이고 마인드맵 탭 · 복사 · .md 는 없다", async () => {
+  it("[X-SDT-01 S3] 출처는 도메인과 링크로 보이고 마인드맵 탭 · 복사 · .md 는 없다", async () => {
     await renderDetail(LINK_ONLY_DETAIL);
     expect(screen.getByRole("heading", { name: `출처 (${LINK_ONLY_DETAIL.sources!.length})` })).toBeInTheDocument();
     for (const { url } of LINK_ONLY_DETAIL.sources!) expect(document.querySelector(`a[href="${url}"]`)).toBeInTheDocument();

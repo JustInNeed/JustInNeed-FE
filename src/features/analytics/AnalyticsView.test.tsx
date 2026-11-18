@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, within } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { UseApiResult } from "@/lib/hooks/useApi";
 import {
@@ -60,7 +61,7 @@ describe("롤링 배너", () => {
     vi.useRealTimers();
   });
 
-  it("'이번 주 인사이트'는 난수로 고른 이번 주 세션의 제목 · 날짜 · 길이 · 해시태그를 보여준다", () => {
+  it("[X-ANA-01 S2] '이번 주 인사이트'는 난수로 고른 이번 주 세션의 제목 · 날짜 · 길이 · 해시태그를 보여준다", () => {
     setup();
     expect(screen.getByText("이번 주 인사이트")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "유레일패스 vs 개별 구매" })).toBeInTheDocument();
@@ -71,14 +72,14 @@ describe("롤링 배너", () => {
     expect(dot(1)).toHaveAttribute("aria-current", "true");
   });
 
-  it("인사이트 해시태그는 앞의 3개까지만 보여준다", () => {
+  it("[X-ANA-01 S2] 인사이트 해시태그는 앞의 3개까지만 보여준다", () => {
     setup({}, sequence(0));
     expect(screen.getByRole("heading", { name: "로마 3박 4일 동선 짜기" })).toBeInTheDocument();
     expect(screen.getByText("1시간 34분")).toBeInTheDocument();
     expect(Array.from(document.querySelectorAll(".bannerTag")).map((el) => el.textContent)).toEqual(["# 로마", "# 콜로세움", "# 바티칸"]);
   });
 
-  it("웹 서핑 팁과 추천 행동도 각 목록에서 난수로 하나씩 고른다", async () => {
+  it("[X-ANA-01 S1] [ANA-1-4 S2] 웹 서핑 팁과 추천 행동도 각 목록에서 난수로 하나씩 고른다", async () => {
     const { user } = setup();
     await user.click(dot(2));
     expect(screen.getByText("오늘의 웹 서핑 팁")).toBeInTheDocument();
@@ -97,7 +98,7 @@ describe("롤링 배너", () => {
     expect(screen.getByRole("heading", { name: "프라하 1박 일정 짜기" })).toBeInTheDocument();
   });
 
-  it("5초마다 다음 슬라이드로 넘어가고, 마지막 다음엔 처음으로 돌아온다", () => {
+  it("[X-ANA-01 S1] 5초마다 다음 슬라이드로 넘어가고, 마지막 다음엔 처음으로 돌아온다", () => {
     vi.useFakeTimers();
     setup();
     expect(screen.getByText("이번 주 인사이트")).toBeInTheDocument();
@@ -113,7 +114,7 @@ describe("롤링 배너", () => {
     expect(dot(1)).toHaveAttribute("aria-current", "true");
   });
 
-  it("마우스를 배너에 올려 두면 넘어가지 않고, 떼면 5초 뒤 다시 넘어간다 (QA-037)", () => {
+  it("[X-ANA-01 S4] 마우스를 배너에 올려 두면 넘어가지 않고, 떼면 5초 뒤 다시 넘어간다 (QA-037)", () => {
     vi.useFakeTimers();
     setup();
     const banner = screen.getByText("이번 주 인사이트").closest<HTMLElement>(".banner")!;
@@ -129,7 +130,7 @@ describe("롤링 배너", () => {
     expect(screen.getByText("오늘의 웹 서핑 팁")).toBeInTheDocument();
   });
 
-  it("키보드 포커스가 배너 안 점에 있으면 넘어가지 않고, 포커스가 배너 밖으로 나가면 다시 넘어간다 (QA-037)", () => {
+  it("[X-ANA-01 S4] 키보드 포커스가 배너 안 점에 있으면 넘어가지 않고, 포커스가 배너 밖으로 나가면 다시 넘어간다 (QA-037)", () => {
     vi.useFakeTimers();
     setup();
     act(() => dot(2).focus());
@@ -147,14 +148,14 @@ describe("롤링 배너", () => {
     expect(screen.getByText("오늘의 웹 서핑 팁")).toBeInTheDocument();
   });
 
-  it("이번 주 세션이 없으면 인사이트 없이 팁 · 추천 두 장만 보여준다", () => {
+  it("[X-ANA-01 S3] 이번 주 세션이 없으면 인사이트 없이 팁 · 추천 두 장만 보여준다", () => {
     setup({ weekSessions: ready({ sessions: [] }) });
     expect(screen.queryByText("이번 주 인사이트")).not.toBeInTheDocument();
     expect(screen.getByText("오늘의 웹 서핑 팁")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^슬라이드/ })).toHaveLength(2);
   });
 
-  it("보여줄 후보가 하나도 없으면 배너를 그리지 않는다", () => {
+  it("[X-ANA-01 S3] 보여줄 후보가 하나도 없으면 배너를 그리지 않는다", () => {
     renderPersonal(
       <AnalyticsView
         cards={{ ...CARDS, weekSessions: ready({ sessions: [] }), recommendations: ready({ recommendations: [] }) }}
@@ -163,6 +164,38 @@ describe("롤링 배너", () => {
     );
     expect(screen.queryByRole("button", { name: /^슬라이드/ })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "탐색 성향" })).toBeInTheDocument();
+  });
+
+  it("[ANA-5 S1] '오늘의 웹 서핑 팁'은 큰따옴표 검색 · -제외어 · site: 팁 3개 중 난수로 고른 하나다", async () => {
+    expect(SURFING_TIPS).toHaveLength(3);
+    expect(SURFING_TIPS[0].title).toContain('"키워드"');
+    expect(SURFING_TIPS[1].title).toContain("-제외어");
+    expect(SURFING_TIPS[2].title).toContain("site:github.com");
+
+    for (const [r, k] of [[0, 0], [0.5, 1], [0.99, 2]] as const) {
+      const { user, unmount } = setup({}, sequence(0, r, 0));
+      await user.click(dot(2));
+      expect(screen.getByText("오늘의 웹 서핑 팁")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: SURFING_TIPS[k].title })).toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it("[ANA-5 R1] 서버 렌더에서는 난수를 쓰지 않고, 화면에 붙은 뒤에 팁을 고른다", () => {
+    const random = vi.fn(() => 0.99);
+    renderToString(<AnalyticsView cards={CARDS} random={random} />);
+    expect(random).not.toHaveBeenCalled();
+
+    renderPersonal(<AnalyticsView cards={CARDS} random={random} />);
+    expect(random).toHaveBeenCalled();
+  });
+
+  it("[ANA-1-4 R1] 추천 행동이 없으면 '오늘의 추천 행동' 슬라이드가 빠진다", async () => {
+    const { user } = setup({ recommendations: ready({ recommendations: [] }) });
+    expect(screen.getAllByRole("button", { name: /^슬라이드/ })).toHaveLength(2);
+    await user.click(dot(2));
+    expect(screen.getByText("오늘의 웹 서핑 팁")).toBeInTheDocument();
+    expect(screen.queryByText("오늘의 추천 행동")).not.toBeInTheDocument();
   });
 });
 
@@ -183,7 +216,7 @@ describe("분석 카드", () => {
     ]);
   });
 
-  it("탐색 성향 통계와 분석 · 추천 문구가 보인다", () => {
+  it("[ANA-4 S2] [ANA-2-3 S2] 탐색 성향 통계와 분석 · 추천 문구가 보인다", () => {
     setup();
     const card = cardOf("탐색 성향");
     const rows = Array.from(card.querySelectorAll(".statRow")).map((r) => r.textContent);
@@ -192,13 +225,13 @@ describe("분석 카드", () => {
     expect(within(card).getByText(EXPLORATION.note.recommendation!)).toBeInTheDocument();
   });
 
-  it("체류 시간은 1분이 넘으면 분 · 초로, 세션 길이는 1시간이 안 되면 분으로 보인다", () => {
+  it("[ANA-4 S2] [ANA-2-3 S2] 체류 시간은 1분이 넘으면 분 · 초로, 세션 길이는 1시간이 안 되면 분으로 보인다", () => {
     setup({ exploration: ready({ ...EXPLORATION, avgUrlsPerSession: 3, avgDwellSec: 90, avgSessionMinutes: 39 }) });
     const rows = Array.from(cardOf("탐색 성향").querySelectorAll(".statRow")).map((r) => r.textContent);
     expect(rows).toEqual(["세션 평균 URL3개", "평균 페이지 체류1분 30초", "평균 세션 길이39분"]);
   });
 
-  it("읽기 행동 분포는 Deep Reading · Reading · Scanning · Idle 순서로 비율과 함께 보인다", () => {
+  it("[ANA-3-1 S1·R1] 읽기 행동 분포는 Deep Reading · Reading · Scanning · Idle 순서로 비율과 함께 보인다", () => {
     setup();
     const card = cardOf("읽기 행동 분포");
     const legend = Array.from(card.querySelectorAll(".legendRow")).map((r) => r.textContent);
@@ -207,7 +240,7 @@ describe("분석 카드", () => {
     expect(within(card).getByTitle("Idle 10%")).toHaveStyle({ width: "10%" });
   });
 
-  it("분석 문구의 **강조** 부분은 강조 글씨로, 표시 기호 없이 보인다", () => {
+  it("[ANA-3-2 S1·R1] 분석 문구의 **강조** 부분은 강조 글씨로, 표시 기호 없이 보인다", () => {
     setup();
     const strong = within(cardOf("읽기 행동 분포")).getByText("Deep Reading 비중 42%");
     expect(strong.tagName).toBe("STRONG");
@@ -215,7 +248,7 @@ describe("분석 카드", () => {
     expect(screen.queryByText(/\*\*/)).not.toBeInTheDocument();
   });
 
-  it("카테고리별 방문 비율이 비율 · 횟수와 막대 길이로 보인다", () => {
+  it("[ANA-1-1 S1] 카테고리별 방문 비율이 비율 · 횟수와 막대 길이로 보인다", () => {
     setup();
     const card = cardOf("카테고리별 방문 비율");
     const rows = Array.from(card.querySelectorAll(".catHead")).map((r) => r.textContent);
@@ -224,7 +257,7 @@ describe("분석 카드", () => {
     expect(within(card).getByText("블로그", { selector: "strong" })).toBeInTheDocument();
   });
 
-  it("히트맵 칸에 마우스를 올리면 요일 · 시간 · 비율 툴팁이 보인다", () => {
+  it("[ANA-2-4 S1] 히트맵 칸에 마우스를 올리면 요일 · 시간 · 비율 툴팁이 보인다", () => {
     setup();
     const surfing = heatBlock("활동이 많은 시간");
     const focus = heatBlock("정독 비율");
@@ -248,10 +281,62 @@ describe("분석 카드", () => {
     expect(within(focus).getByTitle("월 03시 — 0%")).toBeInTheDocument();
     expect(within(heatBlock("활동이 많은 시간")).getAllByTitle(/— 0%$/)).toHaveLength(56);
   });
+
+  it("[ANA-4 S2] 탐색 성향 카드는 부제 '매일 업데이트'이고, 집중 탐색이라 추천 문구가 없으면 추천 칸이 없다", () => {
+    const focused = { ...EXPLORATION, type: "FOCUSED" as const, note: { analysis: "하나의 주제에 대해 깊이 있게 탐색하는 방식입니다.", recommendation: null } };
+    setup({ exploration: ready(focused) });
+    const card = cardOf("탐색 성향");
+    expect(within(card).getByText("매일 업데이트")).toBeInTheDocument();
+    expect(within(card).getByText("분석")).toBeInTheDocument();
+    expect(within(card).getByText("하나의 주제에 대해 깊이 있게 탐색하는 방식입니다.")).toBeInTheDocument();
+    expect(within(card).queryByText("추천")).not.toBeInTheDocument();
+  });
+
+  it("[ANA-3-1 S1] 읽기 행동 분포 카드 부제는 '최근 7일 · 세션별 집중도'이다", () => {
+    setup();
+    expect(within(cardOf("읽기 행동 분포")).getByText("최근 7일 · 세션별 집중도")).toBeInTheDocument();
+  });
+
+  it("[ANA-1-1 S1] 카테고리별 방문 비율 카드 부제는 '최근 7일'이다", () => {
+    setup();
+    expect(within(cardOf("카테고리별 방문 비율")).getByText("최근 7일")).toBeInTheDocument();
+  });
+
+  it("[ANA-1-4 S2] 카테고리 카드 '추천' 칸에 첫 추천 행동의 제목 + 본문이 보인다", () => {
+    setup();
+    const card = cardOf("카테고리별 방문 비율");
+    expect(within(card).getByText("추천")).toBeInTheDocument();
+    expect(within(card).getByText(CATEGORIES.note.recommendation!)).toBeInTheDocument();
+  });
+
+  it("[ANA-1-4 R1] 카테고리 카드 추천 문구가 없으면 '추천' 칸이 없다", () => {
+    setup({ categories: ready({ ...CATEGORIES, note: { ...CATEGORIES.note, recommendation: null } }) });
+    expect(within(cardOf("카테고리별 방문 비율")).queryByText("추천")).not.toBeInTheDocument();
+  });
+
+  it("[ANA-2-4 S1] [ANA-2-5 S1] 시간대 카드에 '활동이 많은 시간'(본 분량 기준) · '정독 비율'(Deep + Reading) 히트맵이 월 ~ 일 × 00 ~ 21시로 보인다", () => {
+    setup();
+    expect(within(cardOf("시간대별 탐색 패턴")).getByText("최근 7일")).toBeInTheDocument();
+    const surfing = heatBlock("활동이 많은 시간");
+    const focus = heatBlock("정독 비율");
+    expect(within(surfing).getByText("본 분량 기준")).toBeInTheDocument();
+    expect(within(focus).getByText("Deep + Reading")).toBeInTheDocument();
+    for (const block of [surfing, focus]) {
+      const axis = Array.from(block.querySelectorAll(".heatAxis"), (el) => el.textContent);
+      expect(axis).toEqual(["00", "03", "06", "09", "12", "15", "18", "21", "월", "화", "수", "목", "금", "토", "일"]);
+    }
+  });
+
+  it("[ANA-2-5 R2] 시간대 카드 추천 문구가 없으면 '추천' 칸이 없다", () => {
+    setup({ timePatterns: ready({ ...TIME_PATTERNS, note: { ...TIME_PATTERNS.note, recommendation: null } }) });
+    const card = cardOf("시간대별 탐색 패턴");
+    expect(within(card).getByText("분석")).toBeInTheDocument();
+    expect(within(card).queryByText("추천")).not.toBeInTheDocument();
+  });
 });
 
 describe("카드별 불러오기", () => {
-  it("모든 카드에 데이터가 없으면 빈 상태 하나만 보이고 카드 · 배너는 그리지 않는다", () => {
+  it("[ANA-1-1 S4] [ANA-5 S2] 모든 카드에 데이터가 없으면 빈 상태 하나만 보이고 카드 · 배너는 그리지 않는다", () => {
     setup(NO_DATA);
     const empty = screen.getByRole("status");
     expect(empty).toHaveTextContent("아직 분석할 탐색 기록이 없어요.");
@@ -273,7 +358,7 @@ describe("카드별 불러오기", () => {
     expect(within(cardOf("읽기 행동 분포")).getByText("불러오는 중…")).toBeInTheDocument();
   });
 
-  it("한 카드가 실패해도 나머지 카드는 보이고, 그 카드만 다시 시도한다", async () => {
+  it("[ANA-1-1 S2] 한 카드가 실패해도 나머지 카드는 보이고, 그 카드만 다시 시도한다", async () => {
     const refetch = vi.fn();
     const { user } = setup({ categories: failed("서버 오류가 발생했습니다.", refetch) });
 
@@ -299,7 +384,7 @@ describe("카드별 불러오기", () => {
     expect(screen.queryByText("아직 분석할 탐색 기록이 없어요.")).not.toBeInTheDocument();
   });
 
-  it("그 카드에 데이터가 없으면 안내 문구가 보인다", () => {
+  it("[ANA-1-1 S3] [ANA-2-4 R1] 그 카드에 데이터가 없으면 안내 문구가 보인다", () => {
     setup({ timePatterns: noData() });
     expect(within(cardOf("시간대별 탐색 패턴")).getByText("아직 보여줄 데이터가 없어요.")).toBeInTheDocument();
   });

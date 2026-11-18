@@ -44,7 +44,7 @@ describe("dimmedNodeIds", () => {
     expect(dimmedNodeIds(graph, DEFAULT_GRAPH_FILTER).size).toBe(0);
   });
 
-  it("기간이 '오늘'이면 오늘 본 노드만 남고 이번 주 · 이번 달에 본 노드는 흐려진다", () => {
+  it("[X-HOME-03 S1] 기간이 '오늘'이면 오늘 본 노드만 남고 이번 주 · 이번 달에 본 노드는 흐려진다", () => {
     const dimmed = dimmedNodeIds(graph, filter({ period: "today" }));
     expect(dimmed.has("rome")).toBe(false);
     expect(dimmed.has("flight")).toBe(false);
@@ -52,7 +52,7 @@ describe("dimmedNodeIds", () => {
     expect(dimmed.has("barca")).toBe(true); // month
   });
 
-  it("기간이 '이번 주'면 오늘 · 이번 주에 본 노드는 남는다", () => {
+  it("[X-HOME-03 S1] 기간이 '이번 주'면 오늘 · 이번 주에 본 노드는 남는다", () => {
     const dimmed = dimmedNodeIds(graph, filter({ period: "week" }));
     expect(dimmed.has("rome")).toBe(false);
     expect(dimmed.has("paris")).toBe(false);
@@ -83,11 +83,11 @@ describe("dimmedNodeIds", () => {
     expect(dimmed.has("travel-blog")).toBe(true); // 로마지만 이번 주에 봄
   });
 
-  it("중심(core) 노드는 어떤 조건에도 흐려지지 않는다", () => {
+  it("[X-HOME-03 R2] 중심(core) 노드는 어떤 조건에도 흐려지지 않는다", () => {
     expect(dimmedNodeIds(graph, { period: "today", groupIds: [2], tags: ["바르셀로나"] }).has("eu")).toBe(false);
   });
 
-  it("30일이 지난 노드(seen: all)는 기간 '전체'에서만 보인다", () => {
+  it("[X-HOME-03 S1] 30일이 지난 노드(seen: all)는 기간 '전체'에서만 보인다", () => {
     const nodeMeta = { ...graph.nodeMeta, rome: { seen: "all" as const, tags: ["로마"] } };
     const dimmedIn = (period: GraphFilter["period"]) => dimmedNodeIds({ ...graph, nodeMeta }, filter({ period })).has("rome");
     expect(dimmedIn("today")).toBe(true);
@@ -107,7 +107,7 @@ describe("해시태그 대소문자", () => {
   const nodeMeta = { rome: { seen: "today" as const, tags: ["FetchJoin"] } };
   const nodes = [node("rome")];
 
-  it("같은 태그의 다른 표기도 해시태그 필터에 걸린다", () => {
+  it("[X-HOME-03 S2] 같은 태그의 다른 표기도 해시태그 필터에 걸린다", () => {
     expect(dimmedNodeIds({ ...graph, nodes, nodeMeta }, filter({ tags: ["fetchJOIN"] })).has("rome")).toBe(false);
   });
 
@@ -133,7 +133,7 @@ describe("searchGraph", () => {
     expect(searchGraph("   ", graph.nodes, graph.edges, sessions)).toEqual([]);
   });
 
-  it("라벨이 맞는 노드를 먼저, 제목이 맞는 세션을 그다음에 돌려준다", () => {
+  it("[X-HOME-04 S1] 라벨이 맞는 노드를 먼저, 제목이 맞는 세션을 그다음에 돌려준다", () => {
     const results = searchGraph("로마", graph.nodes, graph.edges, sessions);
     expect(results.map((r) => (r.kind === "node" ? r.node.id : r.session.id))).toEqual(["rome", 9001, 9002]);
   });
@@ -143,7 +143,7 @@ describe("searchGraph", () => {
     expect(first).toMatchObject({ kind: "node", links: 6 });
   });
 
-  it("대소문자와 앞뒤 공백을 무시한다", () => {
+  it("[X-HOME-04 S1] 대소문자와 앞뒤 공백을 무시한다", () => {
     const results = searchGraph("  kAyAk ", graph.nodes, graph.edges, sessions);
     expect(results).toHaveLength(1);
     expect(results[0]).toMatchObject({ kind: "node", node: { id: "kayak" } });
@@ -179,7 +179,7 @@ describe("relatedSession", () => {
       [id]: { ...graph.nodeMeta[id], sessionId },
     });
 
-    it("해시태그 점수와 상관없이 그 세션을 고른다", () => {
+    it("[X-HOME-02 S1] 해시태그 점수와 상관없이 그 세션을 고른다", () => {
       // 태그로만 보면 9001 이 맞는 노드
       expect(relatedSession(node("rome"), withSession("rome", 9006), sessions)?.id).toBe(9006);
     });
@@ -188,7 +188,7 @@ describe("relatedSession", () => {
       expect(relatedSession(node("packing"), withSession("packing", 9004), sessions)?.id).toBe(9004);
     });
 
-    it("목록에 없는 세션이면 해시태그 기준으로 찾는다", () => {
+    it("[X-HOME-02 S2] 목록에 없는 세션이면 해시태그 기준으로 찾는다", () => {
       expect(relatedSession(node("rome"), withSession("rome", 1234), sessions)?.id).toBe(9001);
     });
 

@@ -30,7 +30,7 @@ describe("설정 페이지", () => {
     expect(shownUrls()).toEqual(["instagram.com", "mail.google.com", "tistory.com/feed", "twitter.com"]);
   });
 
-  it("확장 프로그램 탭에는 불러온 설정값이 보인다", async () => {
+  it("[X-SET-03 S2] 확장 프로그램 탭에는 불러온 설정값이 보인다", async () => {
     const { user } = renderPersonal(<SettingsPage />);
     await screen.findByText("twitter.com", { selector: ".exUrl" });
     await user.click(screen.getByRole("button", { name: "확장 프로그램" }));
@@ -39,7 +39,35 @@ describe("설정 페이지", () => {
     expect(screen.getByRole("switch", { name: "자동 종료 알림" })).toHaveAttribute("aria-checked", "true");
   });
 
-  it("목록을 불러오지 못하면 오류를 보여주고, 다시 시도하면 불러온다", async () => {
+  it("[MEM-5-1 S1] 처음 연 회원은 기본 URL 5개가 체크된 채 '기본' 표시와 함께 보이고 삭제 버튼은 없다", async () => {
+    const defaults = ["instagram.com", "mail.google.com", "youtube.com/shorts", "twitter.com", "tiktok.com"];
+    server.use(
+      http.get(URLS, () =>
+        ok({
+          code: 200,
+          excludedUrls: defaults.map((url, i) => ({
+            excludedUrlId: i + 1,
+            url,
+            domain: url.split("/")[0],
+            isDefault: true,
+            isExcluded: true,
+          })),
+        }),
+      ),
+    );
+    renderPersonal(<SettingsPage />);
+
+    await screen.findByText("instagram.com", { selector: ".exUrl" });
+    expect(shownUrls()).toEqual(["instagram.com", "mail.google.com", "tiktok.com", "twitter.com", "youtube.com/shorts"]);
+    for (const url of defaults) {
+      const line = screen.getByText(url, { selector: ".exUrl" }).closest("label") as HTMLElement;
+      expect(within(line).getByRole("checkbox")).toBeChecked();
+      expect(within(line).getByText("기본")).toBeInTheDocument();
+      expect(within(line).queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
+    }
+  });
+
+  it("[MEM-5-1 S6] 목록을 불러오지 못하면 오류를 보여주고, 다시 시도하면 불러온다", async () => {
     server.use(http.get(URLS, () => fail(500, SERVER_ERROR), { once: true }));
     const { user } = renderPersonal(<SettingsPage />);
 
@@ -50,7 +78,7 @@ describe("설정 페이지", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("확장 설정을 불러오지 못해도 수집 제외 목록은 보이고, 탭에서 다시 시도할 수 있다", async () => {
+  it("[X-SET-03 S3] 확장 설정을 불러오지 못해도 수집 제외 목록은 보이고, 탭에서 다시 시도할 수 있다", async () => {
     server.use(http.get(EXTENSION, () => fail(500, SERVER_ERROR), { once: true }));
     const { user } = renderPersonal(<SettingsPage />);
     await screen.findByText("twitter.com", { selector: ".exUrl" });

@@ -67,7 +67,7 @@ async function sessionTabTitles(user: ReturnType<typeof renderPersonal>["user"])
 const REST = [9006, 9007].map(titleOf);
 
 describe("프로필 수정", () => {
-  it("지금 프로필 값으로 채워져 열린다", async () => {
+  it("[COM-1-7 S1] [COM-1-1 S1] [COM-1-2 S1] [COM-1-3@2 S1] [COM-1-5 S1] 지금 프로필 값으로 채워져 열린다", async () => {
     await openEdit();
 
     expect(screen.getByDisplayValue("yesong")).toBeInTheDocument(); // 닉네임은 로그인 회원 기준
@@ -91,7 +91,15 @@ describe("프로필 수정", () => {
   });
 
   describe("소개", () => {
-    it("120자까지만 입력되고 저장하면 프로필에 그대로 보인다", async () => {
+    it("[X-PRF-05 S1] 소개 칸에 '120자 이내' 힌트가 보인다", async () => {
+      await openEdit();
+
+      const bio = screen.getByDisplayValue(MY_PROFILE.bio);
+      expect(bio).toHaveAttribute("maxlength", "120");
+      expect(screen.getByText("120자 이내")).toBeInTheDocument();
+    });
+
+    it("[X-PRF-05 S1·S2] 120자까지만 입력되고 저장하면 프로필에 그대로 보인다", async () => {
       const { user } = await openEdit();
       const bio = screen.getByDisplayValue(MY_PROFILE.bio);
 
@@ -105,7 +113,7 @@ describe("프로필 수정", () => {
   });
 
   describe("관심 해시태그", () => {
-    it("입력하고 Enter 를 누르면 '#' 을 붙여 추가되고 입력칸이 비워진다", async () => {
+    it("[COM-1-7 S1·S2] 입력하고 Enter 를 누르면 '#' 을 붙여 추가되고 입력칸이 비워진다", async () => {
       const { user } = await openEdit();
 
       await user.type(tagInput(), "여행{Enter}");
@@ -115,7 +123,7 @@ describe("프로필 수정", () => {
       expect(screen.getByText("최대 10개까지 등록할 수 있어요. (6/10)")).toBeInTheDocument();
     });
 
-    it("한글 조합 중에 누른 Enter 는 무시해 마지막 글자가 두 번 들어가지 않는다", async () => {
+    it("[COM-1-7 S2] 한글 조합 중에 누른 Enter 는 무시해 마지막 글자가 두 번 들어가지 않는다", async () => {
       const { user } = await openEdit();
 
       await user.type(tagInput(), "여행");
@@ -126,7 +134,7 @@ describe("프로필 수정", () => {
       expect(interestChips()).toEqual([...MY_PROFILE.interests, "# 여행"]);
     });
 
-    it("추가 버튼으로도 추가되고 '#' 을 붙여 입력해도 한 번만 붙는다", async () => {
+    it("[COM-1-7 S2] 추가 버튼으로도 추가되고 '#' 을 붙여 입력해도 한 번만 붙는다", async () => {
       const { user } = await openEdit();
 
       await user.type(tagInput(), "# 카페");
@@ -141,7 +149,7 @@ describe("프로필 수정", () => {
       ["10자를 넘으면", "가나다라마바사아자차카", "최대 10자까지 입력할 수 있어요."],
       ["대소문자만 다른 같은 태그가 있으면", "hci", "이미 추가된 해시태그입니다."],
       ["비어 있으면", "   ", "내용을 입력해주세요."],
-    ])("%s 입력칸 아래 오류가 보이고 추가되지 않는다", async (_, input, message) => {
+    ])("[COM-1-7 S3] %s 입력칸 아래 오류가 보이고 추가되지 않는다", async (_, input, message) => {
       const { user } = await openEdit();
 
       await user.type(tagInput(), input);
@@ -163,7 +171,7 @@ describe("프로필 수정", () => {
       expect(tagInput()).not.toHaveAttribute("aria-invalid");
     });
 
-    it("10개가 차면 추가 버튼이 비활성화되고 Enter 로도 더 추가되지 않는다", async () => {
+    it("[COM-1-7 S3·S4] 10개가 차면 추가 버튼이 비활성화되고 Enter 로도 더 추가되지 않는다", async () => {
       const { user } = await openEdit();
 
       for (const t of ["여행", "카페", "사진", "박물관", "기차"]) await user.type(tagInput(), `${t}{Enter}`);
@@ -175,7 +183,19 @@ describe("프로필 수정", () => {
       expect(interestChips()).toHaveLength(10);
     });
 
-    it("칩을 누르면 빠지고, 10개에서 하나를 빼면 다시 추가할 수 있다", async () => {
+    it("[COM-1-8 S1] 오류가 보이는 중에 칩을 눌러 지우면 개수가 줄고 오류 문구도 지워진다", async () => {
+      const { user } = await openEdit();
+      await user.type(tagInput(), "여행!{Enter}");
+      expect(screen.getByRole("alert")).toHaveTextContent("한글·영문·숫자만 사용할 수 있어요.");
+
+      await user.click(screen.getByRole("button", { name: /^# 독서/ }));
+
+      expect(interestChips()).not.toContain("# 독서");
+      expect(screen.getByText("최대 10개까지 등록할 수 있어요. (4/10)")).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("[COM-1-8 S1] 칩을 누르면 빠지고, 10개에서 하나를 빼면 다시 추가할 수 있다", async () => {
       const { user } = await openEdit();
       for (const t of ["여행", "카페", "사진", "박물관", "기차"]) await user.type(tagInput(), `${t}{Enter}`);
 
@@ -187,7 +207,18 @@ describe("프로필 수정", () => {
     });
   });
 
-  it("노드 공개 범위를 바꿔 저장하면 다시 열었을 때 그 값이 선택돼 있다", async () => {
+  it("[COM-1-1 S1] 노드 공개 범위는 설명이 붙은 라디오 두 개다", async () => {
+    await openEdit();
+
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(2);
+    const urlOnly = screen.getByRole("radio", { name: /원문 URL만 공개/ }).closest("label")!;
+    const content = screen.getByRole("radio", { name: /내용까지 공개/ }).closest("label")!;
+    expect(urlOnly).toHaveTextContent("리프 노드 클릭 시 출처 URL로 이동만 허용 (기본값)");
+    expect(content).toHaveTextContent("내용이 리프 노드로 노출됩니다");
+  });
+
+  it("[COM-1-1 S2] 노드 공개 범위를 바꿔 저장하면 다시 열었을 때 그 값이 선택돼 있다", async () => {
     const { user } = await openEdit();
 
     await user.click(screen.getByRole("radio", { name: /내용까지 공개/ }));
@@ -199,7 +230,7 @@ describe("프로필 수정", () => {
     expect(screen.getByRole("radio", { name: /내용까지 공개/ })).toBeChecked();
   });
 
-  it("해시태그 공개 토글을 바꿔 저장하면 비공개 태그만 내 프로필에서 잠금 표시된다", async () => {
+  it("[COM-1-2 S1·S3] 해시태그 공개 토글을 바꿔 저장하면 비공개 태그만 내 프로필에서 잠금 표시된다", async () => {
     const { user } = await openEdit();
 
     await user.click(screen.getByRole("switch", { name: "# 파리" }));
@@ -214,7 +245,7 @@ describe("프로필 수정", () => {
   });
 
   describe("핀고정 세션", () => {
-    it("세션을 체크하면 핀고정 목록 끝에 붙고, 저장하면 세션 탭 맨 앞에 그 순서로 보인다 — 공유 세션 수는 그대로", async () => {
+    it("[COM-1-3@2 S2·R2] 세션을 체크하면 핀고정 목록 끝에 붙고, 저장하면 세션 탭 맨 앞에 그 순서로 보인다 — 공유 세션 수는 그대로", async () => {
       const { user } = await openEdit();
 
       await user.click(pinCheckbox(9004));
@@ -225,7 +256,7 @@ describe("프로필 수정", () => {
       expect(await sessionTabTitles(user)).toEqual([...[9001, 9003, 9002, 9005, 9004].map(titleOf), ...REST]);
     });
 
-    it("핀고정 세션을 끌어다 놓으면 순서가 바뀌고, 저장하면 세션 탭 순서도 바뀐다", async () => {
+    it("[COM-1-5 S2] 핀고정 세션을 끌어다 놓으면 순서가 바뀌고, 저장하면 세션 탭 순서도 바뀐다", async () => {
       const { user } = await openEdit();
       const dataTransfer = { effectAllowed: "none", dropEffect: "none" };
 
@@ -244,14 +275,14 @@ describe("프로필 수정", () => {
       expect(await sessionTabTitles(user)).toEqual([...[9002, 9001, 9003, 9005, 9004].map(titleOf), ...REST]);
     });
 
-    it("핀고정되지 않은 세션은 끌어 옮길 수 없다", async () => {
+    it("[COM-1-5 R1] 핀고정되지 않은 세션은 끌어 옮길 수 없다", async () => {
       await openEdit();
 
       expect(pinRow(9001)).toHaveAttribute("draggable", "true");
       expect(pinRow(9004)).not.toHaveAttribute("draggable");
     });
 
-    it("핀고정을 해제하면 확인 팝업이 뜨고 해제를 누르면 고정만 풀리고 공개 세션으로 남는다", async () => {
+    it("[COM-1-4 S1·S2·R1] 핀고정을 해제하면 확인 팝업이 뜨고 해제를 누르면 고정만 풀리고 공개 세션으로 남는다", async () => {
       const { user } = await openEdit();
 
       await user.click(pinCheckbox(9003));
@@ -270,7 +301,7 @@ describe("프로필 수정", () => {
       expect(screen.getAllByTitle("핀고정됨")).toHaveLength(3);
     });
 
-    it("확인 팝업에서 취소를 누르면 핀고정이 그대로 남는다", async () => {
+    it("[COM-1-4 S3] 확인 팝업에서 취소를 누르면 핀고정이 그대로 남는다", async () => {
       const { user } = await openEdit();
 
       await user.click(pinCheckbox(9003));
@@ -280,7 +311,7 @@ describe("프로필 수정", () => {
       expect(pinnedTitles()).toEqual([9001, 9003, 9002, 9005].map(titleOf));
     });
 
-    it("확인 팝업은 Esc 나 바깥을 눌러도 닫히고 핀고정은 그대로다", async () => {
+    it("[COM-1-4 S3] 확인 팝업은 Esc 나 바깥을 눌러도 닫히고 핀고정은 그대로다", async () => {
       const { user } = await openEdit();
 
       await user.click(pinCheckbox(9003));
@@ -295,7 +326,7 @@ describe("프로필 수정", () => {
     });
   });
 
-  it("저장하면 바꾼 소개 · 관심 해시태그가 프로필에 반영되고 저장 토스트가 뜬다", async () => {
+  it("[X-PRF-05 S2] [COM-1-8 S2] [X-PRF-06 S1] 저장하면 바꾼 소개 · 관심 해시태그가 프로필에 반영되고 저장 토스트가 뜬다", async () => {
     const { user, updateMember } = await openEdit();
 
     const bio = screen.getByDisplayValue(MY_PROFILE.bio);
@@ -314,7 +345,7 @@ describe("프로필 수정", () => {
     expect(updateMember).not.toHaveBeenCalled();
   });
 
-  it("취소하면 바꾼 내용은 버려지고 다시 열어도 원래 값이다", async () => {
+  it("[X-PRF-06 S3] [COM-1-8 R1] 취소하면 바꾼 내용은 버려지고 다시 열어도 원래 값이다", async () => {
     const { user, server: fake } = await openEdit();
 
     const bio = screen.getByDisplayValue(MY_PROFILE.bio);
@@ -338,7 +369,7 @@ describe("프로필 수정", () => {
   });
 
   describe("닉네임", () => {
-    it("형식이 틀리면 입력칸 아래 오류가 보이고 저장 버튼이 비활성화된다", async () => {
+    it("[X-PRF-06 S4] 형식이 틀리면 입력칸 아래 오류가 보이고 저장 버튼이 비활성화된다", async () => {
       const { user } = await openEdit();
       const nickname = screen.getByDisplayValue("yesong");
 
@@ -354,7 +385,7 @@ describe("프로필 수정", () => {
       expect(saveButton()).toBeEnabled();
     });
 
-    it("규칙이 생기기 전 닉네임은 안 바꾸면 그대로 두고 저장할 수 있다", async () => {
+    it("[MEM-4 S7] 규칙이 생기기 전 닉네임은 안 바꾸면 그대로 두고 저장할 수 있다", async () => {
       serveMyProfile();
       const { user } = renderPersonal(<MyProfile />, { member: { ...MEMBER, nickname: "냥집사" } });
       await clickEdit(user);
@@ -367,7 +398,7 @@ describe("프로필 수정", () => {
       expect(saveButton()).toBeDisabled();
     });
 
-    it("바꿔 저장하면 닉네임 변경 API 로 저장되고 프로필 이름 · 핸들이 새 닉네임으로 바뀐다", async () => {
+    it("[X-PRF-01 R1] 바꿔 저장하면 닉네임 변경 API 로 저장되고 프로필 이름 · 핸들이 새 닉네임으로 바뀐다", async () => {
       let body: unknown;
       server.use(
         http.patch(`${API}/members/me/nickname`, async ({ request }) => {
@@ -402,7 +433,7 @@ describe("프로필 수정", () => {
       expect(body).toEqual({ nickname: "sprout" });
     });
 
-    it("저장 중에는 버튼이 저장 중… 으로 바뀌고 저장 · 취소를 누를 수 없다", async () => {
+    it("[X-PRF-06 S1] 저장 중에는 버튼이 저장 중… 으로 바뀌고 저장 · 취소를 누를 수 없다", async () => {
       let release!: () => void;
       server.use(
         http.patch(`${API}/members/me/nickname`, async () => {
@@ -424,7 +455,7 @@ describe("프로필 수정", () => {
       expect(await screen.findByText("프로필을 저장했어요.")).toBeInTheDocument();
     });
 
-    it("이미 쓰는 닉네임이면(409) 입력칸 아래 서버 메시지가 보이고 수정 화면이 유지된다", async () => {
+    it("[MEM-4 S6] 이미 쓰는 닉네임이면(409) 입력칸 아래 서버 메시지가 보이고 수정 화면이 유지된다", async () => {
       server.use(http.patch(`${API}/members/me/nickname`, () => fail(409, "이미 사용 중인 닉네임입니다.")));
       const { user, updateMember, server: fake } = await openEdit();
       const nickname = screen.getByDisplayValue("yesong");

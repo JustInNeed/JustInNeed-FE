@@ -25,7 +25,7 @@ async function changeTitle(user: Awaited<ReturnType<typeof startEditing>>["user"
 }
 
 describe("세션 상세 — 편집 모드", () => {
-  it("편집을 누르면 제목 입력칸과 마크다운 원문 입력칸이 지금 값으로 열린다", async () => {
+  it("[REC-5-1 S1] [REC-5-2 S1] 편집을 누르면 제목 입력칸과 마크다운 원문 입력칸이 지금 값으로 열린다", async () => {
     await startEditing();
     expect(titleInput()).toHaveValue("로마 3박 4일 동선 짜기");
     expect(titleInput()).toHaveAttribute("maxLength", "100");
@@ -50,7 +50,7 @@ describe("세션 상세 — 편집 모드", () => {
     expect(screen.getAllByRole("textbox")).toHaveLength(2); // 제목 · 본문
   });
 
-  it("마인드맵을 보다가 편집을 누르면 줄글 편집으로 바뀐다", async () => {
+  it("[REC-5-2 S1] 마인드맵을 보다가 편집을 누르면 줄글 편집으로 바뀐다", async () => {
     vi.spyOn(window, "requestAnimationFrame").mockReturnValue(0);
     const { user } = await renderDetail();
     await user.click(screen.getByRole("button", { name: "마인드맵 보기" }));
@@ -59,7 +59,7 @@ describe("세션 상세 — 편집 모드", () => {
     expect(screen.getByRole("button", { name: "줄글 보기" })).toHaveClass("tabActive");
   });
 
-  it("저장을 누르면 PATCH 에 제목과 editedMarkdown 만 보내고 바뀐 내용으로 보기 모드가 된다", async () => {
+  it("[REC-5-1 S1] [REC-5-2 S4] 저장을 누르면 PATCH 에 제목과 editedMarkdown 만 보내고 바뀐 내용으로 보기 모드가 된다", async () => {
     const { user, patches } = await startEditing();
     await changeTitle(user);
     await user.clear(bodyInput());
@@ -74,7 +74,7 @@ describe("세션 상세 — 편집 모드", () => {
     expect(screen.queryByPlaceholderText("세션 제목")).not.toBeInTheDocument();
   });
 
-  it("저장에 실패하면 서버 메시지를 토스트로 띄우고, 취소하면 원래 제목으로 돌아간다", async () => {
+  it("[REC-5-2 S4] 저장에 실패하면 서버 메시지를 토스트로 띄우고, 취소하면 원래 제목으로 돌아간다", async () => {
     const { user } = await startEditing(() => fail(400, "제목을 입력해 주세요."));
     await user.clear(titleInput());
     await user.type(titleInput(), " ");
@@ -86,7 +86,7 @@ describe("세션 상세 — 편집 모드", () => {
     expect(screen.getByRole("heading", { level: 1, name: ROME_DETAIL.title })).toBeInTheDocument();
   });
 
-  it("저장에 실패하면 편집 모드에 남아 쓰던 초안을 지킨다", async () => {
+  it("[REC-5-2 S4] 저장에 실패하면 편집 모드에 남아 쓰던 초안을 지킨다", async () => {
     const { user } = await startEditing(() => fail(500, SERVER_ERROR));
     await changeTitle(user);
     await user.click(button("저장"));
@@ -129,7 +129,7 @@ describe("세션 상세 — 편집 모드", () => {
 });
 
 describe("세션 상세 — 저장 안 하고 나가기 경고", () => {
-  it("바꾼 채 취소를 누르면 경고 창이 뜨고, '계속 편집' 을 누르면 쓰던 내용 그대로 편집을 이어 간다", async () => {
+  it("[REC-5-2 S5] 바꾼 채 취소를 누르면 경고 창이 뜨고, '계속 편집' 을 누르면 쓰던 내용 그대로 편집을 이어 간다", async () => {
     const { user } = await startEditing();
     await changeTitle(user);
     await user.click(button("취소"));
@@ -141,7 +141,23 @@ describe("세션 상세 — 저장 안 하고 나가기 경고", () => {
     expect(titleInput()).toHaveValue("로마 4박 5일");
   });
 
-  it("'저장 안 하고 나가기' 를 누르면 요청 없이 원래 내용으로 보기 모드가 된다", async () => {
+  it("[REC-5-2 R4] 경고 창에는 제목과 버튼 3개만 있고 설명 문구 · 상태 표시는 없다", async () => {
+    const { user } = await startEditing();
+    await changeTitle(user);
+    await user.click(button("취소"));
+
+    const dialog = leaveDialog()!;
+    expect(Array.from(dialog.querySelectorAll("h2"), (h) => h.textContent)).toEqual(["저장하지 않은 변경 사항이 있어요"]);
+    expect(Array.from(dialog.querySelectorAll("button"), (b) => b.textContent)).toEqual([
+      "저장 안 하고 나가기",
+      "계속 편집",
+      "저장하고 나가기",
+    ]);
+    expect(dialog).toHaveTextContent(/^저장하지 않은 변경 사항이 있어요저장 안 하고 나가기계속 편집저장하고 나가기$/);
+    expect(dialog.querySelector("p, [role='status']")).toBeNull();
+  });
+
+  it("[REC-5-2 S5] '저장 안 하고 나가기' 를 누르면 요청 없이 원래 내용으로 보기 모드가 된다", async () => {
     const { user, patches } = await startEditing();
     await changeTitle(user);
     await user.click(button("취소"));
@@ -153,7 +169,7 @@ describe("세션 상세 — 저장 안 하고 나가기 경고", () => {
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it("'저장하고 나가기' 를 누르면 저장하는 동안 버튼이 잠기고, 저장되면 보기 모드가 된다", async () => {
+  it("[REC-5-2 S5] '저장하고 나가기' 를 누르면 저장하는 동안 버튼이 잠기고, 저장되면 보기 모드가 된다", async () => {
     const g = gate();
     const { user, patches } = await startEditing(async () => {
       await g.opened;
@@ -173,7 +189,7 @@ describe("세션 상세 — 저장 안 하고 나가기 경고", () => {
     expect(patches).toEqual([{ title: "로마 4박 5일", editedMarkdown: ROME_MD }]);
   });
 
-  it("'저장하고 나가기' 가 실패하면 토스트를 띄우고 경고 창과 편집 모드를 그대로 둔다", async () => {
+  it("[REC-5-2 S5] '저장하고 나가기' 가 실패하면 토스트를 띄우고 경고 창과 편집 모드를 그대로 둔다", async () => {
     const { user } = await startEditing(() => fail(500, SERVER_ERROR));
     await changeTitle(user);
     await user.click(button("취소"));
@@ -204,7 +220,7 @@ describe("세션 상세 — 저장 안 하고 나가기 경고", () => {
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions");
   });
 
-  it("바꾼 채 ← 세션 목록을 누르면 경고하고, '저장 안 하고 나가기' 면 목록으로 간다", async () => {
+  it("[REC-5-2 S5] [X-SDT-02 R1] 바꾼 채 ← 세션 목록을 누르면 경고하고, '저장 안 하고 나가기' 면 목록으로 간다", async () => {
     const { user, patches } = await startEditing();
     await changeTitle(user);
     await user.click(button("← 세션 목록"));
@@ -226,7 +242,7 @@ describe("세션 상세 — 저장 안 하고 나가기 경고", () => {
     expect(patches).toEqual([{ title: "로마 4박 5일", editedMarkdown: ROME_MD }]);
   });
 
-  it("바꾼 채 사이드바 같은 앱 안 링크를 누르면 경고하고, 나가기를 고르면 그 주소로 간다", async () => {
+  it("[REC-5-2 S5] [X-SDT-02 R1] 바꾼 채 사이드바 같은 앱 안 링크를 누르면 경고하고, 나가기를 고르면 그 주소로 간다", async () => {
     const { user } = await startEditing();
     const link = document.createElement("a");
     link.href = "/home?tab=week";
@@ -257,7 +273,7 @@ describe("세션 상세 — 저장 안 하고 나가기 경고", () => {
     link.remove();
   });
 
-  it("바꾼 채 새로고침 · 탭 닫기를 하면 브라우저 확인창을 띄우도록 막는다", async () => {
+  it("[REC-5-2 S6] 바꾼 채 새로고침 · 탭 닫기를 하면 브라우저 확인창을 띄우도록 막는다", async () => {
     const { user } = await startEditing();
     const before = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(before);
@@ -282,13 +298,13 @@ describe("세션 상세 — 30초 자동 저장", () => {
   const tick = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms));
   const status = () => document.querySelector(".autoSave");
 
-  it("편집을 시작하면 처음부터 '30초 단위 자동저장' 문구가 아이콘 없이 보인다 (QA-024-2)", async () => {
+  it("[REC-5-2 S1] 편집을 시작하면 처음부터 '30초 단위 자동저장' 문구가 아이콘 없이 보인다 (QA-024-2)", async () => {
     await startEditing();
     expect(status()).toHaveTextContent(/^30초 단위 자동저장$/);
     expect(status()?.querySelector("svg")).toBeNull();
   });
 
-  it("바꾼 채 30초가 지나면 저장하고 '저장 완료' 가 보이며 편집 모드는 그대로다", async () => {
+  it("[REC-5-2 S2] 바꾼 채 30초가 지나면 저장하고 '저장 완료' 가 보이며 편집 모드는 그대로다", async () => {
     useFakeClock();
     const g = gate();
     const { user, patches } = await startEditing(async () => {
@@ -311,7 +327,7 @@ describe("세션 상세 — 30초 자동 저장", () => {
     expect(bodyInput()).toBeInTheDocument();
   });
 
-  it("해시태그만 바꿔도 30초 자동 저장에 제목 · 본문과 함께 실린다 (QA-041)", async () => {
+  it("[REC-5-2 S2] [REC-7-3 S1] 해시태그만 바꿔도 30초 자동 저장에 제목 · 본문과 함께 실린다 (QA-041)", async () => {
     useFakeClock();
     const { user, patches } = await startEditing();
     await user.click(button("# 콜로세움 삭제"));
@@ -324,7 +340,7 @@ describe("세션 상세 — 30초 자동 저장", () => {
     await waitFor(() => expect(status()).toHaveTextContent("저장 완료"));
   });
 
-  it("저장 완료 뒤 더 바꾸면 다시 '30초 단위 자동저장' 으로 돌아가고, 바꾼 게 없으면 다시 저장하지 않는다", async () => {
+  it("[REC-5-2 S2] 저장 완료 뒤 더 바꾸면 다시 '30초 단위 자동저장' 으로 돌아가고, 바꾼 게 없으면 다시 저장하지 않는다", async () => {
     useFakeClock();
     const { user, patches } = await startEditing();
     await changeTitle(user);
@@ -338,7 +354,7 @@ describe("세션 상세 — 30초 자동 저장", () => {
     expect(status()).toHaveTextContent("30초 단위 자동저장");
   });
 
-  it("바꾼 게 없으면 30초가 지나도 저장하지 않는다", async () => {
+  it("[REC-5-2 S2] 바꾼 게 없으면 30초가 지나도 저장하지 않는다", async () => {
     useFakeClock();
     const { patches } = await startEditing();
     await tick(90_000);
@@ -346,7 +362,7 @@ describe("세션 상세 — 30초 자동 저장", () => {
     expect(status()).toHaveTextContent("30초 단위 자동저장");
   });
 
-  it("자동 저장 뒤 더 바꾸지 않았다면 취소해도 경고 없이 저장된 내용으로 돌아간다", async () => {
+  it("[REC-5-2 R1] 자동 저장 뒤 더 바꾸지 않았다면 취소해도 경고 없이 저장된 내용으로 돌아간다", async () => {
     useFakeClock();
     const { user } = await startEditing();
     await changeTitle(user);
@@ -371,7 +387,7 @@ describe("세션 상세 — 30초 자동 저장", () => {
     expect(patches[1]).toEqual({ title: "로마 5박 6일", editedMarkdown: ROME_MD, draft: true });
   });
 
-  it("자동 저장이 실패하면 '저장 실패' 문구와 토스트로 알린다", async () => {
+  it("[REC-5-2 S3] 자동 저장이 실패하면 '저장 실패' 문구와 토스트로 알린다", async () => {
     useFakeClock();
     const { user } = await startEditing(() => fail(500, SERVER_ERROR));
     await changeTitle(user);
@@ -382,7 +398,26 @@ describe("세션 상세 — 30초 자동 저장", () => {
     expect(titleInput()).toHaveValue("로마 4박 5일");
   });
 
-  it("저장에 실패한 뒤 다시 저장되면 '저장 완료' 로 바뀐다", async () => {
+  it("[REC-5-2 R2] 자동 저장 요청이 끝나기 전에 저장을 눌러도 요청은 한 번만 나간다", async () => {
+    useFakeClock();
+    const g = gate();
+    const { user, patches } = await startEditing(async () => {
+      await g.opened;
+      return undefined;
+    });
+    await changeTitle(user);
+    await tick(30_000);
+    await waitFor(() => expect(patches).toHaveLength(1));
+
+    await user.click(button("저장"));
+    await user.click(button("저장"));
+    expect(patches).toHaveLength(1);
+    g.open();
+    await waitFor(() => expect(status()).toHaveTextContent("저장 완료"));
+    expect(patches).toEqual([{ title: "로마 4박 5일", editedMarkdown: ROME_MD, draft: true }]);
+  });
+
+  it("[REC-5-2 S3] 저장에 실패한 뒤 다시 저장되면 '저장 완료' 로 바뀐다", async () => {
     useFakeClock();
     let failNext = true;
     const { user } = await startEditing(() => {

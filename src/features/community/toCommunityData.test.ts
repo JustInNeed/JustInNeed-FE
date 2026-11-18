@@ -51,7 +51,7 @@ describe("toFeedPost", () => {
     expect(post.exploringByMe).toBe(true);
   });
 
-  it("URL 만 공개한 카드는 제목 자리에 해시태그, 소개글은 비우고 URL 제목은 사이트 주소로 채운다", () => {
+  it("[X-CMT-01 S3] URL 만 공개한 카드는 제목 자리에 해시태그, 소개글은 비우고 URL 제목은 사이트 주소로 채운다", () => {
     const post = toFeedPost(URL_ONLY_CARD);
     expect(post.urlOnly).toBe(true);
     expect(post.title).toBe("# 미술관 # 로마");
@@ -62,7 +62,7 @@ describe("toFeedPost", () => {
     ]);
   });
 
-  it("URL 만 공개한 카드에 공개 해시태그도 없으면 안내 문구를 제목으로 쓴다", () => {
+  it("[X-CMT-01 S3] URL 만 공개한 카드에 공개 해시태그도 없으면 안내 문구를 제목으로 쓴다", () => {
     expect(toFeedPost({ ...URL_ONLY_CARD, hashtags: [] }).title).toBe("원문 링크만 공개된 마인드맵");
   });
 

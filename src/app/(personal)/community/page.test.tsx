@@ -42,7 +42,7 @@ describe("/community 페이지", () => {
     expect(await screen.findByText("foodtrip", { selector: ".personName" })).toBeInTheDocument();
   });
 
-  it("오늘과 이번 주를 period 로 나눠 불러온다", async () => {
+  it("[COM-6-3 S2] 오늘과 이번 주를 period 로 나눠 불러온다", async () => {
     mockAll();
     const { user } = renderPersonal(<CommunityPage />);
     await screen.findByRole("button", { name: /# 쉥겐비자/ });
@@ -50,7 +50,7 @@ describe("/community 페이지", () => {
     expect(await screen.findByRole("button", { name: /# 바르셀로나/ })).toBeInTheDocument();
   });
 
-  it("한 API 가 실패해도 다른 섹션은 보이고, 다시 시도하면 그 섹션만 채워진다", async () => {
+  it("[COM-6-1 S5] 한 API 가 실패해도 다른 섹션은 보이고, 다시 시도하면 그 섹션만 채워진다", async () => {
     mockAll();
     let interestCalls = 0;
     server.use(
@@ -68,7 +68,26 @@ describe("/community 페이지", () => {
     expect(await within(interest).findByText(CONTENT_CARD.title!)).toBeInTheDocument();
   });
 
-  it("모두 비어 있으면 페이지 빈 상태를 보여준다", async () => {
+  it("[COM-6-1 S1] 두 추천은 3장씩 요청한다", async () => {
+    mockAll();
+    const limits: (string | null)[] = [];
+    server.use(
+      http.get(INTERESTS_URL, ({ request }) => {
+        limits.push(new URL(request.url).searchParams.get("limit"));
+        return ok(INTERESTS);
+      }),
+      http.get(RECENT_URL, ({ request }) => {
+        limits.push(new URL(request.url).searchParams.get("limit"));
+        return ok(RECENT_BOOKMARKS);
+      }),
+    );
+    renderPersonal(<CommunityPage />);
+    const recent = await screen.findByRole("region", { name: "최근 저장한 해시태그 기반 추천" });
+    expect(await within(recent).findByText("유럽 한 달 예산")).toBeInTheDocument();
+    expect(limits).toEqual(["3", "3"]);
+  });
+
+  it("[COM-6-1 S6] 모두 비어 있으면 페이지 빈 상태를 보여준다", async () => {
     server.use(
       http.get(INTERESTS_URL, () => ok(EMPTY_RECOMMENDATION)),
       http.get(RECENT_URL, () => ok(EMPTY_RECOMMENDATION)),
