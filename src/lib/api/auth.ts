@@ -1,5 +1,10 @@
 import { api, refreshAccessToken } from "./client";
-import type { ExtensionCodeResponse, LoginCodeExchangeRequest, LoginTokenResponse } from "./types";
+import type {
+  ExtensionCodeResponse,
+  LoginCodeExchangeRequest,
+  LoginTokenResponse,
+  LogoutRequest,
+} from "./types";
 
 /**
  * 소셜 로그인 콜백의 일회용 코드(60초 · 1회용)로 토큰 받기.
@@ -11,7 +16,7 @@ export const exchangeLoginCode = (code: string) =>
 
 /** 로그아웃 — 서버에서 refresh 토큰 폐기. (FE는 호출 후 저장 토큰 삭제) */
 export const logout = (refreshToken?: string) =>
-  api.post<null>("/auth/logout", { refreshToken });
+  api.post<null>("/auth/logout", { refreshToken } satisfies LogoutRequest);
 
 /**
  * 크롬 확장 연결 코드 받기 (60초 · 1회용). 웹 로그인 토큰이 필요하다 — 확장은 이 코드를 자기 전용 토큰으로 바꾼다.

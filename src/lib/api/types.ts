@@ -3,7 +3,7 @@
 import type { components } from "./schema.gen";
 
 /** BE 명세(openapi.json)로 만든 스키마. 응답 타입은 여기서 가져온다 (정책 #24, npm run api:types) */
-type Schemas = components["schemas"];
+export type Schemas = components["schemas"];
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -21,9 +21,7 @@ export interface TokenResponse {
 
 export type MemberResponse = Schemas["MemberResponse"];
 
-export interface NicknameUpdateRequest {
-  nickname: string;
-}
+export type NicknameUpdateRequest = Schemas["NicknameUpdateRequest"];
 
 /** 닉네임 중복 확인 — 대소문자 무시, 내 현재 닉네임은 사용 가능 */
 export type NicknameAvailabilityResponse = Schemas["NicknameAvailabilityResponse"];
@@ -72,13 +70,7 @@ export type MyProfileCard = Schemas["MyCard"];
 export type MyProfileCardPage = Schemas["MyCards"];
 
 /** PUT /community/me/profile — 전부 저장되거나 전부 거절된다 (400) */
-export interface UpdateMyProfileRequest {
-  bio: string;
-  visibility: CommunityProfileVisibility;
-  interests: string[]; // '#' 없는 원문
-  hiddenHashtagIds: number[];
-  pinnedSessionIds: number[]; // 표시 순서
-}
+export type UpdateMyProfileRequest = Schemas["ProfileRequest"];
 
 export type ProfileLikeResponse = Schemas["InteractionServiceLikeView"];
 
@@ -128,18 +120,12 @@ export type ExtensionSettingKey = keyof ExtensionSettings;
 /** 저장한 적이 없으면 기본값(모두 켜짐)이고 updatedAt 이 없다 */
 export type ExtensionSettingsResponse = Schemas["ExtensionSettingResponse"];
 
-export interface LogoutRequest {
-  refreshToken?: string;
-}
+export type LogoutRequest = Schemas["LogoutRequest"];
 
-export interface TokenRefreshRequest {
-  refreshToken: string;
-}
+export type TokenRefreshRequest = Schemas["TokenRefreshRequest"];
 
 /** 소셜 로그인 콜백의 일회용 코드 → 토큰 교환 (POST /auth/token) */
-export interface LoginCodeExchangeRequest {
-  code: string;
-}
+export type LoginCodeExchangeRequest = Schemas["TokenExchangeRequest"];
 
 export type LoginTokenResponse = Schemas["LoginTokenResponse"];
 
@@ -183,32 +169,16 @@ export type SessionMindmapEdge = Schemas["SessionMindmapResponseEdge"];
 export type SessionMindmap = Schemas["SessionMindmapResponse"];
 
 /** 모든 필드 optional — 보낸 필드만 수정. */
-export interface SessionUpdateRequest {
-  title?: string;
-  editedMarkdown?: string;
-  isPublic?: boolean;
-  isFavorite?: boolean;
-  tags?: string[];
-  /** 편집 중 자동 저장 — 제목 · 본문만이면 BE 가 커뮤니티 카드 동기화를 미룬다 (QA-030) */
-  draft?: boolean;
-}
+export type SessionUpdateRequest = Schemas["SessionUpdateRequest"];
 
 /** 해시태그 그룹 — 이름 없이 해시태그로만 구분한다 (QA-011) */
 export type TagGroup = Schemas["TagGroupResponse"];
 
-export interface TagGroupCreateRequest {
-  hashtags?: string[];
-  position?: number;
-}
+export type TagGroupCreateRequest = Schemas["TagGroupCreateRequest"];
 
-export interface TagGroupUpdateRequest {
-  hashtags?: string[];
-}
+export type TagGroupUpdateRequest = Schemas["TagGroupUpdateRequest"];
 
-export interface TagGroupOrderRequest {
-  /** 내 그룹 전체를 원하는 순서대로 빠짐없이 한 번씩. */
-  groupIds: number[];
-}
+export type TagGroupOrderRequest = Schemas["TagGroupOrderRequest"];
 
 // ---------- 홈 ----------
 /** 좌표는 응답에 없다 — 화면에서 정한다 (features/home/toHomeData) */
@@ -268,13 +238,7 @@ export type CardExploringResponse = Schemas["CardReactionServiceExploringView"];
 export type CardBookmarkResponse = Schemas["BookmarkView"];
 
 /** POST /community/bookmarks */
-export interface SaveBookmarkRequest {
-  targetType: "NODE" | "HASHTAG";
-  targetIds: number[];
-  saveType: "HASHTAG_BUNDLE" | "MINI_MINDMAP";
-  sourceMindmapId?: number; // 원본 작성자 id
-  name?: string; // 해시태그 묶음만. 미니 마인드맵에 보내면 400
-}
+export type SaveBookmarkRequest = Schemas["SaveRequest"];
 
 export type CardSessionsResponse = Schemas["Sessions"];
 

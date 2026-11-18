@@ -9,6 +9,7 @@ import type {
   MyProfileResponse,
   MySessionPage,
   ProfileLikeResponse,
+  Schemas,
   UpdateMyProfileRequest,
 } from "./types";
 
@@ -30,7 +31,7 @@ export const getProfileMindmap = (userId: number) =>
 
 /** 내 프로필이면 400 */
 export const updateProfileLike = (userId: number, liked: boolean) =>
-  api.patch<ProfileLikeResponse>(`/community/profiles/${userId}/like`, { liked });
+  api.patch<ProfileLikeResponse>(`/community/profiles/${userId}/like`, { liked } satisfies Schemas["InteractionControllerLikeRequest"]);
 
 
 // 내 프로필 화면. 비공개 세션까지 포함한 본인 전용 응답이다
