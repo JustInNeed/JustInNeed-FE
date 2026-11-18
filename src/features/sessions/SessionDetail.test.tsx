@@ -184,6 +184,13 @@ describe("세션 상세 — 즐겨찾기 · 공개", () => {
     await waitFor(() => expect(patches).toEqual([{ isFavorite: false }]));
   });
 
+  it("[REC-11 S3] 별 버튼이 눌림 상태(aria-pressed)로 즐겨찾기 여부를 알리고, 누르면 바로 바뀐다 (목록 카드와 같게)", async () => {
+    const { user } = await renderDetail();
+    const star = screen.getByRole("button", { name: "즐겨찾기", pressed: true });
+    await user.click(star);
+    expect(star).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("[COM-1-3@1 S1] 비공개를 누르면 '공개' 로 바뀌고 PATCH 에 { isPublic: true } 를 보낸다", async () => {
     const { user, patches } = await renderDetail();
     await user.click(screen.getByRole("button", { name: "비공개" }));
