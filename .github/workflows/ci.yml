@@ -76,3 +76,18 @@ jobs:
       - name: Report
         if: always()
         run: test -f types-report.md && cat types-report.md >> "$GITHUB_STEP_SUMMARY" || true
+
+  # 정책 #30: 차등 테스트 표는 BE 레포가 원본이다. FE 사본이 BE main 과 다르면 알려 준다.
+  # 필수 검사가 아니라 머지를 막지 않는다 (BE 를 먼저 머지하고 FE 사본을 맞추는 순서라 잠깐 다를 수 있다)
+  differential-sync:
+    if: github.repository == 'JustInNeed/JustInNeed-FE'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare with BE main
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/JustInNeed/JustInNeed-BE/main/src/test/resources/differential/validation-cases.json -o be-cases.json
+          if ! diff -u be-cases.json src/test/differential/validation-cases.json; then
+            echo "::error::src/test/differential/validation-cases.json 이 BE main 의 원본과 다릅니다. BE 원본을 복사해 맞추세요."
+            exit 1
+          fi
