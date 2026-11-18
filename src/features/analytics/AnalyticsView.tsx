@@ -370,7 +370,7 @@ const READING_LEVELS: { level: ReadingLevel; label: string; color: string }[] = 
   { level: "IDLE", label: "Idle", color: "var(--green-100)" },
 ];
 
-function ReadingBehaviorBar({ shares }: { shares: Record<ReadingLevel, number> }) {
+function ReadingBehaviorBar({ shares }: { shares: Partial<Record<ReadingLevel, number>> }) {
   const items = READING_LEVELS.map((it) => ({ ...it, pct: shares[it.level] ?? 0 }));
   return (
     <div>

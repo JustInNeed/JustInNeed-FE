@@ -5,7 +5,11 @@ import { savedAgo, withHash } from "@/lib/format";
 import type { FullMindmap, SavedBundle, SavedMindmap } from "@/lib/viewTypes";
 import { DEFAULT_AVATAR, displayName, URL_ONLY_CARD_TITLE } from "./toCommunityData";
 
-const toTarget = <S extends string>({ saveType, targetType, targetIds, sourceMindmapId }: BookmarkSaveTarget<S>) => ({
+// 목록 주소마다 저장 종류가 하나라(미니 마인드맵 · 해시태그 묶음) 그 종류로 정해 둔다
+const toTarget = <S extends string>(
+  saveType: S,
+  { targetType, targetIds, sourceMindmapId }: Omit<BookmarkSaveTarget<S>, "saveType">,
+): BookmarkSaveTarget<S> => ({
   saveType,
   targetType,
   targetIds,
@@ -33,7 +37,7 @@ export function toSavedMindmap(item: BookmarkMindmapItem, now = Date.now()): Sav
     },
     savedAgo: savedAgo(new Date(item.savedAt).getTime(), now),
     cardBookmark: item.cardBookmark,
-    target: toTarget(item),
+    target: toTarget("MINI_MINDMAP", item),
   };
 }
 
@@ -41,7 +45,7 @@ export const toSavedBundle = (item: BookmarkBundleItem): SavedBundle => ({
   bookmarkId: item.bookmarkId,
   name: item.name,
   tags: item.hashtags.map(withHash),
-  target: toTarget(item),
+  target: toTarget("HASHTAG_BUNDLE", item),
 });
 
 export interface OriginalView {

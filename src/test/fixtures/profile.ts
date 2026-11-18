@@ -52,6 +52,7 @@ export const MY_SESSIONS: MySession[] = [
 const mySession = (id: number) => MY_SESSIONS.find((s) => s.id === id)!;
 
 const apiHashtag = (hashtagId: number, hashtag: string, nodeCount: number, isPublic = true): MyProfileHashtag => ({
+  code: 200,
   hashtagId,
   hashtag,
   nodeCount,
@@ -177,6 +178,7 @@ const urlOnlySession = (id: number, tags: string[], isPinned = false): Community
 });
 
 export const API_PROFILE: CommunityProfileResponse = {
+  code: 200,
   userId: 7,
   nickname: "냥집사",
   bio: "고양이와 사는 사람",
@@ -220,7 +222,8 @@ export const apiCard = (over: Partial<CommunityProfileCard> = {}): CommunityProf
 });
 
 export const apiMyCard = (over: Partial<MyProfileCard> = {}): MyProfileCard => ({
-  ...apiCard({ owner: { userId: 6, nickname: "sprout.kr" }, title: "로마 3박 4일 동선", snippet: "로마 동선 정리" }),
+  ...apiCard({ owner: { userId: 6, nickname: "sprout.kr" }, snippet: "로마 동선 정리" }),
+  title: "로마 3박 4일 동선", // 내 카드는 제목이 늘 온다
   isPublic: true,
   ...over,
 });
@@ -235,6 +238,7 @@ const apiNode = (nodeId: number, sourceUrl: string | null, label = sourceUrl ?? 
 
 /** node:1 은 태그 둘에, node:2 는 한 태그에 이어지고, node:3 · tag:3(관심 해시태그) 은 연결이 없다 */
 export const API_MINDMAP: CommunityProfileMindmap = {
+  code: 200,
   mindmapId: 7,
   ownerId: 7,
   nickname: "냥집사",

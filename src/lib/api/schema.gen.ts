@@ -1294,470 +1294,470 @@ export interface components {
         };
         AccountWithdrawResponse: {
             /** Format: int32 */
-            code?: number;
-            extensionLogin?: boolean;
+            code: number;
+            extensionLogin: boolean;
             /** Format: int64 */
-            userId?: number;
-            withdrawn?: boolean;
+            userId: number;
+            withdrawn: boolean;
             /** Format: date-time */
-            withdrawnAt?: string;
+            withdrawnAt: string;
         };
         AiAnalysisFailure: {
-            reason?: string;
+            reason: string;
         };
         AiAnalysisInput: {
-            globalModel?: {
+            globalModel: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: int64 */
+            previousSessions: number;
+            session: {
                 [key: string]: unknown;
             };
             /** Format: int64 */
-            previousSessions?: number;
-            session?: {
-                [key: string]: unknown;
-            };
+            sessionId: number;
             /** Format: int64 */
-            sessionId?: number;
-            /** Format: int64 */
-            userId?: number;
-            userModel?: {
+            userId: number;
+            userModel: {
                 [key: string]: unknown;
-            };
+            } | null;
         };
         AiAnalysisResult: {
-            analysis?: {
+            analysis: {
                 [key: string]: unknown;
             };
-            essay?: {
+            essay: {
                 [key: string]: unknown;
             };
-            mindmap?: {
+            mindmap: {
                 [key: string]: unknown;
             };
-            modelSource?: string;
-            pageVisits?: {
+            modelSource: string;
+            pageVisits: {
                 [key: string]: unknown;
             }[];
-            pages?: {
+            pages: {
                 [key: string]: unknown;
             }[];
-            scoreMethod?: string;
-            selected?: {
+            scoreMethod: string;
+            selected: {
                 [key: string]: unknown;
             }[];
-            state?: {
+            state: {
                 [key: string]: unknown;
             };
         };
         AiSessionHistory: {
-            unitFeatures?: {
+            unitFeatures: {
                 [key: string]: unknown;
             }[];
         };
         AnalyticsResponseExploration: {
             /** Format: int32 */
-            avgDwellSec?: number;
+            avgDwellSec: number;
             /** Format: int32 */
-            avgSessionMinutes?: number;
+            avgSessionMinutes: number;
             /** Format: int32 */
-            avgUrlsPerSession?: number;
-            note?: components["schemas"]["Note"];
-            /** @enum {string} */
-            type?: "DISTRACTED" | "FOCUSED" | "BROAD" | "QUICK_CHECK";
+            avgUrlsPerSession: number;
+            note: components["schemas"]["Note"];
+            /** @enum {string|null} */
+            type: "DISTRACTED" | "FOCUSED" | "BROAD" | "QUICK_CHECK" | null;
         };
         AnalyticsResponseRecommendations: {
-            recommendations?: components["schemas"]["Recommendation"][];
+            recommendations: components["schemas"]["Recommendation"][];
         };
         ApiResponseAccountWithdrawResponse: {
-            data?: components["schemas"]["AccountWithdrawResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["AccountWithdrawResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseAiAnalysisInput: {
-            data?: components["schemas"]["AiAnalysisInput"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["AiAnalysisInput"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseAiSessionHistory: {
-            data?: components["schemas"]["AiSessionHistory"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["AiSessionHistory"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseAnalyticsResponseExploration: {
-            data?: components["schemas"]["AnalyticsResponseExploration"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["AnalyticsResponseExploration"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseAnalyticsResponseRecommendations: {
-            data?: components["schemas"]["AnalyticsResponseRecommendations"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["AnalyticsResponseRecommendations"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseBioView: {
-            data?: components["schemas"]["BioView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["BioView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseBookmarkQueryServiceMindmaps: {
-            data?: components["schemas"]["BookmarkQueryServiceMindmaps"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["BookmarkQueryServiceMindmaps"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseBookmarkView: {
-            data?: components["schemas"]["BookmarkView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["BookmarkView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseBundles: {
-            data?: components["schemas"]["Bundles"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["Bundles"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseCardReactionServiceExploringView: {
-            data?: components["schemas"]["CardReactionServiceExploringView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["CardReactionServiceExploringView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseCardReactionServiceLikeView: {
-            data?: components["schemas"]["CardReactionServiceLikeView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["CardReactionServiceLikeView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseCardSessionsServiceMindmaps: {
-            data?: components["schemas"]["CardSessionsServiceMindmaps"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["CardSessionsServiceMindmaps"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseCategories: {
-            data?: components["schemas"]["Categories"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["Categories"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseChunkUploadResponse: {
-            data?: components["schemas"]["ChunkUploadResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["ChunkUploadResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseCommunitySearchServiceMindmaps: {
-            data?: components["schemas"]["CommunitySearchServiceMindmaps"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["CommunitySearchServiceMindmaps"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseDeletedInterest: {
-            data?: components["schemas"]["DeletedInterest"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["DeletedInterest"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseExcludedUrlCreateResponse: {
-            data?: components["schemas"]["ExcludedUrlCreateResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["ExcludedUrlCreateResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseExcludedUrlDeleteResponse: {
-            data?: components["schemas"]["ExcludedUrlDeleteResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["ExcludedUrlDeleteResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseExcludedUrlListResponse: {
-            data?: components["schemas"]["ExcludedUrlListResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["ExcludedUrlListResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseExcludedUrlSelectionUpdateResponse: {
-            data?: components["schemas"]["ExcludedUrlSelectionUpdateResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["ExcludedUrlSelectionUpdateResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseExtensionCodeResponse: {
-            data?: components["schemas"]["ExtensionCodeResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["ExtensionCodeResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseExtensionSettingResponse: {
-            data?: components["schemas"]["ExtensionSettingResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["ExtensionSettingResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseFollowView: {
-            data?: components["schemas"]["FollowView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["FollowView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseHashtagResponse: {
-            data?: components["schemas"]["HashtagResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["HashtagResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseHashtags: {
-            data?: components["schemas"]["Hashtags"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["Hashtags"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseHomeResponse: {
-            data?: components["schemas"]["HomeResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["HomeResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseIntegrationEmailRegisterResponse: {
-            data?: components["schemas"]["IntegrationEmailRegisterResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["IntegrationEmailRegisterResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseIntegrationGuideResponse: {
-            data?: components["schemas"]["IntegrationGuideResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["IntegrationGuideResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseIntegrationStatusResponse: {
-            data?: components["schemas"]["IntegrationStatusResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["IntegrationStatusResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseInteractionServiceExploringView: {
-            data?: components["schemas"]["InteractionServiceExploringView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["InteractionServiceExploringView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseInteractionServiceLikeView: {
-            data?: components["schemas"]["InteractionServiceLikeView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["InteractionServiceLikeView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseInterestView: {
-            data?: components["schemas"]["InterestView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["InterestView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseListInterestView: {
-            data?: components["schemas"]["InterestView"][];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["InterestView"][] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseListNodeResponse: {
-            data?: components["schemas"]["NodeResponse"][];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["NodeResponse"][] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseListString: {
-            data?: string[];
-            message?: string;
-            success?: boolean;
+            data: string[] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseListTagGroupResponse: {
-            data?: components["schemas"]["TagGroupResponse"][];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["TagGroupResponse"][] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseListTagView: {
-            data?: components["schemas"]["TagView"][];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["TagView"][] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseLoginTokenResponse: {
-            data?: components["schemas"]["LoginTokenResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["LoginTokenResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseMemberResponse: {
-            data?: components["schemas"]["MemberResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["MemberResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseMyCards: {
-            data?: components["schemas"]["MyCards"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["MyCards"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseMyProfile: {
-            data?: components["schemas"]["MyProfile"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["MyProfile"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseMySessions: {
-            data?: components["schemas"]["MySessions"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["MySessions"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseNicknameAvailabilityResponse: {
-            data?: components["schemas"]["NicknameAvailabilityResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["NicknameAvailabilityResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseOrderView: {
-            data?: components["schemas"]["OrderView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["OrderView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseOriginal: {
-            data?: components["schemas"]["Original"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["Original"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponsePinView: {
-            data?: components["schemas"]["PinView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["PinView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseProfile: {
-            data?: components["schemas"]["Profile"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["Profile"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseProfiles: {
-            data?: components["schemas"]["Profiles"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["Profiles"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponsePublicGraphServiceGraph: {
-            data?: components["schemas"]["PublicGraphServiceGraph"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["PublicGraphServiceGraph"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseReadingBehavior: {
-            data?: components["schemas"]["ReadingBehavior"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["ReadingBehavior"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseRecommendationServiceRecommendations: {
-            data?: components["schemas"]["RecommendationServiceRecommendations"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["RecommendationServiceRecommendations"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseSaved: {
-            data?: components["schemas"]["Saved"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["Saved"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseSessionDetailResponse: {
-            data?: components["schemas"]["SessionDetailResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["SessionDetailResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseSessionMindmapResponse: {
-            data?: components["schemas"]["SessionMindmapResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["SessionMindmapResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseSessionPageResponse: {
-            data?: components["schemas"]["SessionPageResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["SessionPageResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseSessionView: {
-            data?: components["schemas"]["SessionView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["SessionView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseSessions: {
-            data?: components["schemas"]["Sessions"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["Sessions"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseSharedSessionView: {
-            data?: components["schemas"]["SharedSessionView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["SharedSessionView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseSharedSessions: {
-            data?: components["schemas"]["SharedSessions"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["SharedSessions"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseSimilarPeople: {
-            data?: components["schemas"]["SimilarPeople"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["SimilarPeople"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseTagGroupResponse: {
-            data?: components["schemas"]["TagGroupResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["TagGroupResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseTagView: {
-            data?: components["schemas"]["TagView"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["TagView"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseTimePatterns: {
-            data?: components["schemas"]["TimePatterns"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["TimePatterns"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseTokenResponse: {
-            data?: components["schemas"]["TokenResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["TokenResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseTrends: {
-            data?: components["schemas"]["Trends"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["Trends"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseVisibilityResponse: {
-            data?: components["schemas"]["VisibilityResponse"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["VisibilityResponse"] | null;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseVoid: {
-            data?: unknown;
-            message?: string;
-            success?: boolean;
+            data: unknown;
+            message: string | null;
+            success: boolean;
         };
         ApiResponseWeekSessions: {
-            data?: components["schemas"]["WeekSessions"];
-            message?: string;
-            success?: boolean;
+            data: components["schemas"]["WeekSessions"] | null;
+            message: string | null;
+            success: boolean;
         };
         BioRequest: {
             bio: string;
         };
         BioView: {
-            bio?: string;
+            bio: string;
         };
         BookmarkQueryServiceMindmaps: {
-            hasNext?: boolean;
-            mindmaps?: components["schemas"]["Mindmap"][];
+            hasNext: boolean;
+            mindmaps: components["schemas"]["Mindmap"][];
         };
         BookmarkRequest: {
             bookmarked: boolean;
         };
         BookmarkSnapshotEdge: {
-            from?: string;
-            to?: string;
+            from: string;
+            to: string;
         };
         BookmarkSnapshotNode: {
-            content?: string;
-            label?: string;
+            content: string | null;
+            label: string;
             /** Format: int64 */
-            nodeId?: number;
-            sourceUrl?: string;
+            nodeId: number;
+            sourceUrl: string | null;
             /** @enum {string} */
-            visibilityScope?: "URL_ONLY" | "CONTENT";
+            visibilityScope: "URL_ONLY" | "CONTENT";
         };
         BookmarkView: {
             /** Format: int64 */
-            bookmarkCount?: number;
+            bookmarkCount: number;
             /** Format: int64 */
-            bookmarkId?: number;
+            bookmarkId: number | null;
         };
         Bundle: {
             /** Format: int64 */
-            bookmarkId?: number;
-            hashtags?: string[];
-            name?: string;
+            bookmarkId: number;
+            hashtags: string[];
+            name: string | null;
             /** @enum {string} */
-            saveType?: "HASHTAG_BUNDLE" | "MINI_MINDMAP";
+            saveType: "HASHTAG_BUNDLE" | "MINI_MINDMAP";
             /** Format: date-time */
-            savedAt?: string;
+            savedAt: string;
             /** Format: int64 */
-            sourceMindmapId?: number;
-            targetIds?: number[];
+            sourceMindmapId: number | null;
+            targetIds: number[];
             /** @enum {string} */
-            targetType?: "NODE" | "HASHTAG";
+            targetType: "NODE" | "HASHTAG";
         };
         Bundles: {
-            bundles?: components["schemas"]["Bundle"][];
+            bundles: components["schemas"]["Bundle"][];
             /** Format: int32 */
-            code?: number;
-            hasNext?: boolean;
+            code: number;
+            hasNext: boolean;
         };
         CardReactionControllerExploringRequest: {
             exploring: boolean;
@@ -1766,31 +1766,31 @@ export interface components {
             liked: boolean;
         };
         CardReactionServiceExploringView: {
-            exploringByMe?: boolean;
+            exploringByMe: boolean;
             /** Format: int64 */
-            exploringCount?: number;
+            exploringCount: number;
         };
         CardReactionServiceLikeView: {
             /** Format: int64 */
-            likeCount?: number;
-            likedByMe?: boolean;
+            likeCount: number;
+            likedByMe: boolean;
         };
         CardSessionsServiceMindmaps: {
-            hasNext?: boolean;
-            mindmaps?: components["schemas"]["ProfileCard"][];
+            hasNext: boolean;
+            mindmaps: components["schemas"]["ProfileCard"][];
             /** Format: int32 */
-            totalPages?: number;
+            totalPages: number;
         };
         Categories: {
-            categories?: components["schemas"]["Category"][];
-            note?: components["schemas"]["Note"];
+            categories: components["schemas"]["Category"][];
+            note: components["schemas"]["Note"];
         };
         Category: {
             /** Format: int64 */
-            count?: number;
-            name?: string;
+            count: number;
+            name: string;
             /** Format: int32 */
-            pct?: number;
+            pct: number;
         };
         ChunkUploadRequest: {
             final?: boolean;
@@ -1805,97 +1805,97 @@ export interface components {
             stopReason?: string;
         };
         ChunkUploadResponse: {
-            duplicate?: boolean;
-            ignored?: boolean;
+            duplicate: boolean;
+            ignored: boolean;
             /** Format: int32 */
-            n?: number;
+            n: number;
             /** Format: date-time */
-            receivedAt?: string;
-            sessionId?: string;
+            receivedAt: string;
+            sessionId: string;
         };
         Citation: {
-            excerpt?: string;
-            title?: string;
-            url?: string;
+            excerpt: string;
+            title: string;
+            url: string;
             /** Format: date-time */
-            visitedAt?: string;
+            visitedAt: string | null;
         };
         CommunityCard: {
             /** Format: int64 */
-            bookmarkCount?: number;
+            bookmarkCount: number;
             /** Format: int64 */
-            bookmarkId?: number;
-            exploringByMe?: boolean;
+            bookmarkId: number | null;
+            exploringByMe: boolean;
             /** Format: int64 */
-            exploringCount?: number;
-            hashtags?: string[];
+            exploringCount: number;
+            hashtags: string[];
             /** Format: date-time */
-            lastActivityAt?: string;
+            lastActivityAt: string;
             /** Format: int64 */
-            likeCount?: number;
-            likedByMe?: boolean;
+            likeCount: number;
+            likedByMe: boolean;
             /** Format: int64 */
-            mindmapId?: number;
+            mindmapId: number;
             /** Format: int64 */
-            nodeCount?: number;
-            owner?: components["schemas"]["Owner"];
-            relatedUrls?: components["schemas"]["RelatedUrl"][];
-            snippet?: string;
-            title?: string;
+            nodeCount: number;
+            owner: components["schemas"]["Owner"];
+            relatedUrls: components["schemas"]["RelatedUrl"][];
+            snippet: string | null;
+            title: string | null;
         };
         CommunitySearchServiceMindmaps: {
-            hasNext?: boolean;
-            mindmaps?: components["schemas"]["CommunityCard"][];
+            hasNext: boolean;
+            mindmaps: components["schemas"]["CommunityCard"][];
         };
         DayActivity: {
-            day?: string;
+            day: string;
             /** Format: int32 */
-            minutes?: number;
+            minutes: number;
         };
         DeletedInterest: {
             /** Format: int32 */
-            code?: number;
+            code: number;
             /** Format: int64 */
-            interestId?: number;
+            interestId: number;
         };
         ExcludedUrlCreateRequest: {
             url: string;
         };
         ExcludedUrlCreateResponse: {
             /** Format: int32 */
-            code?: number;
+            code: number;
             /** Format: date-time */
-            createdAt?: string;
-            domain?: string;
+            createdAt: string;
+            domain: string;
             /** Format: int64 */
-            excludedUrlId?: number;
-            isDefault?: boolean;
-            isExcluded?: boolean;
-            url?: string;
+            excludedUrlId: number;
+            isDefault: boolean;
+            isExcluded: boolean;
+            url: string;
         };
         ExcludedUrlDeleteRequest: {
             excludedUrlIds: number[];
         };
         ExcludedUrlDeleteResponse: {
             /** Format: int32 */
-            code?: number;
+            code: number;
             /** Format: int32 */
-            deletedCount?: number;
-            deletedUrlIds?: number[];
-            uncheckedDefaultUrlIds?: number[];
+            deletedCount: number;
+            deletedUrlIds: number[];
+            uncheckedDefaultUrlIds: number[];
         };
         ExcludedUrlItem: {
-            domain?: string;
+            domain: string;
             /** Format: int64 */
-            excludedUrlId?: number;
-            isDefault?: boolean;
-            isExcluded?: boolean;
-            url?: string;
+            excludedUrlId: number;
+            isDefault: boolean;
+            isExcluded: boolean;
+            url: string;
         };
         ExcludedUrlListResponse: {
             /** Format: int32 */
-            code?: number;
-            excludedUrls?: components["schemas"]["ExcludedUrlItem"][];
+            code: number;
+            excludedUrls: components["schemas"]["ExcludedUrlItem"][];
         };
         ExcludedUrlSelectionUpdateRequest: {
             excludedUrlIds: number[];
@@ -1903,27 +1903,27 @@ export interface components {
         };
         ExcludedUrlSelectionUpdateResponse: {
             /** Format: int32 */
-            code?: number;
-            isExcluded?: boolean;
+            code: number;
+            isExcluded: boolean;
             /** Format: int32 */
-            updatedCount?: number;
-            updatedUrlIds?: number[];
+            updatedCount: number;
+            updatedUrlIds: number[];
         };
         ExtensionCodeResponse: {
-            code?: string;
+            code: string;
             /** Format: int64 */
-            expiresInSeconds?: number;
+            expiresInSeconds: number;
         };
         ExtensionSettingResponse: {
             autoEndNotificationEnabled?: boolean;
             /** Format: int32 */
-            code?: number;
+            code: number;
             manualScrapEnabled?: boolean;
             popupVisible?: boolean;
             /** Format: date-time */
             updatedAt?: string;
             /** Format: int64 */
-            userId?: number;
+            userId: number;
         };
         ExtensionToggleUpdateRequest: {
             enabled: boolean;
@@ -1932,58 +1932,59 @@ export interface components {
             following: boolean;
         };
         FollowView: {
-            following?: boolean;
+            following: boolean;
         };
         Hashtag: {
             /** Format: int64 */
-            hashtagId?: number;
-            name?: string;
+            hashtagId: number;
+            name: string;
         };
         HashtagResponse: {
-            hashtag?: string;
-            isPublic?: boolean;
+            hashtag: string;
+            isPublic: boolean;
         };
         HashtagVisibilityControllerRequest: {
             hashtag: string;
             isPublic: boolean;
         };
         Hashtags: {
-            hashtags?: components["schemas"]["TagCount"][];
+            hashtags: components["schemas"]["TagCount"][];
         };
         HomeResponse: {
-            graph?: components["schemas"]["HomeResponseGraph"];
-            sessions?: components["schemas"]["SessionListResponse"][];
-            stats?: components["schemas"]["Stats"];
-            todayTimeline?: components["schemas"]["TimelineSlot"][];
-            topTags?: components["schemas"]["HomeResponseTopTag"][];
-            weekActivity?: components["schemas"]["WeekActivity"];
-            weekSessions?: components["schemas"]["WeekSession"][];
+            graph: components["schemas"]["HomeResponseGraph"];
+            sessions: components["schemas"]["SessionListResponse"][];
+            stats: components["schemas"]["Stats"];
+            todayTimeline: components["schemas"]["TimelineSlot"][];
+            topTags: components["schemas"]["HomeResponseTopTag"][];
+            weekActivity: components["schemas"]["WeekActivity"];
+            weekSessions: components["schemas"]["WeekSession"][];
         };
         HomeResponseGraph: {
-            edges?: string[][];
-            filterTags?: string[];
-            nodeMeta?: {
+            edges: string[][];
+            filterTags: string[];
+            nodeMeta: {
                 [key: string]: components["schemas"]["NodeMeta"];
             };
-            nodes?: components["schemas"]["HomeResponseNode"][];
-            tagGroups?: components["schemas"]["HomeResponseTagGroup"][];
+            nodes: components["schemas"]["HomeResponseNode"][];
+            tagGroups: components["schemas"]["HomeResponseTagGroup"][];
         };
         HomeResponseNode: {
-            group?: string;
-            id?: string;
-            label?: string;
+            /** @enum {string} */
+            group: "core" | "city" | "logi" | "sub";
+            id: string;
+            label: string;
             /** Format: int32 */
-            size?: number;
+            size: number;
         };
         HomeResponseTagGroup: {
             /** Format: int64 */
-            id?: number;
-            tags?: string[];
+            id: number;
+            tags: string[];
         };
         HomeResponseTopTag: {
             /** Format: int32 */
-            count?: number;
-            tag?: string;
+            count: number;
+            tag: string;
         };
         IntegrationEmailRegisterRequest: {
             /** Format: email */
@@ -1991,32 +1992,32 @@ export interface components {
         };
         IntegrationEmailRegisterResponse: {
             /** Format: int32 */
-            code?: number;
+            code: number;
             /** Format: date-time */
-            connectedAt?: string;
-            email?: string;
-            isConnected?: boolean;
-            provider?: string;
+            connectedAt: string;
+            email: string;
+            isConnected: boolean;
+            provider: string;
         };
         IntegrationGuideResponse: {
             /** Format: int32 */
-            code?: number;
-            guideSteps?: string[];
-            guideTitle?: string;
-            guideUrl?: string;
-            provider?: string;
+            code: number;
+            guideSteps: string[];
+            guideTitle: string;
+            guideUrl: string;
+            provider: string;
         };
         IntegrationItemResponse: {
             /** Format: date-time */
-            connectedAt?: string;
-            email?: string;
-            isConnected?: boolean;
-            provider?: string;
+            connectedAt: string | null;
+            email: string | null;
+            isConnected: boolean;
+            provider: string;
         };
         IntegrationStatusResponse: {
             /** Format: int32 */
-            code?: number;
-            integrations?: components["schemas"]["IntegrationItemResponse"][];
+            code: number;
+            integrations: components["schemas"]["IntegrationItemResponse"][];
         };
         InteractionControllerExploringRequest: {
             exploring: boolean;
@@ -2030,197 +2031,198 @@ export interface components {
         };
         InteractionServiceExploringView: {
             /** Format: int32 */
-            code?: number;
-            exploring?: boolean;
+            code: number;
+            exploring: boolean;
             /** Format: int64 */
-            exploringCount?: number;
+            exploringCount: number;
             /** Format: int64 */
-            targetId?: number;
+            targetId: number;
             /** @enum {string} */
-            targetType?: "NODE" | "HASHTAG";
+            targetType: "NODE" | "HASHTAG";
         };
         InteractionServiceLikeView: {
             /** Format: int32 */
-            code?: number;
+            code: number;
             /** Format: int64 */
-            likeCount?: number;
-            liked?: boolean;
+            likeCount: number;
+            liked: boolean;
             /** Format: int64 */
-            userId?: number;
+            userId: number;
         };
         InterestControllerRequest: {
             hashtag: string;
         };
         InterestView: {
             /** Format: int32 */
-            code?: number;
-            hashtag?: string;
+            code: number;
+            hashtag: string;
             /** Format: int32 */
-            interestCount?: number;
+            interestCount: number;
             /** Format: int64 */
-            interestId?: number;
+            interestId: number;
         };
         LoginTokenResponse: {
-            accessToken?: string;
-            needsNickname?: boolean;
-            refreshToken?: string;
+            accessToken: string;
+            needsNickname: boolean;
+            refreshToken: string;
         };
         LogoutRequest: {
             refreshToken?: string;
         };
         MemberResponse: {
-            email?: string;
+            email: string | null;
             /** Format: int64 */
-            id?: number;
+            id: number;
             /** Format: date-time */
-            joinedAt?: string;
-            nickname?: string;
+            joinedAt: string;
+            nickname: string | null;
             /** @enum {string} */
-            socialProvider?: "GOOGLE" | "NAVER" | "KAKAO";
+            socialProvider: "GOOGLE" | "NAVER" | "KAKAO";
         };
         Mindmap: {
             /** Format: int64 */
-            bookmarkId?: number;
-            cardBookmark?: boolean;
-            edges?: components["schemas"]["BookmarkSnapshotEdge"][];
-            hashtags?: components["schemas"]["Hashtag"][];
+            bookmarkId: number;
+            cardBookmark: boolean;
+            edges: components["schemas"]["BookmarkSnapshotEdge"][];
+            hashtags: components["schemas"]["Hashtag"][];
             /** Format: int64 */
-            likeCount?: number;
+            likeCount: number;
             /** Format: int64 */
-            nodeCount?: number;
-            nodes?: components["schemas"]["BookmarkSnapshotNode"][];
-            owner?: components["schemas"]["Owner"];
+            nodeCount: number;
+            nodes: components["schemas"]["BookmarkSnapshotNode"][];
+            owner: components["schemas"]["Owner"];
             /** @enum {string} */
-            saveType?: "HASHTAG_BUNDLE" | "MINI_MINDMAP";
+            saveType: "HASHTAG_BUNDLE" | "MINI_MINDMAP";
             /** Format: date-time */
-            savedAt?: string;
+            savedAt: string;
             /** Format: int64 */
-            sessionId?: number;
-            snippet?: string;
+            sessionId: number | null;
+            snippet: string | null;
             /** Format: int64 */
-            sourceMindmapId?: number;
-            targetIds?: number[];
+            sourceMindmapId: number | null;
+            targetIds: number[];
             /** @enum {string} */
-            targetType?: "NODE" | "HASHTAG";
-            title?: string;
+            targetType: "NODE" | "HASHTAG";
+            title: string | null;
         };
         MyCard: {
             /** Format: int64 */
-            bookmarkCount?: number;
+            bookmarkCount: number;
             /** Format: int64 */
-            bookmarkId?: number;
-            exploringByMe?: boolean;
+            bookmarkId: number | null;
+            exploringByMe: boolean;
             /** Format: int64 */
-            exploringCount?: number;
-            hashtags?: string[];
-            isPinned?: boolean;
-            isPublic?: boolean;
+            exploringCount: number;
+            hashtags: string[];
+            isPinned: boolean;
+            isPublic: boolean;
             /** Format: date-time */
-            lastActivityAt?: string;
+            lastActivityAt: string;
             /** Format: int64 */
-            likeCount?: number;
-            likedByMe?: boolean;
+            likeCount: number;
+            likedByMe: boolean;
             /** Format: int64 */
-            mindmapId?: number;
+            mindmapId: number;
             /** Format: int64 */
-            nodeCount?: number;
-            owner?: components["schemas"]["Owner"];
-            relatedUrls?: components["schemas"]["RelatedUrl"][];
-            snippet?: string;
-            title?: string;
+            nodeCount: number;
+            owner: components["schemas"]["Owner"];
+            relatedUrls: components["schemas"]["RelatedUrl"][];
+            snippet: string | null;
+            title: string;
         };
         MyCards: {
-            hasNext?: boolean;
-            mindmaps?: components["schemas"]["MyCard"][];
+            hasNext: boolean;
+            mindmaps: components["schemas"]["MyCard"][];
             /** Format: int32 */
-            totalPages?: number;
+            totalPages: number;
         };
         MyInterest: {
-            hashtag?: string;
+            hashtag: string;
             /** Format: int64 */
-            interestId?: number;
+            interestId: number;
         };
         MyProfile: {
-            bio?: string;
-            hashtags?: components["schemas"]["TagView"][];
-            interests?: components["schemas"]["MyInterest"][];
+            bio: string | null;
+            hashtags: components["schemas"]["TagView"][];
+            interests: components["schemas"]["MyInterest"][];
             /** Format: int64 */
-            likeCount?: number;
-            nickname?: string;
-            pinnedSessions?: components["schemas"]["MySession"][];
+            likeCount: number;
+            nickname: string | null;
+            pinnedSessions: components["schemas"]["MySession"][];
             /** Format: int64 */
-            sharedSessionCount?: number;
-            topHashtags?: components["schemas"]["TagView"][];
+            sharedSessionCount: number;
+            topHashtags: components["schemas"]["TagView"][];
             /** Format: int64 */
-            totalNodeCount?: number;
+            totalNodeCount: number;
             /** Format: int64 */
-            userId?: number;
+            userId: number;
             /** @enum {string} */
-            visibility?: "URL_ONLY" | "CONTENT";
+            visibility: "URL_ONLY" | "CONTENT";
         };
         MySession: {
             /** Format: date-time */
-            endedAt?: string;
+            endedAt: string | null;
             /** Format: int64 */
-            id?: number;
-            isFavorite?: boolean;
-            isPinned?: boolean;
-            isPublic?: boolean;
+            id: number;
+            isFavorite: boolean;
+            isPinned: boolean;
+            isPublic: boolean;
             /** Format: int32 */
-            pageCount?: number;
+            pageCount: number;
             /** Format: date-time */
-            startedAt?: string;
+            startedAt: string;
             /** @enum {string} */
-            status?: "COLLECTING" | "READY" | "ANALYZING" | "COMPLETED" | "FAILED";
-            tags?: string[];
-            title?: string;
+            status: "COLLECTING" | "READY" | "ANALYZING" | "COMPLETED" | "FAILED";
+            tags: string[];
+            title: string;
         };
         MySessions: {
-            hasNext?: boolean;
-            sessions?: components["schemas"]["MySession"][];
+            hasNext: boolean;
+            sessions: components["schemas"]["MySession"][];
             /** Format: int32 */
-            totalPages?: number;
+            totalPages: number;
         };
         NicknameAvailabilityResponse: {
-            available?: boolean;
-            nickname?: string;
+            available: boolean;
+            nickname: string;
         };
         NicknameUpdateRequest: {
             nickname: string;
         };
         NodeMeta: {
-            seen?: string;
+            /** @enum {string} */
+            seen: "today" | "week" | "month" | "all";
             /** Format: int64 */
-            sessionId?: number;
-            tags?: string[];
+            sessionId: number;
+            tags: string[];
         };
         NodeResponse: {
-            hashtag?: string;
-            sessions?: components["schemas"]["SharedSessionView"][];
+            hashtag: string;
+            sessions: components["schemas"]["SharedSessionView"][];
         };
         Note: {
-            analysis?: string;
-            recommendation?: string;
+            analysis: string;
+            recommendation: string | null;
         };
         OrderRequest: {
             sessionIds: number[];
         };
         OrderView: {
             /** Format: int32 */
-            code?: number;
-            sessionIds?: number[];
+            code: number;
+            sessionIds: number[];
         };
         Original: {
             /** Format: int32 */
-            code?: number;
-            highlightedNodeIds?: number[];
-            mindmap?: components["schemas"]["PublicGraphServiceGraph"];
-            sourceAvailable?: boolean;
+            code: number;
+            highlightedNodeIds: number[];
+            mindmap: components["schemas"]["PublicGraphServiceGraph"] | null;
+            sourceAvailable: boolean;
         };
         Owner: {
-            nickname?: string;
+            nickname: string | null;
             /** Format: int64 */
-            userId?: number;
+            userId: number;
         };
         PinRequest: {
             /** Format: int64 */
@@ -2228,67 +2230,67 @@ export interface components {
         };
         PinView: {
             /** Format: int32 */
-            code?: number;
-            isPinned?: boolean;
-            isPublic?: boolean;
+            code: number;
+            isPinned: boolean;
+            isPublic: boolean;
             /** Format: int32 */
-            order?: number;
+            order: number | null;
             /** Format: int64 */
-            sessionId?: number;
+            sessionId: number;
         };
         Profile: {
-            bio?: string;
+            bio: string | null;
             /** Format: int32 */
-            code?: number;
+            code: number;
             /** Format: int64 */
-            exploringCount?: number;
-            following?: boolean;
-            interests?: string[];
+            exploringCount: number;
+            following: boolean;
+            interests: string[];
             /** Format: int64 */
-            likeCount?: number;
-            likedByMe?: boolean;
-            nickname?: string;
+            likeCount: number;
+            likedByMe: boolean;
+            nickname: string | null;
             /** Format: int64 */
-            sharedSessionCount?: number;
-            topHashtags?: components["schemas"]["PublicGraphServiceTopTag"][];
+            sharedSessionCount: number;
+            topHashtags: components["schemas"]["PublicGraphServiceTopTag"][];
             /** Format: int64 */
-            totalNodeCount?: number;
+            totalNodeCount: number;
             /** Format: int64 */
-            userId?: number;
+            userId: number;
             /** @enum {string} */
-            visibility?: "URL_ONLY" | "CONTENT";
+            visibility: "URL_ONLY" | "CONTENT";
         };
         ProfileCard: {
             /** Format: int64 */
-            bookmarkCount?: number;
+            bookmarkCount: number;
             /** Format: int64 */
-            bookmarkId?: number;
-            exploringByMe?: boolean;
+            bookmarkId: number | null;
+            exploringByMe: boolean;
             /** Format: int64 */
-            exploringCount?: number;
-            hashtags?: string[];
-            isPinned?: boolean;
+            exploringCount: number;
+            hashtags: string[];
+            isPinned: boolean;
             /** Format: date-time */
-            lastActivityAt?: string;
+            lastActivityAt: string;
             /** Format: int64 */
-            likeCount?: number;
-            likedByMe?: boolean;
+            likeCount: number;
+            likedByMe: boolean;
             /** Format: int64 */
-            mindmapId?: number;
+            mindmapId: number;
             /** Format: int64 */
-            nodeCount?: number;
-            owner?: components["schemas"]["Owner"];
-            relatedUrls?: components["schemas"]["RelatedUrl"][];
-            snippet?: string;
-            title?: string;
+            nodeCount: number;
+            owner: components["schemas"]["Owner"];
+            relatedUrls: components["schemas"]["RelatedUrl"][];
+            snippet: string | null;
+            title: string | null;
         };
         ProfileItem: {
-            hashtags?: string[];
+            hashtags: string[];
             /** Format: int64 */
-            mindmapCount?: number;
-            nickname?: string;
+            mindmapCount: number;
+            nickname: string | null;
             /** Format: int64 */
-            userId?: number;
+            userId: number;
         };
         ProfileRequest: {
             bio: string;
@@ -2299,50 +2301,50 @@ export interface components {
             visibility: "URL_ONLY" | "CONTENT";
         };
         Profiles: {
-            hasNext?: boolean;
-            profiles?: components["schemas"]["ProfileItem"][];
+            hasNext: boolean;
+            profiles: components["schemas"]["ProfileItem"][];
         };
         PublicGraphServiceGraph: {
             /** Format: int32 */
-            code?: number;
-            edges?: components["schemas"]["BookmarkSnapshotEdge"][];
-            hashtags?: components["schemas"]["Tag"][];
+            code: number;
+            edges: components["schemas"]["BookmarkSnapshotEdge"][];
+            hashtags: components["schemas"]["Tag"][];
             /** Format: int64 */
-            mindmapId?: number;
-            nickname?: string;
-            nodes?: components["schemas"]["BookmarkSnapshotNode"][];
+            mindmapId: number;
+            nickname: string | null;
+            nodes: components["schemas"]["BookmarkSnapshotNode"][];
             /** Format: int64 */
-            ownerId?: number;
-            title?: string;
-            topHashtags?: components["schemas"]["PublicGraphServiceTopTag"][];
+            ownerId: number;
+            title: string;
+            topHashtags: components["schemas"]["PublicGraphServiceTopTag"][];
         };
         PublicGraphServiceTopTag: {
             /** Format: int64 */
-            hashtagId?: number;
-            name?: string;
+            hashtagId: number;
+            name: string;
             /** Format: int64 */
-            nodeCount?: number;
+            nodeCount: number;
         };
         PublicRequest: {
             isPublic: boolean;
         };
         ReadingBehavior: {
-            note?: components["schemas"]["Note"];
-            shares?: {
+            note: components["schemas"]["Note"];
+            shares: {
                 [key: string]: number;
             };
         };
         Recommendation: {
-            body?: string;
-            title?: string;
+            body: string;
+            title: string;
         };
         RecommendationServiceRecommendations: {
-            basisHashtags?: string[];
-            mindmaps?: components["schemas"]["CommunityCard"][];
+            basisHashtags: string[];
+            mindmaps: components["schemas"]["CommunityCard"][];
         };
         RelatedUrl: {
-            title?: string;
-            url?: string;
+            title: string | null;
+            url: string;
         };
         SaveRequest: {
             name?: string;
@@ -2356,76 +2358,76 @@ export interface components {
         };
         Saved: {
             /** Format: int64 */
-            bookmarkId?: number;
+            bookmarkId: number;
             /** Format: int32 */
-            code?: number;
-            name?: string;
+            code: number;
+            name: string | null;
             /** @enum {string} */
-            saveType?: "HASHTAG_BUNDLE" | "MINI_MINDMAP";
-            targetIds?: number[];
+            saveType: "HASHTAG_BUNDLE" | "MINI_MINDMAP";
+            targetIds: number[];
         };
         SessionDetailResponse: {
             /** Format: date-time */
-            endedAt?: string;
+            endedAt: string | null;
             /** Format: int64 */
-            id?: number;
-            isFavorite?: boolean;
-            isOwner?: boolean;
-            isPublic?: boolean;
+            id: number;
+            isFavorite: boolean;
+            isOwner: boolean;
+            isPublic: boolean;
             /** Format: int32 */
-            pageCount?: number;
-            sources?: components["schemas"]["Source"][];
+            pageCount: number;
+            sources: components["schemas"]["Source"][];
             /** Format: date-time */
-            startedAt?: string;
+            startedAt: string;
             /** @enum {string} */
-            status?: "COLLECTING" | "READY" | "ANALYZING" | "COMPLETED" | "FAILED";
-            summary?: components["schemas"]["SummaryResponse"];
-            tags?: string[];
-            title?: string;
+            status: "COLLECTING" | "READY" | "ANALYZING" | "COMPLETED" | "FAILED";
+            summary: components["schemas"]["SummaryResponse"] | null;
+            tags: string[];
+            title: string;
         };
         SessionListResponse: {
             /** Format: date-time */
-            endedAt?: string;
+            endedAt: string | null;
             /** Format: int64 */
-            id?: number;
-            isFavorite?: boolean;
-            isPublic?: boolean;
+            id: number;
+            isFavorite: boolean;
+            isPublic: boolean;
             /** Format: int32 */
-            pageCount?: number;
+            pageCount: number;
             /** Format: date-time */
-            startedAt?: string;
+            startedAt: string;
             /** @enum {string} */
-            status?: "COLLECTING" | "READY" | "ANALYZING" | "COMPLETED" | "FAILED";
-            tags?: string[];
-            title?: string;
+            status: "COLLECTING" | "READY" | "ANALYZING" | "COMPLETED" | "FAILED";
+            tags: string[];
+            title: string;
         };
         SessionMindmapResponse: {
-            edges?: components["schemas"]["SessionMindmapResponseEdge"][];
-            nodes?: components["schemas"]["SessionMindmapResponseNode"][];
+            edges: components["schemas"]["SessionMindmapResponseEdge"][];
+            nodes: components["schemas"]["SessionMindmapResponseNode"][];
         };
         SessionMindmapResponseEdge: {
-            from?: string;
-            primary?: boolean;
-            to?: string;
-            type?: string;
+            from: string;
+            primary: boolean;
+            to: string;
+            type: string;
         };
         SessionMindmapResponseNode: {
             /** Format: int32 */
-            childCount?: number;
-            citation?: components["schemas"]["Citation"];
-            id?: string;
-            keyword?: string;
+            childCount: number;
+            citation: components["schemas"]["Citation"] | null;
+            id: string;
+            keyword: string;
             /** Format: double */
-            score?: number;
-            type?: string;
+            score: number | null;
+            type: string;
         };
         SessionPageResponse: {
             /** Format: int64 */
-            favoriteCount?: number;
-            hasNext?: boolean;
-            sessions?: components["schemas"]["SessionListResponse"][];
+            favoriteCount: number;
+            hasNext: boolean;
+            sessions: components["schemas"]["SessionListResponse"][];
             /** Format: int64 */
-            totalCount?: number;
+            totalCount: number;
         };
         SessionUpdateRequest: {
             draft?: boolean;
@@ -2437,95 +2439,95 @@ export interface components {
         };
         SessionView: {
             /** Format: int32 */
-            code?: number;
-            hashtags?: string[];
-            nickname?: string;
+            code: number;
+            hashtags: string[];
+            nickname: string | null;
             /** Format: int64 */
-            ownerId?: number;
+            ownerId: number;
             /** Format: int64 */
-            sessionId?: number;
-            summary?: string;
-            title?: string;
-            urls?: string[];
+            sessionId: number;
+            summary: string | null;
+            title: string | null;
+            urls: string[];
             /** @enum {string} */
-            visibilityScope?: "URL_ONLY" | "CONTENT";
+            visibilityScope: "URL_ONLY" | "CONTENT";
         };
         Sessions: {
-            sessions?: components["schemas"]["SessionListResponse"][];
+            sessions: components["schemas"]["SessionListResponse"][];
         };
         SharedSessionView: {
             /** Format: date-time */
             endedAt?: string;
             /** Format: int64 */
-            id?: number;
-            isPinned?: boolean;
+            id: number;
+            isPinned: boolean;
             markdown?: string;
             /** Format: int32 */
-            pageCount?: number;
+            pageCount: number;
             sources?: components["schemas"]["Source"][];
             /** Format: date-time */
-            startedAt?: string;
+            startedAt: string;
             /** @enum {string} */
-            status?: "COLLECTING" | "READY" | "ANALYZING" | "COMPLETED" | "FAILED";
-            tags?: string[];
+            status: "COLLECTING" | "READY" | "ANALYZING" | "COMPLETED" | "FAILED";
+            tags: string[];
             title?: string;
-            urls?: string[];
+            urls: string[];
         };
         SharedSessions: {
-            hasNext?: boolean;
-            sessions?: components["schemas"]["SharedSessionView"][];
+            hasNext: boolean;
+            sessions: components["schemas"]["SharedSessionView"][];
             /** Format: int32 */
-            totalPages?: number;
+            totalPages: number;
         };
         SimilarPeople: {
-            people?: components["schemas"]["SimilarPeopleServicePerson"][];
+            people: components["schemas"]["SimilarPeopleServicePerson"][];
         };
         SimilarPeopleServicePerson: {
-            following?: boolean;
-            matchedHashtags?: string[];
-            nickname?: string;
+            following: boolean;
+            matchedHashtags: string[];
+            nickname: string | null;
             /** Format: int64 */
-            userId?: number;
+            userId: number;
         };
         Source: {
-            excerpt?: string;
-            title?: string;
-            url?: string;
+            excerpt: string | null;
+            title: string | null;
+            url: string;
             /** Format: date-time */
-            visitedAt?: string;
+            visitedAt: string | null;
         };
         Stats: {
             /** Format: int32 */
-            avgSessionMinutes?: number;
+            avgSessionMinutes: number;
             /** Format: int32 */
-            deepReadingDelta?: number;
+            deepReadingDelta: number;
             /** Format: int32 */
-            deepReadingPct?: number;
+            deepReadingPct: number;
             /** Format: int32 */
-            hashtagCount?: number;
+            hashtagCount: number;
             /** Format: int32 */
-            nodeDelta?: number;
+            nodeDelta: number;
             /** Format: int32 */
-            sessionDelta?: number;
+            sessionDelta: number;
             /** Format: int32 */
-            totalNodes?: number;
+            totalNodes: number;
             /** Format: int32 */
-            weekSessions?: number;
+            weekSessions: number;
         };
         SummaryResponse: {
-            markdown?: string;
+            markdown: string;
         };
         Tag: {
             /** Format: int64 */
-            hashtagId?: number;
-            name?: string;
+            hashtagId: number;
+            name: string;
             /** Format: int64 */
-            ownerId?: number;
+            ownerId: number;
         };
         TagCount: {
             /** Format: int64 */
-            count?: number;
-            tag?: string;
+            count: number;
+            tag: string;
         };
         TagGroupCreateRequest: {
             hashtags?: string[];
@@ -2536,36 +2538,36 @@ export interface components {
             groupIds: number[];
         };
         TagGroupResponse: {
-            hashtags?: string[];
+            hashtags: string[];
             /** Format: int64 */
-            id?: number;
+            id: number;
             /** Format: int32 */
-            position?: number;
-            sessions?: components["schemas"]["SessionListResponse"][];
+            position: number;
+            sessions: components["schemas"]["SessionListResponse"][];
         };
         TagGroupUpdateRequest: {
             hashtags?: string[];
         };
         TagView: {
             /** Format: int32 */
-            code?: number;
-            hashtag?: string;
+            code: number;
+            hashtag: string;
             /** Format: int64 */
-            hashtagId?: number;
-            isPublic?: boolean;
+            hashtagId: number;
+            isPublic: boolean;
             /** Format: int64 */
-            nodeCount?: number;
+            nodeCount: number;
         };
         TimePatterns: {
-            focus?: number[][];
-            note?: components["schemas"]["Note"];
-            surfing?: number[][];
+            focus: number[][];
+            note: components["schemas"]["Note"];
+            surfing: number[][];
         };
         TimelineSlot: {
-            endTime?: string;
-            sites?: string[];
-            startTime?: string;
-            tags?: string[];
+            endTime: string | null;
+            sites: string[];
+            startTime: string;
+            tags: string[];
         };
         TokenExchangeRequest: {
             code?: string;
@@ -2574,22 +2576,22 @@ export interface components {
             refreshToken?: string;
         };
         TokenResponse: {
-            accessToken?: string;
-            refreshToken?: string;
+            accessToken: string;
+            refreshToken: string;
         };
         Trend: {
             /** Format: int64 */
-            count?: number;
-            name?: string;
+            count: number;
+            name: string;
             /** Format: int32 */
-            rank?: number;
+            rank: number;
             /** Format: int64 */
-            trend?: number;
+            trend: number;
         };
         Trends: {
-            hashtags?: components["schemas"]["Trend"][];
+            hashtags: components["schemas"]["Trend"][];
             /** @enum {string} */
-            period?: "TODAY" | "WEEK";
+            period: "TODAY" | "WEEK";
         };
         VisibilityRequest: {
             /** @enum {string} */
@@ -2597,30 +2599,30 @@ export interface components {
         };
         VisibilityResponse: {
             /** Format: int32 */
-            code?: number;
+            code: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string | null;
             /** @enum {string} */
-            visibilityScope?: "URL_ONLY" | "CONTENT";
+            visibilityScope: "URL_ONLY" | "CONTENT";
         };
         Visit: {
-            domain?: string;
+            domain: string;
             /** Format: int64 */
-            dwellSec?: number;
+            dwellSec: number;
         };
         WeekActivity: {
-            days?: components["schemas"]["DayActivity"][];
-            range?: string;
+            days: components["schemas"]["DayActivity"][];
+            range: string;
         };
         WeekSession: {
             /** Format: int32 */
-            dayOffset?: number;
-            startedAt?: string;
-            tags?: string[];
-            visits?: components["schemas"]["Visit"][];
+            dayOffset: number;
+            startedAt: string;
+            tags: string[];
+            visits: components["schemas"]["Visit"][];
         };
         WeekSessions: {
-            sessions?: components["schemas"]["SessionListResponse"][];
+            sessions: components["schemas"]["SessionListResponse"][];
         };
     };
     responses: never;

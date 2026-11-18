@@ -173,10 +173,10 @@ describe("toHomeData — 타임라인 · 해시태그", () => {
 });
 
 describe("toHomeData — 그 외", () => {
-  it("nodeMeta 의 seen · sessionId 를 넘기고, sessionId 가 null 이면 없는 것으로 친다", () => {
+  it("nodeMeta 의 seen · tags · sessionId 를 넘긴다", () => {
     const { nodeMeta } = toHomeData(HOME_RESPONSE).graph;
     expect(nodeMeta.n1).toEqual({ seen: "today", tags: ["로마"], sessionId: 9002 });
-    expect(nodeMeta.n3).toEqual({ seen: "month", tags: ["항공권"] });
+    expect(nodeMeta.n3).toEqual({ seen: "month", tags: ["항공권"], sessionId: 9002 });
     expect(nodeMeta.n4.seen).toBe("all");
   });
 

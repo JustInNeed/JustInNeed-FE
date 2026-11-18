@@ -216,7 +216,7 @@ describe("홈 페이지 — 응답 표시", () => {
       expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9003");
     });
 
-    it("sessionId 가 null 이어도 해시태그로 찾은 세션으로 이동한다", async () => {
+    it("sessionId 세션이 응답 목록에 있으면 그 세션으로 이동한다", async () => {
       await openRelated("항공권");
       expect(mockRouter.push).toHaveBeenCalledWith("/sessions/9002");
     });
