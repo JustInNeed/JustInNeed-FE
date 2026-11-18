@@ -183,7 +183,7 @@ describe("다른 사용자 프로필 세션 탭", () => {
 
     await openTab(user);
 
-    const card = await sessionCard("#놀이 #사료");
+    const card = await sessionCard("# 놀이 # 사료");
     expect(within(card).getByRole("img", { name: PIN })).toBeInTheDocument();
     expect(within(await sessionCard("원문 링크만 공개된 세션")).queryByRole("img", { name: PIN })).not.toBeInTheDocument();
     expect(card.querySelector(".tags")?.children).toHaveLength(0);

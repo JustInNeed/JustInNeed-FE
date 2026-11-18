@@ -50,7 +50,7 @@ describe("내 프로필 — 불러오기", () => {
     expect(stat("노드")).toBe("218");
     expect(stat("공유 세션")).toBe("5");
     expect(stat("좋아요")).toBe("87");
-    expect(document.querySelector(".tagRow")).toHaveTextContent("#파리28");
+    expect(document.querySelector(".tagRow")).toHaveTextContent("# 파리28");
     expect(await screen.findByText("고정한 카드")).toBeInTheDocument();
 
     await openSessions(user);
@@ -289,11 +289,11 @@ describe("프로필 저장", () => {
 
     await user.clear(bioInput());
     await user.type(bioInput(), "새 소개");
-    await user.type(screen.getByPlaceholderText("새 해시태그 추가"), "#기차여행{Enter}");
-    await user.click(screen.getByRole("button", { name: /^#독서/ }));
+    await user.type(screen.getByPlaceholderText("새 해시태그 추가"), "# 기차여행{Enter}");
+    await user.click(screen.getByRole("button", { name: /^# 독서/ }));
     await user.click(screen.getByRole("radio", { name: /내용까지 공개/ }));
-    await user.click(screen.getByRole("switch", { name: "#기차" })); // 상위 5개 밖
-    await user.click(screen.getByRole("switch", { name: "#예산" })); // 비공개 → 공개
+    await user.click(screen.getByRole("switch", { name: "# 기차" })); // 상위 5개 밖
+    await user.click(screen.getByRole("switch", { name: "# 예산" })); // 비공개 → 공개
     await user.click(within(pinRow(9004)).getByRole("checkbox"));
     const dataTransfer = { effectAllowed: "none", dropEffect: "none" };
     fireEvent.dragStart(pinRow(9002), { dataTransfer });
@@ -410,7 +410,7 @@ describe("프로필 저장", () => {
     await user.clear(bioInput());
     await user.type(bioInput(), "지키고 싶은 소개");
     await user.type(screen.getByPlaceholderText("새 해시태그 추가"), "기차여행{Enter}");
-    await user.click(screen.getByRole("switch", { name: "#기차" }));
+    await user.click(screen.getByRole("switch", { name: "# 기차" }));
     await user.click(within(pinRow(9004)).getByRole("checkbox"));
     await user.click(saveButton());
 
@@ -418,8 +418,8 @@ describe("프로필 저장", () => {
     expect(screen.getByRole("heading", { level: 1, name: "프로필 수정" })).toBeInTheDocument();
     expect(screen.queryByText("프로필을 저장했어요.")).not.toBeInTheDocument();
     expect(bioInput()).toHaveValue("지키고 싶은 소개");
-    expect(screen.getByRole("button", { name: /^#기차여행/ })).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "#기차" })).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByRole("button", { name: /^# 기차여행/ })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "# 기차" })).toHaveAttribute("aria-checked", "false");
     expect(within(pinRow(9004)).getByRole("checkbox")).toBeChecked();
     await waitFor(() => expect(saveButton()).toBeEnabled());
 

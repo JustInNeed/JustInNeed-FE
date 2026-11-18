@@ -54,9 +54,14 @@ export const STATUS_LABEL: Record<SessionStatus, string> = {
   FAILED: "분석 실패",
 };
 
-/** 해시태그 표시용 — raw 태그에 '#' 접두사. */
+/** 해시태그 표시용 — '# 여행' 처럼 '#' 뒤에 공백 하나 (사용자 결정 2026-11-18). 이미 '#' 가 붙어 있어도 같은 모양으로 맞춘다 */
 export function withHash(tag: string): string {
-  return tag.startsWith("#") ? tag : `#${tag}`;
+  return `# ${withoutHash(tag)}`;
+}
+
+/** 표시용 '# 여행' · '#여행' → 저장 · 요청용 raw 태그 '여행' */
+export function withoutHash(tag: string): string {
+  return tag.replace(/^#\s*/, "");
 }
 
 /** 원문 URL 만 공개해 제목이 없는 세션의 제목 자리 문구 */

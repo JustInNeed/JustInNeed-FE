@@ -240,7 +240,7 @@ describe("/search 페이지 — 더 보기", () => {
     typeQuery("파리");
     await landed();
     await user.click(more());
-    const links = await screen.findAllByRole("link", { name: /^(동유럽|파리 미식|#미술관|다음 페이지)/ });
+    const links = await screen.findAllByRole("link", { name: /^(동유럽|파리 미식|# 미술관|다음 페이지)/ });
     expect(links).toHaveLength(4);
     expect(links[3]).toHaveAttribute("href", "/sessions/30");
     expect(screen.getByRole("button", { name: "마인드맵 (4)" })).toBeInTheDocument();
@@ -281,7 +281,7 @@ describe("/search 페이지 — 더 보기", () => {
     await landed();
     await user.click(more());
     await screen.findByRole("button", { name: "마인드맵 (4)" });
-    expect(screen.getAllByRole("link", { name: /^#미술관 #로마/ })).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: /^# 미술관 # 로마/ })).toHaveLength(1);
   });
 
   it("사용자도 탭 안에서 따로 더 불러오고 같은 사람은 한 번만 보여준다", async () => {
@@ -407,10 +407,10 @@ describe("/search 페이지 — 주소의 검색어", () => {
   const replaced = () => mockRouter.replace.mock.calls.map(([path]) => path as string);
 
   it("q 가 있는 주소로 들어오면 입력 없이 그 검색어로 찾고, 주소는 건드리지 않는다", async () => {
-    setMockSearchParams(qParam("#파리"));
+    setMockSearchParams(qParam("# 파리"));
     const urls = mockSearch();
     renderPersonal(<SearchPage />);
-    expect(input()).toHaveValue("#파리");
+    expect(input()).toHaveValue("# 파리");
     expect(await screen.findByRole("link", { name: /^파리 미식 지도/ })).toBeInTheDocument();
     expect(new Set(urls.map((u) => u.searchParams.get("q")))).toEqual(new Set(["파리"]));
     await settle();
@@ -429,12 +429,12 @@ describe("/search 페이지 — 주소의 검색어", () => {
   it("입력이 멈추면 정리한 검색어를 주소에 한 번만 남기고, 화면 위치는 그대로 둔다", async () => {
     mockSearch();
     renderPersonal(<SearchPage />);
-    ["파", "파리", " #파리 "].forEach(typeQuery);
+    ["파", "파리", " # 파리 "].forEach(typeQuery);
     expect(mockRouter.replace).not.toHaveBeenCalled();
     await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledOnce());
     expect(mockRouter.replace).toHaveBeenCalledWith(`/search?${qParam("파리")}`, { scroll: false });
     expect(mockRouter.push).not.toHaveBeenCalled();
-    expect(input()).toHaveValue(" #파리 ");
+    expect(input()).toHaveValue(" # 파리 ");
   });
 
   it("검색어를 지우면 주소에서도 q 를 뺀다", async () => {

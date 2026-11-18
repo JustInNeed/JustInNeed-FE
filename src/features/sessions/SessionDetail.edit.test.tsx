@@ -245,7 +245,7 @@ describe("세션 상세 — 저장 안 하고 나가기 경고", () => {
   it("바꾼 게 없으면 앱 안 링크를 막지 않는다", async () => {
     const { user } = await startEditing();
     const link = document.createElement("a");
-    link.href = "#top";
+    link.href = "# top";
     document.body.appendChild(link);
     const clicked = vi.fn((e: MouseEvent) => e.defaultPrevented);
     document.addEventListener("click", clicked);
@@ -314,7 +314,7 @@ describe("세션 상세 — 30초 자동 저장", () => {
   it("해시태그만 바꿔도 30초 자동 저장에 제목 · 본문과 함께 실린다 (QA-041)", async () => {
     useFakeClock();
     const { user, patches } = await startEditing();
-    await user.click(button("#콜로세움 삭제"));
+    await user.click(button("# 콜로세움 삭제"));
     await tick(30_000);
     await waitFor(() =>
       expect(patches).toEqual([

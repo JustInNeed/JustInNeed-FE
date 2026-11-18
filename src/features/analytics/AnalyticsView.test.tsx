@@ -67,7 +67,7 @@ describe("롤링 배너", () => {
     // 날짜 · 길이는 아이콘 줄, 해시태그는 칩 하나씩 (QA-012 A안)
     expect(screen.getByText("2026-04-23")).toBeInTheDocument();
     expect(screen.getByText("39분")).toBeInTheDocument();
-    expect(Array.from(document.querySelectorAll(".bannerTag")).map((el) => el.textContent)).toEqual(["#유레일", "#예산", "#기차"]);
+    expect(Array.from(document.querySelectorAll(".bannerTag")).map((el) => el.textContent)).toEqual(["# 유레일", "# 예산", "# 기차"]);
     expect(dot(1)).toHaveAttribute("aria-current", "true");
   });
 
@@ -75,7 +75,7 @@ describe("롤링 배너", () => {
     setup({}, sequence(0));
     expect(screen.getByRole("heading", { name: "로마 3박 4일 동선 짜기" })).toBeInTheDocument();
     expect(screen.getByText("1시간 34분")).toBeInTheDocument();
-    expect(Array.from(document.querySelectorAll(".bannerTag")).map((el) => el.textContent)).toEqual(["#로마", "#콜로세움", "#바티칸"]);
+    expect(Array.from(document.querySelectorAll(".bannerTag")).map((el) => el.textContent)).toEqual(["# 로마", "# 콜로세움", "# 바티칸"]);
   });
 
   it("웹 서핑 팁과 추천 행동도 각 목록에서 난수로 하나씩 고른다", async () => {

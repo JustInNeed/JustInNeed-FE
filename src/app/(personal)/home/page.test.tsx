@@ -120,7 +120,7 @@ describe("홈 페이지 — 응답 표시", () => {
       "금",
       "토",
     ]);
-    expect(Array.from(container.querySelectorAll(".topTagRow")).map((r) => r.textContent)).toEqual(["#파리28", "#로마24"]);
+    expect(Array.from(container.querySelectorAll(".topTagRow")).map((r) => r.textContent)).toEqual(["# 파리28", "# 로마24"]);
   });
 
   it("오늘 타임라인에 시간대 · 해시태그 · 사이트가 보이고, 진행 중 슬롯은 '진행 중'으로 보인다", async () => {
@@ -128,11 +128,11 @@ describe("홈 페이지 — 응답 표시", () => {
     await dashboard();
 
     const done = slot("09:00 — 10:30");
-    expect(chipsIn(done)).toEqual(["#자바", "#스프링"]);
+    expect(chipsIn(done)).toEqual(["# 자바", "# 스프링"]);
     expect(sitesIn(done)).toEqual(["docs.spring.io", "velog.io"]);
     expect(Array.from(done.querySelectorAll(".siteIcon")).map((el) => el.textContent)).toEqual(["S", "V"]);
 
-    expect(chipsIn(slot("21:10 — 진행 중"))).toEqual(["#파리"]);
+    expect(chipsIn(slot("21:10 — 진행 중"))).toEqual(["# 파리"]);
   });
 
   it("마인드맵에 노드가 그려지고, 노드를 누르면 제목과 '관련 세션 보기' 버튼이 보인다", async () => {
@@ -167,8 +167,8 @@ describe("홈 페이지 — 응답 표시", () => {
     await dashboard();
     await user.click(screen.getByRole("button", { name: "필터" }));
     const dialog = screen.getByRole("dialog", { name: "그래프 필터" });
-    expect(within(dialog).getByRole("checkbox", { name: "해시태그 그룹 #로마, #파리" })).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "#파리" }));
+    expect(within(dialog).getByRole("checkbox", { name: "해시태그 그룹 # 로마, # 파리" })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "# 파리" }));
     await user.click(within(dialog).getByRole("button", { name: "적용" }));
 
     expect(node("파리")).toHaveStyle({ opacity: "1" });
@@ -190,9 +190,9 @@ describe("홈 페이지 — 응답 표시", () => {
       await user.click(screen.getByRole("button", { name: "이번 주" }));
 
       const sun = slot("10/25 (일)");
-      expect(chipsIn(sun)).toEqual(["#파리"]);
+      expect(chipsIn(sun)).toEqual(["# 파리"]);
       expect(sitesIn(sun)).toEqual(["parisinfo.com", "skyscanner.net"]);
-      expect(chipsIn(slot("10/31 (토)"))).toEqual(["#자바", "#스프링"]);
+      expect(chipsIn(slot("10/31 (토)"))).toEqual(["# 자바", "# 스프링"]);
       expect(sitesIn(slot("10/31 (토)"))).toEqual(["docs.spring.io"]);
       expect(screen.getAllByText("기록 없음")).toHaveLength(5);
     });

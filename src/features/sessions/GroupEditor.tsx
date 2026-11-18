@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon, Button } from "@/components/ui";
 import type { TagGroup } from "@/lib/api";
 import { MAX_HASHTAGS } from "@/lib/hashtag";
-import { withHash } from "@/lib/format";
+import { withHash, withoutHash } from "@/lib/format";
 import styles from "./GroupEditor.module.css";
 
 export interface GroupEditorPayload {
@@ -79,7 +79,7 @@ export function GroupEditor({ allTags, group, onCancel, onSave }: GroupEditorPro
     return () => document.removeEventListener("keydown", onKey);
   }, [onCancel]);
 
-  const q = query.replace(/^#/, "").toLowerCase();
+  const q = withoutHash(query).toLowerCase();
   const visibleTags = q ? allTags.filter((t) => t.toLowerCase().includes(q)) : allTags;
   const canSave = selectedList.length > 0;
 

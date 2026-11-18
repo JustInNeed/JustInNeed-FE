@@ -26,7 +26,7 @@ const PROFILES = tab(SEARCH_PAGE_PROFILES.profiles.map(toSearchedProfile));
 
 function renderSearch(props: Partial<SearchViewProps> = {}) {
   return renderPersonal(
-    <SearchView input="#파리" onInputChange={vi.fn()} q="파리" mindmaps={MINDMAPS} profiles={PROFILES} {...props} />,
+    <SearchView input="# 파리" onInputChange={vi.fn()} q="파리" mindmaps={MINDMAPS} profiles={PROFILES} {...props} />,
   );
 }
 
@@ -43,7 +43,7 @@ describe("SearchView — 검색창 · 탭", () => {
     const onInputChange = vi.fn();
     const { user } = renderSearch({ input: "", q: "", onInputChange });
     const input = screen.getByRole("textbox", { name: "해시태그 검색" });
-    expect(input).toHaveAttribute("placeholder", "해시태그로 프로필·마인드맵 찾기 (예: #파리)");
+    expect(input).toHaveAttribute("placeholder", "해시태그로 프로필·마인드맵 찾기 (예: # 파리)");
     await user.type(input, "로");
     expect(onInputChange).toHaveBeenCalledWith("로");
   });
@@ -90,7 +90,7 @@ describe("SearchView — 마인드맵 카드", () => {
 
   it("URL 만 공개한 카드는 제목 자리에 해시태그를 보여주고 소개글은 없다", () => {
     renderSearch();
-    const title = "#미술관 #로마";
+    const title = "# 미술관 # 로마";
     const urlOnly = card(title);
     expect(urlOnly.getByRole("link", { name: new RegExp(`^${title}`) })).toHaveAttribute("href", `/sessions/${URL_ONLY_CARD.mindmapId}`);
     expect(urlOnly.getByRole("link", { name: "artwalk" })).toHaveAttribute("href", `/profile/${URL_ONLY_CARD.owner.userId}`);
@@ -117,7 +117,7 @@ describe("SearchView — 사용자 카드", () => {
     const person = screen.getByRole("link", { name: /parisienne/ });
     expect(person).toHaveAttribute("href", "/profile/201");
     expect(within(person).getByText("마인드맵 6개")).toBeInTheDocument();
-    expect(within(person).getByText("#파리 #에펠탑 #센강")).toBeInTheDocument();
+    expect(within(person).getByText("# 파리 # 에펠탑 # 센강")).toBeInTheDocument();
   });
 
   it("닉네임이 없으면 기본 이름을 보여주고, 태그가 없으면 태그 줄을 그리지 않는다", async () => {

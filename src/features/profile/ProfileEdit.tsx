@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Icon, Card, PageHeader, Button, Field, FieldMessage, Toggle, InlineState, inputClass } from "@/components/ui";
 import type { SessionListItem } from "@/lib/api";
-import { formatDuration, withHash } from "@/lib/format";
+import { formatDuration, withHash, withoutHash } from "@/lib/format";
 import { MAX_HASHTAGS, validateHashtag } from "@/lib/hashtag";
 import { ApiError, SessionExpiredError, updateMyProfile, updateNickname } from "@/lib/api";
 import { usePersonal } from "@/lib/app/PersonalContext";
@@ -120,7 +120,7 @@ export function ProfileEdit({ profile, hashtags: initialHashtags, pinnedSessions
 
   const addTag = () => {
     // interests 는 '#' 포함 표시값, 검증은 raw 기준
-    const r = validateHashtag(newTag, interests.map((t) => t.replace(/^#/, "")));
+    const r = validateHashtag(newTag, interests.map((t) => withoutHash(t)));
     if (!r.ok) {
       setTagError(r.msg);
       return;

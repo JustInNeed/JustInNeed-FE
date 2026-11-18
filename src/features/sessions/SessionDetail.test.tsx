@@ -25,7 +25,7 @@ async function renderEditing(...args: Parameters<typeof renderDetail>) {
   return view;
 }
 
-const ROME_TAGS = ["#로마", "#콜로세움", "#바티칸", "#먹거리"];
+const ROME_TAGS = ["# 로마", "# 콜로세움", "# 바티칸", "# 먹거리"];
 /** 백엔드 ErrorCode.INVALID_HASHTAG */
 const INVALID_HASHTAG = "해시태그는 한글, 영문, 숫자만 사용할 수 있으며 최대 10자까지 입력 가능합니다.";
 
@@ -230,7 +230,7 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
     await user.type(input(), "트레비{Enter}");
 
     expect(screen.queryByText("해시태그 추가")).not.toBeInTheDocument();
-    expect(tagTexts()).toEqual([...ROME_TAGS, "#트레비"]);
+    expect(tagTexts()).toEqual([...ROME_TAGS, "# 트레비"]);
     expect(patches).toEqual([]);
 
     await user.click(screen.getByRole("button", { name: "저장" }));
@@ -239,13 +239,13 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
         { title: ROME_DETAIL.title, editedMarkdown: ROME_MD, tags: ["로마", "콜로세움", "바티칸", "먹거리", "트레비"] },
       ]),
     );
-    expect(viewTagTexts()).toEqual([...ROME_TAGS, "#트레비"]);
+    expect(viewTagTexts()).toEqual([...ROME_TAGS, "# 트레비"]);
   });
 
   it("앞의 # 와 사이 공백은 빼고 넣고, 추가 버튼으로도 넣을 수 있다", async () => {
     const { user, patches } = await renderEditing();
     const pop = await openPicker(user);
-    await user.type(input(), "#트레비 분수");
+    await user.type(input(), "# 트레비 분수");
     await user.click(within(pop).getByRole("button", { name: "추가" }));
     await user.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => expect(patches[0]?.tags).toEqual(["로마", "콜로세움", "바티칸", "먹거리", "트레비분수"]));
@@ -273,7 +273,7 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
   it("이미 있는 태그면 '이미 추가된 해시태그입니다.' 를 보여 준다", async () => {
     const { user, patches } = await renderEditing();
     const pop = await openPicker(user);
-    await user.type(input(), "#로마{Enter}");
+    await user.type(input(), "# 로마{Enter}");
     expect(within(pop).getByText("이미 추가된 해시태그입니다.")).toBeInTheDocument();
     expect(patches).toEqual([]);
   });
@@ -326,7 +326,7 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
     await user.type(input(), "트레비{Enter}");
     await user.click(screen.getByRole("button", { name: "저장" }));
     expect(await screen.findByText(INVALID_HASHTAG)).toBeInTheDocument();
-    expect(tagTexts()).toEqual([...ROME_TAGS, "#트레비"]);
+    expect(tagTexts()).toEqual([...ROME_TAGS, "# 트레비"]);
     expect(screen.getByPlaceholderText("세션 제목")).toBeInTheDocument();
   });
 });
@@ -334,18 +334,18 @@ describe("세션 상세 — 해시태그 추가 (편집 중, QA-041)", () => {
 describe("세션 상세 — 해시태그 삭제 · 순서 (편집 중, QA-041)", () => {
   it("× 를 누르면 초안에서만 빠지고, 저장할 때 그 태그만 빠진 목록을 보낸다", async () => {
     const { user, patches } = await renderEditing();
-    await user.click(screen.getByRole("button", { name: "#콜로세움 삭제" }));
-    expect(tagTexts()).toEqual(["#로마", "#바티칸", "#먹거리"]);
+    await user.click(screen.getByRole("button", { name: "# 콜로세움 삭제" }));
+    expect(tagTexts()).toEqual(["# 로마", "# 바티칸", "# 먹거리"]);
     expect(patches).toEqual([]);
 
     await user.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => expect(patches[0]?.tags).toEqual(["로마", "바티칸", "먹거리"]));
-    expect(viewTagTexts()).toEqual(["#로마", "#바티칸", "#먹거리"]);
+    expect(viewTagTexts()).toEqual(["# 로마", "# 바티칸", "# 먹거리"]);
   });
 
   it("태그를 바꾼 채 취소하면 경고하고, '저장 안 하고 나가기' 면 원래 태그로 돌아간다", async () => {
     const { user, patches } = await renderEditing();
-    await user.click(screen.getByRole("button", { name: "#콜로세움 삭제" }));
+    await user.click(screen.getByRole("button", { name: "# 콜로세움 삭제" }));
     await user.click(screen.getByRole("button", { name: "취소" }));
     const dialog = screen.getByRole("dialog", { name: "저장하지 않은 변경 사항이 있어요" });
     await user.click(within(dialog).getByRole("button", { name: "저장 안 하고 나가기" }));
@@ -372,7 +372,7 @@ describe("세션 상세 — 해시태그 삭제 · 순서 (편집 중, QA-041)",
     expect(third.style.outline).toContain("2px solid");
     fireEvent.drop(third, { dataTransfer });
 
-    expect(tagTexts()).toEqual(["#콜로세움", "#바티칸", "#로마", "#먹거리"]);
+    expect(tagTexts()).toEqual(["# 콜로세움", "# 바티칸", "# 로마", "# 먹거리"]);
     expect(patches).toEqual([]);
     await user.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => expect(patches[0]?.tags).toEqual(["콜로세움", "바티칸", "로마", "먹거리"]));

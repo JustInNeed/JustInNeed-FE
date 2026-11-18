@@ -18,7 +18,7 @@ function renderEditor(props: Partial<Parameters<typeof GroupEditor>[0]> = {}) {
 /** 아래 '전체 해시태그' 목록의 태그 버튼 */
 const tagButton = (tag: string) => {
   const list = document.querySelector<HTMLElement>(".tagList")!;
-  return within(list).getByRole("button", { name: `#${tag}` });
+  return within(list).getByRole("button", { name: `# ${tag}` });
 };
 const listedTags = () =>
   within(document.querySelector<HTMLElement>(".tagList")!)
@@ -46,12 +46,12 @@ describe("해시태그 그룹 편집기", () => {
     const search = screen.getByPlaceholderText("해시태그 검색");
     expect(search).toHaveFocus();
 
-    await user.type(search, "#로마");
-    expect(listedTags()).toEqual(["#로마", "#로마여행"]);
+    await user.type(search, "# 로마");
+    expect(listedTags()).toEqual(["# 로마", "# 로마여행"]);
 
     await user.clear(search);
     await user.type(search, "react");
-    expect(listedTags()).toEqual(["#React"]);
+    expect(listedTags()).toEqual(["# React"]);
 
     await user.clear(search);
     await user.type(search, "없는태그");
@@ -68,13 +68,13 @@ describe("해시태그 그룹 편집기", () => {
     const { user } = renderEditor();
     await user.click(tagButton("파리"));
     await user.click(tagButton("로마"));
-    expect(selectedTags()).toEqual(["#파리", "#로마"]);
+    expect(selectedTags()).toEqual(["# 파리", "# 로마"]);
     expect(screen.getByText("(2/10)")).toBeInTheDocument();
     expect(tagButton("파리")).toHaveClass("tagBtnOn");
     expect(saveButton()).toBeEnabled();
 
     await user.click(tagButton("파리"));
-    expect(selectedTags()).toEqual(["#로마"]);
+    expect(selectedTags()).toEqual(["# 로마"]);
     expect(tagButton("파리")).not.toHaveClass("tagBtnOn");
   });
 
@@ -83,7 +83,7 @@ describe("해시태그 그룹 편집기", () => {
     await user.click(tagButton("파리"));
     await user.click(tagButton("로마"));
     await user.click(within(selectedChips()[0]).getByRole("button", { name: "해제" }));
-    expect(selectedTags()).toEqual(["#로마"]);
+    expect(selectedTags()).toEqual(["# 로마"]);
   });
 
   it("모두 해제를 누르면 선택이 비고 저장 버튼이 다시 꺼진다", async () => {
@@ -122,7 +122,7 @@ describe("해시태그 그룹 편집기", () => {
     fireEvent.dragOver(first, { dataTransfer });
     expect(first.style.outline).toContain("2px solid");
     fireEvent.drop(first, { dataTransfer });
-    expect(selectedTags()).toEqual(["#바티칸", "#로마", "#콜로세움"]);
+    expect(selectedTags()).toEqual(["# 바티칸", "# 로마", "# 콜로세움"]);
     expect(dataTransfer.effectAllowed).toBe("move");
   });
 
@@ -136,7 +136,7 @@ describe("해시태그 그룹 편집기", () => {
     fireEvent.drop(first, { dataTransfer });
     fireEvent.dragStart(second, { dataTransfer });
     fireEvent.dragEnd(second, { dataTransfer });
-    expect(selectedTags()).toEqual(["#로마", "#콜로세움"]);
+    expect(selectedTags()).toEqual(["# 로마", "# 콜로세움"]);
   });
 
   it("그룹 만들기를 누르면 고른 태그를 고른 순서대로 넘긴다", async () => {
@@ -150,7 +150,7 @@ describe("해시태그 그룹 편집기", () => {
   it("기존 그룹을 열면 '그룹 수정' 으로 그 그룹의 태그가 골라져 있고, 수정 완료하면 id 와 함께 넘긴다", async () => {
     const { user, onSave } = renderEditor({ group: TAG_GROUPS[1] });
     expect(screen.getByRole("heading", { name: "그룹 수정" })).toBeInTheDocument();
-    expect(selectedTags()).toEqual(["#항공권", "#예산"]);
+    expect(selectedTags()).toEqual(["# 항공권", "# 예산"]);
     await user.click(tagButton("기차"));
     await user.click(saveButton("수정 완료"));
     expect(onSave).toHaveBeenCalledWith({ id: 2, hashtags: ["항공권", "예산", "기차"] });

@@ -11,7 +11,7 @@ describe("세션 상세 — 다른 사람의 공개 세션 (읽기 전용)", () 
 
   it("해시태그는 보이지만 지우거나 끌어서 옮길 수 없다", async () => {
     await renderDetail(FOREIGN_DETAIL);
-    for (const tag of FOREIGN_DETAIL.tags) expect(screen.getByText(`#${tag}`)).toBeInTheDocument();
+    for (const tag of FOREIGN_DETAIL.tags) expect(screen.getByText(`# ${tag}`)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /삭제$/ })).not.toBeInTheDocument();
     expect(screen.queryAllByTitle("드래그로 순서 변경")).toEqual([]);
     expect(document.querySelector("[draggable='true']")).not.toBeInTheDocument();

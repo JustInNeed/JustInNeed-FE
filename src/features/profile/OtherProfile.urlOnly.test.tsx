@@ -46,18 +46,18 @@ describe("URL 만 공개한 사용자의 프로필", () => {
   });
 
   const openCard = async (user: ReturnType<typeof renderPersonal>["user"]) => {
-    await user.click(await screen.findByText("#놀이 #사료"));
-    return screen.getByRole("dialog", { name: "#놀이 #사료" });
+    await user.click(await screen.findByText("# 놀이 # 사료"));
+    return screen.getByRole("dialog", { name: "# 놀이 # 사료" });
   };
 
   it("카드 제목 자리에 해시태그가 보이고 태그 줄에 또 찍히지 않는다", async () => {
     renderPersonal(<OtherProfile id="7" />);
 
-    const title = await screen.findByText("#놀이 #사료");
+    const title = await screen.findByText("# 놀이 # 사료");
     expect(title).toHaveClass("title");
     const card = title.closest<HTMLElement>('[role="button"]')!;
-    expect(within(card).queryByText("#놀이")).not.toBeInTheDocument();
-    expect(card).toHaveAccessibleName(/#놀이 #사료/);
+    expect(within(card).queryByText("# 놀이")).not.toBeInTheDocument();
+    expect(card).toHaveAccessibleName(/# 놀이 # 사료/);
   });
 
   it("해시태그도 없는 카드는 안내 문구가 제목 자리에 보인다", async () => {
@@ -72,7 +72,7 @@ describe("URL 만 공개한 사용자의 프로필", () => {
 
     const dialog = await openCard(user);
 
-    expect(within(dialog).getByText("#놀이 #사료")).toBeInTheDocument();
+    expect(within(dialog).getByText("# 놀이 # 사료")).toBeInTheDocument();
     expect(await within(dialog).findByText("원문 링크만 공개된 세션")).toBeInTheDocument();
     expect(dialog.querySelector(".tags")?.children).toHaveLength(0);
   });
@@ -104,15 +104,15 @@ describe("URL 만 공개한 사용자의 프로필", () => {
     const { user } = renderPersonal(<OtherProfile id="7" />);
 
     await user.click(await screen.findByRole("button", { name: "세션 (2)" }));
-    await screen.findByRole("heading", { level: 3, name: "#놀이 #사료" });
+    await screen.findByRole("heading", { level: 3, name: "# 놀이 # 사료" });
     expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
-      "#놀이 #사료",
+      "# 놀이 # 사료",
       "원문 링크만 공개된 세션",
     ]);
     // 제목 자리에 쓴 해시태그를 태그 줄에 또 찍지 않는다
     expect(document.querySelector(".sessionGrid .tags")?.children).toHaveLength(0);
 
-    await user.click(screen.getByRole("button", { name: /#놀이 #사료/ }));
+    await user.click(screen.getByRole("button", { name: /# 놀이 # 사료/ }));
     expect(mockRouter.push).toHaveBeenCalledWith("/sessions/31");
   });
 
@@ -132,7 +132,7 @@ describe("URL 만 공개한 사용자의 프로필", () => {
     await user.click(await screen.findByRole("button", { name: "세션 (1)" }));
 
     expect(await screen.findByRole("heading", { level: 3, name: "로마 3박 4일 동선" })).toBeInTheDocument();
-    expect(screen.getByText("#로마")).toBeInTheDocument();
+    expect(screen.getByText("# 로마")).toBeInTheDocument();
   });
 
   it("닉네임이 null 이면 대체 이름을 보여주고 빈 핸들 자리는 그리지 않는다", async () => {

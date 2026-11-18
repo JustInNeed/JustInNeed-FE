@@ -65,7 +65,7 @@ const MY_TOP_HASHTAGS = [
   apiHashtag(5, "예산", 11, false),
 ];
 
-/** GET /community/me/profile — 해시태그 전체엔 상위 5개 밖의 #기차 · 비공개 #비자 가 더 있다 */
+/** GET /community/me/profile — 해시태그 전체엔 상위 5개 밖의 # 기차 · 비공개 # 비자 가 더 있다 */
 export const API_MY_PROFILE: MyProfileResponse = {
   userId: 6,
   nickname: "sprout.kr",
@@ -88,13 +88,13 @@ export const MY_PROFILE: ProfileData = {
   bio: "HCI 연구하며 여행 다니는 사람. 요즘은 유럽.",
   nodes: 218,
   likes: 87,
-  interests: ["#유럽여행", "#HCI", "#미술관", "#프론트엔드", "#독서"],
+  interests: ["# 유럽여행", "# HCI", "# 미술관", "# 프론트엔드", "# 독서"],
   topTags: [
-    { tag: "#파리", count: 28, isPublic: true },
-    { tag: "#로마", count: 24, isPublic: true },
-    { tag: "#항공권", count: 18, isPublic: true },
-    { tag: "#미술관", count: 15, isPublic: true },
-    { tag: "#예산", count: 11, isPublic: false },
+    { tag: "# 파리", count: 28, isPublic: true },
+    { tag: "# 로마", count: 24, isPublic: true },
+    { tag: "# 항공권", count: 18, isPublic: true },
+    { tag: "# 미술관", count: 15, isPublic: true },
+    { tag: "# 예산", count: 11, isPublic: false },
   ],
   visibility: "url",
   pinnedSessionIds: [9001, 9003, 9002, 9005],
@@ -102,10 +102,10 @@ export const MY_PROFILE: ProfileData = {
 
 /** 앞의 둘은 핀고정, 마지막은 비공개 */
 export const MY_MINDMAPS: MindmapFixture[] = [
-  { ...mindmap("901", "로마 3박 4일 동선", ["#로마", "#콜로세움", "#먹거리"], 64, 41, 12, [mySession(9001)]), isPublic: true, isPinned: true },
-  { ...mindmap("902", "파리 미술관 투어 지도", ["#파리", "#미술관", "#루브르"], 52, 33, 18, [mySession(9003)]), isPublic: true, isPinned: true },
-  { ...mindmap("903", "유럽 항공권 · 예산 정리", ["#예산", "#항공권"], 38, 20, 9, [mySession(9002), mySession(9004)]), isPublic: true, isPinned: false },
-  { ...mindmap("904", "쉥겐 비자 서류", ["#비자", "#쉥겐"], 27, 12, 4, [mySession(9006)]), isPublic: false, isPinned: false },
+  { ...mindmap("901", "로마 3박 4일 동선", ["# 로마", "# 콜로세움", "# 먹거리"], 64, 41, 12, [mySession(9001)]), isPublic: true, isPinned: true },
+  { ...mindmap("902", "파리 미술관 투어 지도", ["# 파리", "# 미술관", "# 루브르"], 52, 33, 18, [mySession(9003)]), isPublic: true, isPinned: true },
+  { ...mindmap("903", "유럽 항공권 · 예산 정리", ["# 예산", "# 항공권"], 38, 20, 9, [mySession(9002), mySession(9004)]), isPublic: true, isPinned: false },
+  { ...mindmap("904", "쉥겐 비자 서류", ["# 비자", "# 쉥겐"], 27, 12, 4, [mySession(9006)]), isPublic: false, isPinned: false },
 ];
 
 export const MY_PROFILE_PAGE: ProfilePageData = {
@@ -134,11 +134,11 @@ export const OTHER_PROFILE: ProfileData = {
   bio: "동유럽 한 달 살이 중. 천천히 깊게 다니기.",
   nodes: 142,
   likes: 284,
-  interests: ["#프라하", "#비엔나", "#야간열차", "#카페투어"],
+  interests: ["# 프라하", "# 비엔나", "# 야간열차", "# 카페투어"],
   topTags: [
-    { tag: "#프라하", count: 32, isPublic: true },
-    { tag: "#비엔나", count: 28, isPublic: true },
-    { tag: "#야간열차", count: 16, isPublic: true },
+    { tag: "# 프라하", count: 32, isPublic: true },
+    { tag: "# 비엔나", count: 28, isPublic: true },
+    { tag: "# 야간열차", count: 16, isPublic: true },
   ],
   visibility: "url",
   pinnedSessionIds: [],
@@ -146,12 +146,12 @@ export const OTHER_PROFILE: ProfileData = {
 
 /** 첫 카드만 핀고정 */
 export const OTHER_MINDMAPS: MindmapFixture[] = [
-  { ...mindmap("101", "동유럽 3주 살이 전체 동선", ["#프라하", "#동유럽", "#야간열차"], 64, 284, 91, [otherSession(9102), otherSession(9107)]), isPinned: true },
-  mindmap("102", "비엔나 카페 투어", ["#비엔나", "#자허토르테"], 41, 120, 40, [otherSession(9104)]),
-  mindmap("103", "프라하 천천히 걷기", ["#프라하"], 33, 98, 27, [otherSession(9107)]),
-  mindmap("104", "야간열차 노선 정리", ["#야간열차", "#나이트젯"], 29, 77, 30, [otherSession(9102)]),
-  mindmap("105", "부다페스트 온천 비교", ["#부다페스트", "#온천"], 22, 54, 11, [otherSession(9102)]),
-  mindmap("106", "체코 소도시 당일치기", ["#체코", "#소도시"], 18, 31, 8, [otherSession(9105)]),
+  { ...mindmap("101", "동유럽 3주 살이 전체 동선", ["# 프라하", "# 동유럽", "# 야간열차"], 64, 284, 91, [otherSession(9102), otherSession(9107)]), isPinned: true },
+  mindmap("102", "비엔나 카페 투어", ["# 비엔나", "# 자허토르테"], 41, 120, 40, [otherSession(9104)]),
+  mindmap("103", "프라하 천천히 걷기", ["# 프라하"], 33, 98, 27, [otherSession(9107)]),
+  mindmap("104", "야간열차 노선 정리", ["# 야간열차", "# 나이트젯"], 29, 77, 30, [otherSession(9102)]),
+  mindmap("105", "부다페스트 온천 비교", ["# 부다페스트", "# 온천"], 22, 54, 11, [otherSession(9102)]),
+  mindmap("106", "체코 소도시 당일치기", ["# 체코", "# 소도시"], 18, 31, 8, [otherSession(9105)]),
 ];
 
 export const OTHER_PROFILE_PAGE: ProfilePageData = {

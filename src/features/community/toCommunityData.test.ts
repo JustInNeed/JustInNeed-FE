@@ -31,7 +31,7 @@ describe("toFeedPost", () => {
       urlOnly: false,
       title: "동유럽 3주 살이 전체 동선",
       snippet: "프라하 → 비엔나 → 부다페스트 야간열차 동선과 예산.",
-      hashtags: ["#프라하", "#동유럽"],
+      hashtags: ["# 프라하", "# 동유럽"],
       nodes: 14,
       likes: 28,
       likedByMe: false,
@@ -54,7 +54,7 @@ describe("toFeedPost", () => {
   it("URL 만 공개한 카드는 제목 자리에 해시태그, 소개글은 비우고 URL 제목은 사이트 주소로 채운다", () => {
     const post = toFeedPost(URL_ONLY_CARD);
     expect(post.urlOnly).toBe(true);
-    expect(post.title).toBe("#미술관 #로마");
+    expect(post.title).toBe("# 미술관 # 로마");
     expect(post.snippet).toBe("");
     expect(post.relatedUrls).toEqual([
       { title: "museivaticani.va", url: "https://www.museivaticani.va/content" },
@@ -74,13 +74,13 @@ describe("toFeedPost", () => {
 describe("그 밖의 응답 변환", () => {
   it("추천 응답 — 근거 태그에 # 를 붙이고 카드를 바꾼다", () => {
     const rec = toRecommendation(INTERESTS);
-    expect(rec.basisTags).toEqual(["#파리", "#로마"]);
+    expect(rec.basisTags).toEqual(["# 파리", "# 로마"]);
     expect(rec.posts.map((p) => p.id)).toEqual(["12", "13", "14"]);
   });
 
   it("떠오르는 해시태그 · 검색 해시태그에 # 를 붙인다", () => {
-    expect(toTrendingHashtag(TRENDING_TODAY.hashtags[0])).toEqual({ tag: "#쉥겐비자", count: 12, trend: 8 });
-    expect(toSearchedTag(SEARCH_HASHTAGS.hashtags[0])).toEqual({ tag: "#파리", count: 8, trend: 0 });
+    expect(toTrendingHashtag(TRENDING_TODAY.hashtags[0])).toEqual({ tag: "# 쉥겐비자", count: 12, trend: 8 });
+    expect(toSearchedTag(SEARCH_HASHTAGS.hashtags[0])).toEqual({ tag: "# 파리", count: 8, trend: 0 });
   });
 
   it("검색 프로필 — 닉네임이 없으면 대체 이름", () => {
@@ -88,7 +88,7 @@ describe("그 밖의 응답 변환", () => {
       userId: 104,
       name: "이름 없는 사용자",
       avatar: "🌱",
-      tags: ["#파리"],
+      tags: ["# 파리"],
       mapCount: 1,
     });
   });
@@ -97,7 +97,7 @@ describe("그 밖의 응답 변환", () => {
     expect(toSimilarPersonRow(SIMILAR_PEOPLE.people[0])).toEqual({
       userId: 102,
       name: "foodtrip",
-      tags: "#파리 #먹거리",
+      tags: "# 파리 # 먹거리",
       following: false,
     });
     expect(toSimilarPersonRow(SIMILAR_PEOPLE.people[2]).name).toBe("이름 없는 사용자");

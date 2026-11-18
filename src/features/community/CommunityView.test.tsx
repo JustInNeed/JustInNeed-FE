@@ -77,13 +77,13 @@ describe("CommunityView — 추천 피드", () => {
   it("두 추천을 근거 태그와 함께 섹션별로 보여준다", () => {
     renderCommunity();
     const chips = (el: HTMLElement) => Array.from(el.querySelector(".secChips")!.children, (c) => c.textContent);
-    expect(chips(region(INTEREST))).toEqual(["#파리", "#로마"]);
+    expect(chips(region(INTEREST))).toEqual(["# 파리", "# 로마"]);
     expect(within(region(INTEREST)).getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual([
       CONTENT_TITLE,
       "파리 미식 지도",
-      "#미술관 #로마",
+      "# 미술관 # 로마",
     ]);
-    expect(chips(region(RECENT))).toEqual(["#야간열차"]);
+    expect(chips(region(RECENT))).toEqual(["# 야간열차"]);
     expect(within(region(RECENT)).getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual([
       "유럽 한 달 예산",
       CONTENT_TITLE,
@@ -99,7 +99,7 @@ describe("CommunityView — 추천 피드", () => {
     expect(c.getByText("2026-10-30")).toBeInTheDocument();
     expect(c.getByText("노드 14")).toBeInTheDocument();
     expect(c.getByText(/프라하 → 비엔나/)).toBeInTheDocument();
-    ["#프라하", "#동유럽"].forEach((tag) => expect(c.getByText(tag)).toBeInTheDocument());
+    ["# 프라하", "# 동유럽"].forEach((tag) => expect(c.getByText(tag)).toBeInTheDocument());
     expect(button(card, "좋아요")).toHaveTextContent("28");
     expect(button(card, "북마크")).toHaveTextContent("9");
     expect(button(card, "나도 탐색중")).toHaveTextContent("나도 탐색중 12");
@@ -107,7 +107,7 @@ describe("CommunityView — 추천 피드", () => {
 
   it("URL 만 공개한 카드는 제목 자리에 해시태그, 소개글 없음, URL 은 사이트 주소만 보여준다", () => {
     renderCommunity();
-    const card = feedCard("#미술관 #로마");
+    const card = feedCard("# 미술관 # 로마");
     expect(card.querySelector(".feedSnippet")).toBeNull();
     expect(card.querySelector(".feedTags")).toBeNull();
     const link = within(card).getByRole("link", { name: "museivaticani.va" });
@@ -345,16 +345,16 @@ describe("CommunityView — 검색바", () => {
     expect(dropdown()).toBeNull();
     await user.type(searchInput(), "파리");
     const p = await panel();
-    expect(await p.findByRole("button", { name: /^#파리\s*8$/ })).toBeInTheDocument();
+    expect(await p.findByRole("button", { name: /^# 파리\s*8$/ })).toBeInTheDocument();
     expect(p.getByText("프로필 추천")).toBeInTheDocument();
     expect(p.getByText("foodtrip")).toBeInTheDocument();
-    expect(p.getByText("마인드맵 3개 · #파리 #먹거리 #빵")).toBeInTheDocument();
+    expect(p.getByText("마인드맵 3개 · # 파리 # 먹거리 # 빵")).toBeInTheDocument();
     expect(p.getByText("이름 없는 사용자")).toBeInTheDocument();
     expect(p.getByText("마인드맵 탐색")).toBeInTheDocument();
     expect(p.getByText("파리 미식 지도")).toBeInTheDocument();
-    expect(p.getByText("foodtrip · 노드 14 · #파리 #먹거리")).toBeInTheDocument();
+    expect(p.getByText("foodtrip · 노드 14 · # 파리 # 먹거리")).toBeInTheDocument();
     // URL 만 공개한 카드는 제목 자리의 해시태그를 다시 쓰지 않는다
-    expect(p.getByText("#미술관 #로마")).toBeInTheDocument();
+    expect(p.getByText("# 미술관 # 로마")).toBeInTheDocument();
     expect(p.getByText("artwalk · 노드 2")).toBeInTheDocument();
     expect(urls.map((u) => `${u.pathname}${u.search}`).sort()).toEqual(
       [
@@ -420,11 +420,11 @@ describe("CommunityView — 검색바", () => {
     await waitFor(() => expect(seen).toEqual(["파"]));
     await user.type(searchInput(), "리");
     const p = await panel();
-    expect(await p.findByRole("button", { name: /^#새결과/ })).toBeInTheDocument();
+    expect(await p.findByRole("button", { name: /^# 새결과/ })).toBeInTheDocument();
     releaseOld();
     await settle();
-    expect(p.getByRole("button", { name: /^#새결과/ })).toBeInTheDocument();
-    expect(p.queryByRole("button", { name: /^#옛결과/ })).toBeNull();
+    expect(p.getByRole("button", { name: /^# 새결과/ })).toBeInTheDocument();
+    expect(p.queryByRole("button", { name: /^# 옛결과/ })).toBeNull();
   });
 
   it("검색어를 바꾸면 이전 결과 대신 찾는 중을 보여준다", async () => {
@@ -527,7 +527,7 @@ describe("CommunityView — 검색바", () => {
     mockSearch();
     const { user } = renderCommunity();
     await user.type(searchInput(), "파");
-    await user.click(await (await panel()).findByRole("button", { name: /^#파리올림픽/ }));
+    await user.click(await (await panel()).findByRole("button", { name: /^# 파리올림픽/ }));
     expect(searchInput()).toHaveValue("파리올림픽");
     expect(dropdown()).not.toBeNull();
   });
@@ -544,7 +544,7 @@ describe("CommunityView — 검색바", () => {
     mockSearch();
     const { user } = renderCommunity();
     await user.type(searchInput(), "파리");
-    await user.click(await (await panel()).findByText("#미술관 #로마"));
+    await user.click(await (await panel()).findByText("# 미술관 # 로마"));
     expect(mockRouter.push).toHaveBeenCalledWith("/profile/103");
   });
 });
@@ -681,9 +681,9 @@ describe("CommunityView — 떠오르는 해시태그", () => {
     const card = within(trendCard());
     expect(card.getByRole("heading", { name: "오늘의 떠오르는 해시태그" })).toBeInTheDocument();
     expect(card.getByRole("button", { name: "오늘" })).toHaveClass("miniTabOn");
-    expect(card.getByRole("button", { name: /#쉥겐비자/ })).toHaveTextContent("#쉥겐비자12↑8");
-    expect(card.getByRole("button", { name: /#아이슬란드/ })).toHaveTextContent("#아이슬란드3↓4");
-    expect(card.getByRole("button", { name: /#오로라/ }).textContent).toBe("#오로라7");
+    expect(card.getByRole("button", { name: /# 쉥겐비자/ })).toHaveTextContent("# 쉥겐비자12↑8");
+    expect(card.getByRole("button", { name: /# 아이슬란드/ })).toHaveTextContent("# 아이슬란드3↓4");
+    expect(card.getByRole("button", { name: /# 오로라/ }).textContent).toBe("# 오로라7");
   });
 
   it("이번 주 탭을 누르면 이번 주 목록과 제목으로 바뀌고, 오늘을 누르면 돌아온다", async () => {
@@ -691,16 +691,16 @@ describe("CommunityView — 떠오르는 해시태그", () => {
     await user.click(within(trendCard()).getByRole("button", { name: "이번 주" }));
     const card = within(trendCard());
     expect(card.getByRole("heading", { name: "이번 주 떠오르는 해시태그" })).toBeInTheDocument();
-    expect(card.getByRole("button", { name: /#바르셀로나/ })).toHaveTextContent("#바르셀로나39↑21");
-    expect(card.queryByRole("button", { name: /#쉥겐비자/ })).toBeNull();
+    expect(card.getByRole("button", { name: /# 바르셀로나/ })).toHaveTextContent("# 바르셀로나39↑21");
+    expect(card.queryByRole("button", { name: /# 쉥겐비자/ })).toBeNull();
     await user.click(card.getByRole("button", { name: "오늘" }));
-    expect(within(trendCard()).getByRole("button", { name: /#쉥겐비자/ })).toBeInTheDocument();
+    expect(within(trendCard()).getByRole("button", { name: /# 쉥겐비자/ })).toBeInTheDocument();
   });
 
   it("해시태그를 누르면 그 태그로 검색창이 채워지고 드롭다운이 열린다", async () => {
     mockSearch();
     const { user } = renderCommunity();
-    await user.click(within(trendCard()).getByRole("button", { name: /#오로라/ }));
+    await user.click(within(trendCard()).getByRole("button", { name: /# 오로라/ }));
     expect(searchInput()).toHaveValue("오로라");
     expect(await (await panel()).findByText("연관 해시태그")).toBeInTheDocument();
   });
@@ -727,10 +727,10 @@ describe("CommunityView — 떠오르는 해시태그", () => {
 describe("CommunityView — 비슷한 사람", () => {
   it("이름 · 겹치는 태그 · 팔로우 상태를 보여주고 닉네임이 없으면 대체 이름을 쓴다", () => {
     renderCommunity();
-    expect(within(personRow("foodtrip")).getByText("#파리 #먹거리")).toBeInTheDocument();
+    expect(within(personRow("foodtrip")).getByText("# 파리 # 먹거리")).toBeInTheDocument();
     expect(within(personRow("foodtrip")).getByRole("button", { name: "팔로우" })).toHaveAttribute("aria-pressed", "false");
     expect(within(personRow("artwalk")).getByRole("button", { name: "팔로잉" })).toHaveAttribute("aria-pressed", "true");
-    expect(within(personRow("이름 없는 사용자")).getByText("#예산")).toBeInTheDocument();
+    expect(within(personRow("이름 없는 사용자")).getByText("# 예산")).toBeInTheDocument();
   });
 
   it("팔로우를 누르면 먼저 바뀌고 서버에 저장한다", async () => {
