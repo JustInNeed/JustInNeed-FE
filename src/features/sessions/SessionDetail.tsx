@@ -397,6 +397,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                   className={styles.favBtn}
                   style={{ color: detail.isFavorite ? "var(--green-600)" : "var(--ink-300)" }}
                   aria-label="즐겨찾기"
+                  aria-pressed={detail.isFavorite}
                 >
                   <Icon name={detail.isFavorite ? "starFilled" : "star"} size={18} />
                 </button>

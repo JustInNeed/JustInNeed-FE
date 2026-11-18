@@ -35,11 +35,11 @@ test("E2E-02 즐겨찾기를 켜고 즐겨찾기만 보기에서 확인한 뒤 �
     // 3. 상세 제목 옆 별 끄기 [REC-11 S3]
     await card().click();
     await expect(page).toHaveURL(/\/sessions\/\d+$/);
-    // 상세의 별은 눌림 상태(aria-pressed)를 내놓지 않아 보내는 요청으로 확인한다
     const star = page.getByRole("button", { name: "즐겨찾기" });
-    await expect(star).toBeVisible();
+    await expect(star).toHaveAttribute("aria-pressed", "true");
     const unsaved = page.waitForRequest((req) => /\/sessions\/\d+$/.test(req.url()) && req.method() === "PATCH");
     await star.click();
+    await expect(star).toHaveAttribute("aria-pressed", "false");
     expect((await unsaved).postDataJSON()).toEqual({ isFavorite: false });
     expect((await (await unsaved).response())?.ok()).toBe(true);
 
