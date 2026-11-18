@@ -43,19 +43,19 @@ const sections = () => Array.from(document.querySelectorAll<HTMLElement>(".group
 const headTags = (section: HTMLElement) =>
   Array.from(section.querySelector<HTMLElement>(".groupTags")!.querySelectorAll(".chip"), (c) => c.textContent);
 const sectionHeads = () => sections().map(headTags);
-const sectionOf = (tag: string) => sections().find((s) => headTags(s).includes(`#${tag}`))!;
+const sectionOf = (tag: string) => sections().find((s) => headTags(s).includes(`# ${tag}`))!;
 
 /** 열린 편집기 (새 그룹 만들기 / 그룹 수정) */
 const editor = () => document.querySelector<HTMLElement>(".modal")!;
 const editorTags = () => editor().querySelector<HTMLElement>(".tagList")!;
-const editorTag = (tag: string) => within(editorTags()).getByRole("button", { name: `#${tag}` });
+const editorTag = (tag: string) => within(editorTags()).getByRole("button", { name: `# ${tag}` });
 /** 편집기에 GET /sessions/hashtags 로 받은 해시태그가 다 들어올 때까지 기다린다 */
 const serverTagsLoaded = () => within(editor()).findByText(`전체 해시태그 (${SESSION_HASHTAGS.length})`);
 
 describe("해시태그 그룹 보기", () => {
   it("그룹마다 해시태그 칩과 세션 개수, 그 그룹 세션 카드가 보인다", async () => {
     await renderGroups();
-    expect(sectionHeads()).toEqual([["#로마", "#콜로세움"], ["#항공권", "#예산"], ["#React", "#TypeScript"]]);
+    expect(sectionHeads()).toEqual([["# 로마", "# 콜로세움"], ["# 항공권", "# 예산"], ["# React", "# TypeScript"]]);
 
     const flights = within(sectionOf("항공권"));
     expect(flights.getByText("7개 세션")).toBeInTheDocument();
@@ -75,7 +75,7 @@ describe("해시태그 그룹 보기", () => {
   it("서버가 순서를 섞어 보내도 position 순으로 보인다", async () => {
     groups = [TAG_GROUPS[2], TAG_GROUPS[0], TAG_GROUPS[1]];
     await renderGroups();
-    expect(sectionHeads()).toEqual([["#로마", "#콜로세움"], ["#항공권", "#예산"], ["#React", "#TypeScript"]]);
+    expect(sectionHeads()).toEqual([["# 로마", "# 콜로세움"], ["# 항공권", "# 예산"], ["# React", "# TypeScript"]]);
   });
 
   it("그룹 안 카드를 누르면 그 세션 상세로 이동한다", async () => {
@@ -172,7 +172,7 @@ describe("해시태그 그룹 만들기", () => {
     const shown = within(editorTags())
       .getAllByRole("button")
       .map((b) => b.textContent?.trim());
-    expect(shown).toEqual(SESSION_HASHTAGS.map((t) => `#${t}`));
+    expect(shown).toEqual(SESSION_HASHTAGS.map((t) => `# ${t}`));
     // 목록은 0페이지(10개)만 받았지만 뒤 페이지 세션의 태그도 있다
     expect(editorTag("파르테논")).toBeInTheDocument();
     expect(hashtagCalls).toBe(1);
@@ -204,7 +204,7 @@ describe("해시태그 그룹 만들기", () => {
     await user.click(screen.getByRole("button", { name: "새 그룹 만들기" }));
     await serverTagsLoaded();
 
-    // #파르테논 은 아직 안 불러온 목록 뒤 페이지 세션에만 있다
+    // # 파르테논 은 아직 안 불러온 목록 뒤 페이지 세션에만 있다
     await user.type(screen.getByPlaceholderText("해시태그 검색"), "파");
     await user.click(editorTag("파리"));
     await user.click(editorTag("파르테논"));
@@ -213,7 +213,7 @@ describe("해시태그 그룹 만들기", () => {
     await user.click(editorTag("루브르"));
     expect(within(editor()).getByText("(4/10)")).toBeInTheDocument();
 
-    // 맨 뒤 #루브르 를 맨 앞으로 끌어 놓기
+    // 맨 뒤 # 루브르 를 맨 앞으로 끌어 놓기
     const chips = within(editor()).getAllByTitle("드래그로 순서 변경");
     const dataTransfer = { effectAllowed: "" };
     fireEvent.dragStart(chips[3], { dataTransfer });
@@ -225,7 +225,7 @@ describe("해시태그 그룹 만들기", () => {
       expect(bodies).toEqual([{ hashtags: ["루브르", "파리", "파르테논", "미술관"] }]),
     );
     await waitFor(() => expect(document.querySelector(".modal")).not.toBeInTheDocument());
-    expect(sectionHeads().at(-1)).toEqual(["#루브르", "#파리", "#파르테논", "#미술관"]);
+    expect(sectionHeads().at(-1)).toEqual(["# 루브르", "# 파리", "# 파르테논", "# 미술관"]);
   });
 
   it("만들기에 실패하면 서버 메시지를 토스트로 띄우고 편집기는 열어 둔다", async () => {
@@ -308,15 +308,15 @@ describe("해시태그 그룹 수정", () => {
     await user.click(within(sectionOf("항공권")).getByRole("button", { name: "수정" }));
     expect(within(editor()).getByRole("heading", { name: "그룹 수정" })).toBeInTheDocument();
     await serverTagsLoaded();
-    expect(within(editor()).getAllByTitle("드래그로 순서 변경").map((c) => c.textContent)).toEqual(["#항공권", "#예산"]);
+    expect(within(editor()).getAllByTitle("드래그로 순서 변경").map((c) => c.textContent)).toEqual(["# 항공권", "# 예산"]);
 
-    await user.click(within(editor()).getAllByRole("button", { name: "해제" })[0]); // #항공권 빼기
+    await user.click(within(editor()).getAllByRole("button", { name: "해제" })[0]); // # 항공권 빼기
     await user.click(editorTag("기차"));
     await user.click(within(editor()).getByRole("button", { name: "수정 완료" }));
 
     await waitFor(() => expect(requests).toEqual([{ id: 2, body: { hashtags: ["예산", "기차"] } }]));
     await waitFor(() => expect(document.querySelector(".modal")).not.toBeInTheDocument());
-    expect(sectionHeads()[1]).toEqual(["#예산", "#기차"]);
+    expect(sectionHeads()[1]).toEqual(["# 예산", "# 기차"]);
     const expected = tagGroup(2, ["예산", "기차"], 1).sessions.length;
     expect(within(sections()[1]).getByText(`${expected}개 세션`)).toBeInTheDocument();
   });
@@ -330,7 +330,7 @@ describe("해시태그 그룹 수정", () => {
     await user.click(within(editor()).getByRole("button", { name: "수정 완료" }));
 
     expect(await screen.findByText("해시태그 그룹을 찾을 수 없습니다.")).toBeInTheDocument();
-    expect(sectionHeads()[0]).toEqual(["#로마", "#콜로세움"]);
+    expect(sectionHeads()[0]).toEqual(["# 로마", "# 콜로세움"]);
   });
 });
 
@@ -353,7 +353,7 @@ describe("해시태그 그룹 삭제", () => {
     await user.click(within(sectionOf("항공권")).getByRole("button", { name: "삭제" }));
 
     expect(confirm).toHaveBeenCalledWith("이 그룹을 삭제할까요?");
-    expect(sectionHeads()).toEqual([["#로마", "#콜로세움"], ["#React", "#TypeScript"]]);
+    expect(sectionHeads()).toEqual([["# 로마", "# 콜로세움"], ["# React", "# TypeScript"]]);
     await waitFor(() => expect(ids).toEqual([2]));
   });
 
@@ -373,7 +373,7 @@ describe("해시태그 그룹 삭제", () => {
     await user.click(within(sectionOf("항공권")).getByRole("button", { name: "삭제" }));
 
     expect(await screen.findByText("해시태그 그룹을 찾을 수 없습니다.")).toBeInTheDocument();
-    expect(sectionHeads()).toEqual([["#로마", "#콜로세움"], ["#항공권", "#예산"], ["#React", "#TypeScript"]]);
+    expect(sectionHeads()).toEqual([["# 로마", "# 콜로세움"], ["# 항공권", "# 예산"], ["# React", "# TypeScript"]]);
   });
 });
 
@@ -403,9 +403,9 @@ describe("해시태그 그룹 순서", () => {
     const { user } = await renderGroups();
     await user.click(within(sectionOf("React")).getByRole("button", { name: "위로 이동" }));
 
-    expect(sectionHeads()).toEqual([["#로마", "#콜로세움"], ["#React", "#TypeScript"], ["#항공권", "#예산"]]);
+    expect(sectionHeads()).toEqual([["# 로마", "# 콜로세움"], ["# React", "# TypeScript"], ["# 항공권", "# 예산"]]);
     await waitFor(() => expect(bodies).toEqual([{ groupIds: [1, 3, 2] }]));
-    expect(sectionHeads()).toEqual([["#로마", "#콜로세움"], ["#React", "#TypeScript"], ["#항공권", "#예산"]]);
+    expect(sectionHeads()).toEqual([["# 로마", "# 콜로세움"], ["# React", "# TypeScript"], ["# 항공권", "# 예산"]]);
   });
 
   it("순서 변경에 실패하면 원래 순서로 되돌리고 토스트를 띄운다", async () => {
@@ -414,6 +414,6 @@ describe("해시태그 그룹 순서", () => {
     await user.click(within(sectionOf("항공권")).getByRole("button", { name: "위로 이동" }));
 
     expect(await screen.findByText("정렬할 그룹 목록이 올바르지 않습니다.")).toBeInTheDocument();
-    expect(sectionHeads()).toEqual([["#로마", "#콜로세움"], ["#항공권", "#예산"], ["#React", "#TypeScript"]]);
+    expect(sectionHeads()).toEqual([["# 로마", "# 콜로세움"], ["# 항공권", "# 예산"], ["# React", "# TypeScript"]]);
   });
 });

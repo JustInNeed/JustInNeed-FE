@@ -65,26 +65,26 @@ describe("홈 대시보드", () => {
     renderPersonal(<HomeView data={HOME_DATA} />);
     const rows = Array.from(card("상위 해시태그").querySelectorAll(".topTagRow")).map((r) => r.textContent);
     expect(rows).toEqual([
-      "#파리28",
-      "#로마24",
-      "#항공권18",
-      "#미술관15",
-      "#예산11",
-      "#일정9",
-      "#식당예약8",
-      "#교통권7",
-      "#환전6",
-      "#숨겨진명소5",
+      "# 파리28",
+      "# 로마24",
+      "# 항공권18",
+      "# 미술관15",
+      "# 예산11",
+      "# 일정9",
+      "# 식당예약8",
+      "# 교통권7",
+      "# 환전6",
+      "# 숨겨진명소5",
     ]);
   });
 
   it("상위 해시태그 이름은 칸보다 길면 말줄임되므로 마우스를 올리면 전체 이름이 보인다 (QA-034)", () => {
-    const topTags = [{ tag: "#반려견행동교정훈련법정리", count: 14 }, ...HOME_DATA.topTags.slice(1)];
+    const topTags = [{ tag: "# 반려견행동교정훈련법정리", count: 14 }, ...HOME_DATA.topTags.slice(1)];
     renderPersonal(<HomeView data={{ ...HOME_DATA, topTags }} />);
-    const name = within(card("상위 해시태그")).getByText("#반려견행동교정훈련법정리");
+    const name = within(card("상위 해시태그")).getByText("# 반려견행동교정훈련법정리");
     expect(name).toHaveClass("topTagName");
-    expect(name).toHaveAttribute("title", "#반려견행동교정훈련법정리");
-    expect(name.parentElement).toHaveTextContent(/^#반려견행동교정훈련법정리14$/);
+    expect(name).toHaveAttribute("title", "# 반려견행동교정훈련법정리");
+    expect(name.parentElement).toHaveTextContent(/^# 반려견행동교정훈련법정리14$/);
   });
 
   it("오늘의 탐색 타임라인에 시간대별 해시태그와 방문 사이트가 보인다", () => {
@@ -97,7 +97,7 @@ describe("홈 대시보드", () => {
     times.forEach((t) => expect(screen.getByText(t)).toBeInTheDocument());
 
     const slot = daySlot("10:30 — 12:00");
-    expect(chipsIn(slot)).toEqual(["#자바", "#스프링", "#JPA"]);
+    expect(chipsIn(slot)).toEqual(["# 자바", "# 스프링", "# JPA"]);
     expect(sitesIn(slot)).toEqual(["docs.spring.io", "baeldung.com", "stackoverflow"]);
   });
 
@@ -140,10 +140,10 @@ describe("홈 대시보드", () => {
       const { user } = renderPersonal(<HomeView data={HOME_DATA} />);
       await user.click(screen.getByRole("button", { name: "이번 주" }));
       const mon = daySlot("4/20 (월)");
-      expect(chipsIn(mon)).toEqual(["#파리", "#일정", "#항공권"]);
+      expect(chipsIn(mon)).toEqual(["# 파리", "# 일정", "# 항공권"]);
       expect(sitesIn(mon)).toEqual(["parisinfo.com", "skyscanner.net", "naver.com/blog"]);
       const fri = daySlot("4/24 (금)");
-      expect(chipsIn(fri)).toEqual(["#로마", "#먹거리", "#콜로세움"]);
+      expect(chipsIn(fri)).toEqual(["# 로마", "# 먹거리", "# 콜로세움"]);
       expect(sitesIn(fri)).toEqual(["naver.com/blog", "tripadvisor.co.kr"]);
     });
 

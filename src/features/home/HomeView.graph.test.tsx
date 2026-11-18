@@ -98,17 +98,17 @@ describe("그래프 필터", () => {
     ]);
     expect(within(dialog).getByRole("radio", { name: "전체" })).toBeChecked();
     // 그룹은 이름이 아니라 해시태그로 보인다 — 앞 3개 + "+N" (QA-011)
-    const europe = within(dialog).getByRole("checkbox", { name: "해시태그 그룹 #로마, #파리, #콜로세움, #항공권, #숙소" });
+    const europe = within(dialog).getByRole("checkbox", { name: "해시태그 그룹 # 로마, # 파리, # 콜로세움, # 항공권, # 숙소" });
     expect(europe).not.toBeChecked();
-    expect(europe.parentElement).toHaveTextContent(/^#로마#파리#콜로세움\+2$/);
-    expect(within(dialog).getByRole("checkbox", { name: "해시태그 그룹 #React, #TypeScript, #훅, #상태관리" })).toBeInTheDocument();
+    expect(europe.parentElement).toHaveTextContent(/^# 로마# 파리# 콜로세움\+2$/);
+    expect(within(dialog).getByRole("checkbox", { name: "해시태그 그룹 # React, # TypeScript, # 훅, # 상태관리" })).toBeInTheDocument();
     expect(within(dialog).getAllByRole("button", { pressed: false }).map((b) => b.textContent)).toEqual([
-      "#로마",
-      "#파리",
-      "#항공권",
-      "#예산",
-      "#바르셀로나",
-      "#프라하",
+      "# 로마",
+      "# 파리",
+      "# 항공권",
+      "# 예산",
+      "# 바르셀로나",
+      "# 프라하",
     ]);
     expect(within(dialog).queryByText(/개 적용/)).not.toBeInTheDocument();
   });
@@ -133,7 +133,7 @@ describe("그래프 필터", () => {
   it("해시태그를 고르면 그 태그 노드만 남고, 중심 노드는 흐려지지 않는다", async () => {
     const { user } = setup();
     await user.click(filterButton());
-    const chip = within(filterDialog()).getByRole("button", { name: "#바르셀로나" });
+    const chip = within(filterDialog()).getByRole("button", { name: "# 바르셀로나" });
     await user.click(chip);
     expect(chip).toHaveAttribute("aria-pressed", "true");
     await user.click(within(filterDialog()).getByRole("button", { name: "적용" }));
@@ -146,7 +146,7 @@ describe("그래프 필터", () => {
   it("해시태그 그룹을 고르면 그룹 태그가 붙은 노드만 남는다", async () => {
     const { user } = setup();
     await user.click(filterButton());
-    await user.click(within(filterDialog()).getByRole("checkbox", { name: /#로마, #파리, #콜로세움/ }));
+    await user.click(within(filterDialog()).getByRole("checkbox", { name: /# 로마, # 파리, # 콜로세움/ }));
     await user.click(within(filterDialog()).getByRole("button", { name: "적용" }));
 
     ["로마", "콜로세움", "파리", "비자/입국", "여행블로그"].forEach((l) => expect(node(l)).toHaveStyle(NORMAL));
@@ -158,9 +158,9 @@ describe("그래프 필터", () => {
     await user.click(filterButton());
     const dialog = filterDialog();
     await user.click(within(dialog).getByRole("radio", { name: "이번 주" }));
-    await user.click(within(dialog).getByRole("checkbox", { name: /#로마, #파리, #콜로세움/ }));
-    await user.click(within(dialog).getByRole("button", { name: "#로마" }));
-    await user.click(within(dialog).getByRole("button", { name: "#파리" }));
+    await user.click(within(dialog).getByRole("checkbox", { name: /# 로마, # 파리, # 콜로세움/ }));
+    await user.click(within(dialog).getByRole("button", { name: "# 로마" }));
+    await user.click(within(dialog).getByRole("button", { name: "# 파리" }));
     expect(within(dialog).getByText("3개 적용")).toBeInTheDocument();
   });
 
@@ -211,7 +211,7 @@ describe("그래프 필터", () => {
   it("Esc 를 누르면 고르던 조건은 적용하지 않고 닫히며, 포커스가 필터 버튼으로 돌아온다 (QA-035)", async () => {
     const { user } = setup();
     await user.click(filterButton());
-    await user.click(within(filterDialog()).getByRole("button", { name: "#바르셀로나" }));
+    await user.click(within(filterDialog()).getByRole("button", { name: "# 바르셀로나" }));
     await user.keyboard("{Escape}");
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -221,7 +221,7 @@ describe("그래프 필터", () => {
     expect(node("로마")).toHaveStyle(NORMAL);
 
     await user.click(filterButton());
-    expect(within(filterDialog()).getByRole("button", { name: "#바르셀로나" })).toHaveAttribute("aria-pressed", "false");
+    expect(within(filterDialog()).getByRole("button", { name: "# 바르셀로나" })).toHaveAttribute("aria-pressed", "false");
   });
 });
 

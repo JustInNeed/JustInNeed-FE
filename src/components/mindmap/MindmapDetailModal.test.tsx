@@ -28,7 +28,7 @@ describe("MindmapDetailModal", () => {
     expect(d.getByText("좋아요 178")).toBeInTheDocument();
     // 세션 태그에도 같은 태그가 있어 마인드맵 해시태그 영역만 본다
     const tags = dialog.querySelector<HTMLElement>(".tags")!;
-    expect(Array.from(tags.children, (el) => el.textContent)).toEqual(["#유레일", "#항공권", "#예산"]);
+    expect(Array.from(tags.children, (el) => el.textContent)).toEqual(["# 유레일", "# 항공권", "# 예산"]);
     expect(d.getByText("4개국 이상이면 패스. 2~3개국이면 라이언에어가 더 싸다.")).toBeInTheDocument();
   });
 
@@ -42,7 +42,7 @@ describe("MindmapDetailModal", () => {
     expect(d.getByText("유레일패스 vs 개별 구매")).toBeInTheDocument();
     expect(d.getByText("39분")).toBeInTheDocument();
     expect(d.getByText("2026-04-23 19:12 · 출처 7개")).toBeInTheDocument();
-    expect(d.getByText("#스카이스캐너")).toBeInTheDocument();
+    expect(d.getByText("# 스카이스캐너")).toBeInTheDocument();
   });
 
   it("sessionsStatus 를 넘기면 세션 목록과 개수 대신 그 안내를 보여준다", () => {

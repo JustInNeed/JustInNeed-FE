@@ -37,7 +37,7 @@ export function SearchView({ input, onInputChange, q, mindmaps, profiles }: Sear
           <input
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
-            placeholder="해시태그로 프로필·마인드맵 찾기 (예: #파리)"
+            placeholder="해시태그로 프로필·마인드맵 찾기 (예: # 파리)"
             aria-label="해시태그 검색"
             className={styles.searchInputPlain}
           />

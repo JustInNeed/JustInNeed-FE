@@ -360,8 +360,8 @@ export const ROME_MINDMAP: SessionMindmap = {
 
 /** 유닛 id 에 URL 에 들어갈 수 있는 온갖 문자가 있다 */
 export const PARIS_UNIT = {
-  mona: `https://www.louvre.fr/en/visit?a=1&b=[2]|"3"#u'1`,
-  night: "https://www.musee-orsay.fr/en/a b,c?x=<y>#p%202",
+  mona: `https://www.louvre.fr/en/visit?a=1&b=[2]|"3"# u'1`,
+  night: "https://www.musee-orsay.fr/en/a b,c?x=<y># p%202",
 };
 
 /** 파리 세션 — 루트 2개, 다른 주제의 유닛끼리 related 연결, 주 부모가 아닌 부모로 가는 지름길(primary 아님) */

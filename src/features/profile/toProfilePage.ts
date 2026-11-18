@@ -12,7 +12,7 @@ import type {
   MySession,
   UpdateMyProfileRequest,
 } from "@/lib/api";
-import { formatDate, hostFromUrl, LINK_ONLY_SESSION_TITLE, withHash } from "@/lib/format";
+import { LINK_ONLY_SESSION_TITLE, formatDate, hostFromUrl, withHash, withoutHash } from "@/lib/format";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
 import type { FullMindmap, ProfileDraft, ProfileMindmap, ProfilePageData } from "@/lib/viewTypes";
 
@@ -119,7 +119,7 @@ export function toMyProfileUpdate(draft: ProfileDraft): UpdateMyProfileRequest {
   return {
     bio: draft.bio,
     visibility: draft.visibility === "full" ? "CONTENT" : "URL_ONLY",
-    interests: draft.interests.map((t) => t.replace(/^#/, "")),
+    interests: draft.interests.map((t) => withoutHash(t)),
     hiddenHashtagIds: draft.hashtags.filter((t) => !t.isPublic).map((t) => t.id),
     pinnedSessionIds: draft.pinnedSessionIds,
   };

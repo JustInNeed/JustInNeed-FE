@@ -76,12 +76,12 @@ describe("프로필 수정", () => {
     expect(screen.getByText("최대 10개까지 등록할 수 있어요. (5/10)")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /원문 URL만 공개/ })).toBeChecked();
     expect(screen.getByRole("radio", { name: /내용까지 공개/ })).not.toBeChecked();
-    expect(screen.getByRole("switch", { name: "#파리" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("switch", { name: "#예산" })).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByRole("switch", { name: "# 파리" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("switch", { name: "# 예산" })).toHaveAttribute("aria-checked", "false");
     expect(screen.getByText("노드 11개 · 비공개")).toBeInTheDocument();
     // 상위 5개 밖의 내 해시태그도 설정할 수 있다
-    expect(screen.getByRole("switch", { name: "#기차" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("switch", { name: "#비자" })).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByRole("switch", { name: "# 기차" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("switch", { name: "# 비자" })).toHaveAttribute("aria-checked", "false");
     expect(screen.getByText("노드 4개 · 비공개")).toBeInTheDocument();
     // 핀고정 세션이 순서대로 먼저, 나머지 공개 세션이 그 뒤에
     expect(pinnedTitles()).toEqual([9001, 9003, 9002, 9005].map(titleOf));
@@ -110,7 +110,7 @@ describe("프로필 수정", () => {
 
       await user.type(tagInput(), "여행{Enter}");
 
-      expect(interestChips()).toEqual([...MY_PROFILE.interests, "#여행"]);
+      expect(interestChips()).toEqual([...MY_PROFILE.interests, "# 여행"]);
       expect(tagInput()).toHaveValue("");
       expect(screen.getByText("최대 10개까지 등록할 수 있어요. (6/10)")).toBeInTheDocument();
     });
@@ -123,16 +123,16 @@ describe("프로필 수정", () => {
       expect(interestChips()).toEqual(MY_PROFILE.interests);
 
       fireEvent.keyDown(tagInput(), { key: "Enter" });
-      expect(interestChips()).toEqual([...MY_PROFILE.interests, "#여행"]);
+      expect(interestChips()).toEqual([...MY_PROFILE.interests, "# 여행"]);
     });
 
     it("추가 버튼으로도 추가되고 '#' 을 붙여 입력해도 한 번만 붙는다", async () => {
       const { user } = await openEdit();
 
-      await user.type(tagInput(), "#카페");
+      await user.type(tagInput(), "# 카페");
       await user.click(addButton());
 
-      expect(interestChips()).toContain("#카페");
+      expect(interestChips()).toContain("# 카페");
       expect(interestChips()).not.toContain("##카페");
     });
 
@@ -179,9 +179,9 @@ describe("프로필 수정", () => {
       const { user } = await openEdit();
       for (const t of ["여행", "카페", "사진", "박물관", "기차"]) await user.type(tagInput(), `${t}{Enter}`);
 
-      await user.click(screen.getByRole("button", { name: /^#독서/ }));
+      await user.click(screen.getByRole("button", { name: /^# 독서/ }));
 
-      expect(interestChips()).not.toContain("#독서");
+      expect(interestChips()).not.toContain("# 독서");
       expect(screen.getByText("최대 10개까지 등록할 수 있어요. (9/10)")).toBeInTheDocument();
       expect(addButton()).toBeEnabled();
     });
@@ -202,15 +202,15 @@ describe("프로필 수정", () => {
   it("해시태그 공개 토글을 바꿔 저장하면 비공개 태그만 내 프로필에서 잠금 표시된다", async () => {
     const { user } = await openEdit();
 
-    await user.click(screen.getByRole("switch", { name: "#파리" }));
-    await user.click(screen.getByRole("switch", { name: "#예산" }));
+    await user.click(screen.getByRole("switch", { name: "# 파리" }));
+    await user.click(screen.getByRole("switch", { name: "# 예산" }));
     expect(screen.getByText("노드 28개 · 비공개")).toBeInTheDocument();
     expect(screen.getByText("노드 11개 · 공개")).toBeInTheDocument();
     await saveAndWait(user);
 
-    expect(tagRow().getByText("#파리")).toHaveClass("topTagPrivate");
-    expect(tagRow().getByText("#파리").querySelector("svg")).not.toBeNull();
-    expect(tagRow().getByText("#예산")).not.toHaveClass("topTagPrivate");
+    expect(tagRow().getByText("# 파리")).toHaveClass("topTagPrivate");
+    expect(tagRow().getByText("# 파리").querySelector("svg")).not.toBeNull();
+    expect(tagRow().getByText("# 예산")).not.toHaveClass("topTagPrivate");
   });
 
   describe("핀고정 세션", () => {
@@ -302,13 +302,13 @@ describe("프로필 수정", () => {
     await user.clear(bio);
     await user.type(bio, "요즘은 동유럽.");
     await user.type(tagInput(), "동유럽{Enter}");
-    await user.click(screen.getByRole("button", { name: /^#독서/ }));
+    await user.click(screen.getByRole("button", { name: /^# 독서/ }));
     await saveAndWait(user);
 
     expect(screen.queryByRole("heading", { level: 1, name: "프로필 수정" })).not.toBeInTheDocument();
     expect(screen.getByText("요즘은 동유럽.")).toBeInTheDocument();
-    expect(tagRow().getByText("#동유럽")).toBeInTheDocument();
-    expect(tagRow().queryByText("#독서")).not.toBeInTheDocument();
+    expect(tagRow().getByText("# 동유럽")).toBeInTheDocument();
+    expect(tagRow().queryByText("# 독서")).not.toBeInTheDocument();
     expect(screen.getByText("프로필을 저장했어요.")).toBeInTheDocument();
     // 닉네임을 안 바꿨으면 회원 API 는 부르지 않는다 (불렀다면 MSW 미등록 요청으로 실패)
     expect(updateMember).not.toHaveBeenCalled();
@@ -321,13 +321,13 @@ describe("프로필 수정", () => {
     await user.clear(bio);
     await user.type(bio, "버릴 소개");
     await user.type(tagInput(), "버릴태그{Enter}");
-    await user.click(screen.getByRole("switch", { name: "#파리" }));
+    await user.click(screen.getByRole("switch", { name: "# 파리" }));
     await user.click(pinCheckbox(9004));
     await user.click(screen.getByRole("button", { name: "취소" }));
 
     expect(screen.getByText(MY_PROFILE.bio)).toBeInTheDocument();
-    expect(tagRow().queryByText("#버릴태그")).not.toBeInTheDocument();
-    expect(tagRow().getByText("#파리")).not.toHaveClass("topTagPrivate");
+    expect(tagRow().queryByText("# 버릴태그")).not.toBeInTheDocument();
+    expect(tagRow().getByText("# 파리")).not.toHaveClass("topTagPrivate");
     expect(screen.queryByText("프로필을 저장했어요.")).not.toBeInTheDocument();
     expect(fake.puts).toEqual([]);
 

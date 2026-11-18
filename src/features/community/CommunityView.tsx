@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { withoutHash } from "@/lib/format";
 import { useRouter } from "next/navigation";
 import { Card, Icon, PageHeader, InlineState } from "@/components/ui";
 import { MindmapDetailModal } from "@/components/mindmap/MindmapDetailModal";
@@ -125,7 +126,7 @@ export function CommunityView({ sections }: CommunityViewProps) {
                 setSearchOpen(true);
               }}
               onFocus={() => setSearchOpen(true)}
-              placeholder="해시태그로 프로필·마인드맵 찾기 (예: #파리)"
+              placeholder="해시태그로 프로필·마인드맵 찾기 (예: # 파리)"
               aria-label="해시태그 검색"
               className={styles.searchInput}
             />
@@ -147,7 +148,7 @@ export function CommunityView({ sections }: CommunityViewProps) {
               results={search.results}
               onRetry={search.retry}
               onOpenProfile={openProfile}
-              onPickTag={(t) => setQuery(t.replace(/^#/, ""))}
+              onPickTag={(t) => setQuery(withoutHash(t))}
             />
           )}
         </div>
@@ -183,7 +184,7 @@ export function CommunityView({ sections }: CommunityViewProps) {
                       <button
                         key={t.tag}
                         onClick={() => {
-                          setQuery(t.tag.replace(/^#/, ""));
+                          setQuery(withoutHash(t.tag));
                           setSearchOpen(true);
                         }}
                         className={styles.trendTag}

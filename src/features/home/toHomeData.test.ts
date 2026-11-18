@@ -114,7 +114,7 @@ describe("toHomeData — 타임라인 · 해시태그", () => {
 
   it("오늘 타임라인 해시태그에 # 를 붙이고 도메인은 사이트로 바꾼다", () => {
     const [slot] = toHomeData(HOME_RESPONSE).todayTimeline;
-    expect(slot.tags).toEqual(["#자바", "#스프링"]);
+    expect(slot.tags).toEqual(["# 자바", "# 스프링"]);
     expect(slot.sites).toEqual([toTimelineSite("docs.spring.io"), toTimelineSite("velog.io")]);
   });
 
@@ -129,7 +129,7 @@ describe("toHomeData — 타임라인 · 해시태그", () => {
     expect(first).toEqual({
       dayOffset: -6,
       startedAt: "10:10",
-      tags: ["#파리"],
+      tags: ["# 파리"],
       visits: [
         { site: toTimelineSite("skyscanner.net"), dwellSec: 420 },
         { site: toTimelineSite("parisinfo.com"), dwellSec: 300 },
@@ -146,14 +146,14 @@ describe("toHomeData — 타임라인 · 해시태그", () => {
 
   it("변환한 이번 주 세션을 날짜별 타임라인으로 묶을 수 있다", () => {
     const days = buildWeekTimeline(toHomeData(HOME_RESPONSE).weekSessions, new Date(2026, 9, 31));
-    expect(days[0]).toMatchObject({ label: "10/31 (토)", tags: ["#자바", "#스프링"], isToday: true });
-    expect(days[6]).toMatchObject({ label: "10/25 (일)", tags: ["#파리"], isToday: false });
+    expect(days[0]).toMatchObject({ label: "10/31 (토)", tags: ["# 자바", "# 스프링"], isToday: true });
+    expect(days[6]).toMatchObject({ label: "10/25 (일)", tags: ["# 파리"], isToday: false });
   });
 
   it("상위 해시태그에 # 를 붙이고 응답 순서를 지킨다", () => {
     expect(toHomeData(HOME_RESPONSE).topTags).toEqual([
-      { tag: "#파리", count: 28 },
-      { tag: "#로마", count: 24 },
+      { tag: "# 파리", count: 28 },
+      { tag: "# 로마", count: 24 },
     ]);
   });
 

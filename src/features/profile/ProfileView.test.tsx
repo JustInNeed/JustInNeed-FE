@@ -116,12 +116,12 @@ describe("내 프로필", () => {
     renderMine();
     const row = within(tagRow());
 
-    const privateTag = row.getByText("#예산");
+    const privateTag = row.getByText("# 예산");
     expect(privateTag).toHaveClass("topTagPrivate");
     expect(privateTag).toHaveAttribute("title", "비공개 · 나만 보여요");
     expect(privateTag.querySelector("svg")).not.toBeNull();
 
-    const publicTag = row.getByText("#파리");
+    const publicTag = row.getByText("# 파리");
     expect(publicTag).not.toHaveClass("topTagPrivate");
     expect(publicTag.querySelector("svg")).toBeNull();
   });
@@ -135,11 +135,11 @@ describe("내 프로필", () => {
       expect(screen.getByText(m.title)).toBeInTheDocument();
       expect(screen.getByText(`노드 ${m.nodes}`)).toBeInTheDocument();
     }
-    // 카드 태그는 앞의 2개만, 내 프로필이라 비공개(#예산)도 보인다
+    // 카드 태그는 앞의 2개만, 내 프로필이라 비공개(# 예산)도 보인다
     const card = screen.getByText("유럽 항공권 · 예산 정리").parentElement!;
-    expect(within(card).getByText("#예산")).toBeInTheDocument();
-    expect(within(card).getByText("#항공권")).toBeInTheDocument();
-    expect(within(screen.getByText("로마 3박 4일 동선").parentElement!).queryByText("#먹거리")).not.toBeInTheDocument();
+    expect(within(card).getByText("# 예산")).toBeInTheDocument();
+    expect(within(card).getByText("# 항공권")).toBeInTheDocument();
+    expect(within(screen.getByText("로마 3박 4일 동선").parentElement!).queryByText("# 먹거리")).not.toBeInTheDocument();
   });
 
   it("핀 표시는 고정한 카드에만, 비공개 표시는 비공개 카드에만 보인다", () => {
@@ -692,8 +692,8 @@ describe("다른 사용자 프로필", () => {
 
   describe("해시태그 골라 북마크", () => {
     const pick = async (user: ReturnType<typeof renderOther>["user"]) => {
-      await user.click(screen.getByRole("button", { name: "#카페투어" }));
-      await user.click(screen.getByRole("button", { name: /^#비엔나\s?28$/ }));
+      await user.click(screen.getByRole("button", { name: "# 카페투어" }));
+      await user.click(screen.getByRole("button", { name: /^# 비엔나\s?28$/ }));
     };
 
     it("해시태그를 고르면 N개 선택 바가 뜨고 같은 태그를 다시 누르면 선택이 풀린다", async () => {
@@ -702,14 +702,14 @@ describe("다른 사용자 프로필", () => {
 
       await pick(user);
       expect(screen.getByText("2개 선택")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "#카페투어" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "# 카페투어" })).toHaveAttribute("aria-pressed", "true");
       // 자주 쓴 태그 · 관심 태그에 같은 태그가 있으면 함께 선택된다
-      expect(screen.getByRole("button", { name: "#비엔나" })).toHaveAttribute("aria-pressed", "true");
-      expect(screen.getByRole("button", { name: /^#프라하\s?32$/ })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByRole("button", { name: "# 비엔나" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: /^# 프라하\s?32$/ })).toHaveAttribute("aria-pressed", "false");
 
-      await user.click(screen.getByRole("button", { name: "#카페투어" }));
+      await user.click(screen.getByRole("button", { name: "# 카페투어" }));
       expect(screen.getByText("1개 선택")).toBeInTheDocument();
-      await user.click(screen.getByRole("button", { name: "#비엔나" }));
+      await user.click(screen.getByRole("button", { name: "# 비엔나" }));
       expect(screen.queryByText(/개 선택$/)).not.toBeInTheDocument();
     });
 
@@ -718,7 +718,7 @@ describe("다른 사용자 프로필", () => {
       const MINDMAP = `${API}/community/profiles/7/mindmap`;
       const BAD_SELECTION = "저장할 대상은 중복 없이 1개부터 100개까지 선택할 수 있습니다.";
       const SAVED = "북마크에 저장했어요.";
-      /** 고른 태그의 행 — #카페투어 14 · #비엔나 12 */
+      /** 고른 태그의 행 — # 카페투어 14 · # 비엔나 12 */
       const hashtag = (hashtagId: number, name: string) => ({ hashtagId, ownerId: 7, name });
       const TAGS = [hashtag(11, "프라하"), hashtag(12, "비엔나"), hashtag(13, "야간열차"), hashtag(14, "카페투어")];
 
@@ -866,7 +866,7 @@ describe("다른 사용자 프로필", () => {
         expect(screen.getByRole("button", { name: "저장" })).toBeDisabled();
         await user.type(input, "{Enter}");
         await user.keyboard("{Escape}");
-        await user.click(screen.getByRole("button", { name: /^#프라하\s?32$/ }));
+        await user.click(screen.getByRole("button", { name: /^# 프라하\s?32$/ }));
 
         expect(input).toBeInTheDocument();
         expect(screen.getByText("2개 선택")).toBeInTheDocument();
@@ -934,7 +934,7 @@ describe("다른 사용자 프로필", () => {
 
         await user.click((await openMenu(user)).getByRole("menuitem", { name: /미니 마인드맵으로 저장/ }));
 
-        expect(await screen.findByText(/#카페투어 태그는 저장할 수 없어요/)).toBeInTheDocument();
+        expect(await screen.findByText(/# 카페투어 태그는 저장할 수 없어요/)).toBeInTheDocument();
         expect(sent.posted()).toEqual([]);
         expect(screen.getByText("2개 선택")).toBeInTheDocument();
       });
@@ -943,11 +943,11 @@ describe("다른 사용자 프로필", () => {
         serveTags([hashtag(21, "HCI")]);
         serveSave();
         const sent = spyFetch();
-        const profile = { ...OTHER_PROFILE, interests: ["#hci"], topTags: [{ tag: "#HCI", count: 3, isPublic: true }] };
+        const profile = { ...OTHER_PROFILE, interests: ["# hci"], topTags: [{ tag: "# HCI", count: 3, isPublic: true }] };
         const { user } = renderOther({ ...OTHER_PROFILE_PAGE, profile });
 
-        await user.click(screen.getByRole("button", { name: "#hci" }));
-        await user.click(screen.getByRole("button", { name: /^#HCI\s?3$/ }));
+        await user.click(screen.getByRole("button", { name: "# hci" }));
+        await user.click(screen.getByRole("button", { name: /^# HCI\s?3$/ }));
         await user.click((await openMenu(user)).getByRole("menuitem", { name: /미니 마인드맵으로 저장/ }));
 
         expect(await screen.findByText(SAVED)).toBeInTheDocument();

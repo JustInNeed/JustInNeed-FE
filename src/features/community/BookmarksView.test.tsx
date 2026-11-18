@@ -79,29 +79,29 @@ describe("BookmarksView — 탭 · 목록", () => {
 
   it("마인드맵 카드는 받은 순서대로 제목 · 작성자 · 저장 시점 · 앞의 해시태그 2개 · 노드 수를 보여준다", () => {
     renderBookmarks();
-    expect(mapTitles()).toEqual(["동유럽 3주 살이 전체 동선", "파리 미식 지도", "#화장실 #놀이"]);
+    expect(mapTitles()).toEqual(["동유럽 3주 살이 전체 동선", "파리 미식 지도", "# 화장실 # 놀이"]);
     const card = within(mapCard("동유럽 3주 살이 전체 동선"));
     expect(card.getByText("by wanderlust · 저장 4일 전")).toBeInTheDocument();
-    expect(card.getByText("#프라하")).toBeInTheDocument();
-    expect(card.getByText("#동유럽")).toBeInTheDocument();
-    expect(card.queryByText("#야간열차")).toBeNull();
+    expect(card.getByText("# 프라하")).toBeInTheDocument();
+    expect(card.getByText("# 동유럽")).toBeInTheDocument();
+    expect(card.queryByText("# 야간열차")).toBeNull();
     expect(card.getByText("노드 14")).toBeInTheDocument();
   });
 
   it("URL 만 공개한 저장은 해시태그가 제목 자리에 가고 태그 칩을 또 그리지 않는다", () => {
     renderBookmarks();
-    const card = within(mapCard("#화장실 #놀이"));
+    const card = within(mapCard("# 화장실 # 놀이"));
     expect(card.getByText("by wanderlust · 저장 1시간 전")).toBeInTheDocument();
-    expect(card.queryByText("#화장실")).toBeNull();
+    expect(card.queryByText("# 화장실")).toBeNull();
   });
 
   it("이름이 있는 묶음은 이름과 태그를, 이름이 없으면 태그를 제목 자리에 보여준다", async () => {
     const { user } = renderBookmarks();
     await user.click(tab(/^해시태그 묶음/));
-    expect(bundleTitles()).toEqual(["미술관 모음", "미술관 모음", "#호스텔 #무료투어"]);
+    expect(bundleTitles()).toEqual(["미술관 모음", "미술관 모음", "# 호스텔 # 무료투어"]);
     const first = document.querySelector<HTMLElement>(".bundleCard")!;
-    ["#루브르", "#오르세"].forEach((t) => expect(within(first).getByText(t)).toBeInTheDocument());
-    expect(screen.queryByText("#호스텔")).toBeNull();
+    ["# 루브르", "# 오르세"].forEach((t) => expect(within(first).getByText(t)).toBeInTheDocument());
+    expect(screen.queryByText("# 호스텔")).toBeNull();
   });
 
   it("이름이 같은 묶음이어도 누른 묶음만 해제한다", async () => {
@@ -166,8 +166,8 @@ describe("BookmarksView — 상세 팝업", () => {
   it("sessionId 가 없는 저장은 요청 없이 관련 세션 영역을 그리지 않는다", async () => {
     const sessionIds = mockSessions();
     const { user } = renderBookmarks();
-    await user.click(mapCard("#화장실 #놀이"));
-    const dialog = within(screen.getByRole("dialog", { name: "#화장실 #놀이" }));
+    await user.click(mapCard("# 화장실 # 놀이"));
+    const dialog = within(screen.getByRole("dialog", { name: "# 화장실 # 놀이" }));
     expect(dialog.queryByText(/관련 세션/)).toBeNull();
     expect(dialog.queryByText("불러오는 중…")).toBeNull();
     expect(sessionIds).toEqual([]);
@@ -367,15 +367,15 @@ describe("toSavedMindmap", () => {
 
   it("제목이 있으면 해시태그에 # 를 붙이고 저장 대상을 그대로 들고 있는다", () => {
     const { post, target } = toSavedMindmap(CARD_BOOKMARK, BOOKMARK_NOW);
-    expect(post.hashtags).toEqual(["#프라하", "#동유럽", "#야간열차"]);
+    expect(post.hashtags).toEqual(["# 프라하", "# 동유럽", "# 야간열차"]);
     expect(target).toEqual({ saveType: "MINI_MINDMAP", targetType: "NODE", targetIds: [81, 82], sourceMindmapId: 101 });
   });
 });
 
 describe("toSavedBundle", () => {
   it("태그에 # 를 붙이고 이름이 없으면 null 그대로 둔다", () => {
-    const bundle = toSavedBundle(bookmarkBundle({ bookmarkId: 1, name: null, hashtags: ["#이미", "없음"] }));
-    expect(bundle).toMatchObject({ bookmarkId: 1, name: null, tags: ["#이미", "#없음"] });
+    const bundle = toSavedBundle(bookmarkBundle({ bookmarkId: 1, name: null, hashtags: ["# 이미", "없음"] }));
+    expect(bundle).toMatchObject({ bookmarkId: 1, name: null, tags: ["# 이미", "# 없음"] });
   });
 });
 

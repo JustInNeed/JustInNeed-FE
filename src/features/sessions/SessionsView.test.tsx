@@ -102,10 +102,10 @@ describe("세션 목록 — 카드", () => {
     expect(rome.getByText("18개 URL")).toBeInTheDocument();
     expect(rome.getByText("2026-04-26")).toBeInTheDocument();
     expect(rome.getAllByText(/^#/).map((b) => b.textContent)).toEqual([
-      "#로마",
-      "#콜로세움",
-      "#바티칸",
-      "#먹거리",
+      "# 로마",
+      "# 콜로세움",
+      "# 바티칸",
+      "# 먹거리",
     ]);
     expect(within(card(FLIGHTS.title)).getByText("1시간 19분")).toBeInTheDocument();
     expect(within(card("유레일패스 vs 개별 구매")).getByText("39분")).toBeInTheDocument();
@@ -115,7 +115,7 @@ describe("세션 목록 — 카드", () => {
     renderSessions();
     await screen.findByRole("heading", { level: 3, name: MANY_TAGS_SESSION.title });
     const chips = Array.from(card(MANY_TAGS_SESSION.title).querySelectorAll(".chip"));
-    expect(chips.map((b) => b.textContent)).toEqual(["#리스본", "#포르투", "#에그타르트", "#트램"]);
+    expect(chips.map((b) => b.textContent)).toEqual(["# 리스본", "# 포르투", "# 에그타르트", "# 트램"]);
   });
 
   it("아직 분석 중인 세션은 걸린 시간 대신 '분석 중' 이 보인다", async () => {
@@ -354,7 +354,7 @@ describe("세션 목록 — 즐겨찾기 별", () => {
     await screen.findByRole("heading", { level: 3, name: ROME.title });
     await user.click(screen.getByRole("button", { name: "해시태그" }));
 
-    // 9025 는 25번째 세션이라 목록 0페이지에는 없고 #예산 그룹에만 있다
+    // 9025 는 25번째 세션이라 목록 0페이지에는 없고 # 예산 그룹에만 있다
     const exchange = sessionById(9025);
     expect(requests).toEqual([q(0)]);
     await user.click(starOf(exchange.title));
@@ -628,7 +628,7 @@ describe("세션 목록 — 해시태그(그룹) 보기 전환", () => {
 
     await user.click(toggle);
     expect(toggle).toHaveClass("active");
-    expect(sectionHeads()).toEqual([["#로마", "#콜로세움"], ["#항공권", "#예산"], ["#React", "#TypeScript"]]);
+    expect(sectionHeads()).toEqual([["# 로마", "# 콜로세움"], ["# 항공권", "# 예산"], ["# React", "# TypeScript"]]);
     expect(screen.queryByText(END)).not.toBeInTheDocument();
 
     await user.click(toggle);
@@ -700,7 +700,7 @@ describe("분석 중 세션 자동 새로고침 (QA-015)", () => {
 
     list = [done];
     await vi.advanceTimersByTimeAsync(5000);
-    await waitFor(() => expect(within(card(done.title)).getByText("#라멘")).toBeInTheDocument());
+    await waitFor(() => expect(within(card(done.title)).getByText("# 라멘")).toBeInTheDocument());
     expect(within(card(done.title)).queryByText("분석 중")).not.toBeInTheDocument();
 
     // 분석 중 세션이 없어지면 더 받지 않는다

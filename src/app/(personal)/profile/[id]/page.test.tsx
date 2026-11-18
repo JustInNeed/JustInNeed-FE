@@ -188,7 +188,7 @@ describe("/profile/[id] 페이지", () => {
     serveProfile({ ...API_PROFILE, userId: 8, nickname: "빵순이", likedByMe: false, following: false, likeCount: 9 });
     const { user, rerender } = renderPersonal(await page("7"));
     await screen.findByRole("heading", { level: 1, name: "냥집사" });
-    await user.click(screen.getByRole("button", { name: "#놀이 7" }));
+    await user.click(screen.getByRole("button", { name: "# 놀이 7" }));
     expect(screen.getByText("1개 선택")).toBeInTheDocument();
 
     rerender(await page("8"));

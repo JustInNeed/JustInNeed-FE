@@ -2,6 +2,7 @@
 // 앱 화면은 이 데이터를 직접 쓰지 않고 props로 받는다. 테스트는 이 값을 넘겨
 // "이 데이터면 이렇게 보인다"를 검증하고, API를 연결하면 같은 값을 MSW 응답으로도 쓴다.
 import type { BannerTip, SessionListItem } from "@/lib/api";
+import { withoutHash } from "@/lib/format";
 import type { MindmapEdge, MindmapNode } from "@/lib/types";
 import type {
   CommunityPost,
@@ -155,17 +156,17 @@ export const MOCK_SESSIONS: SessionListItem[] = [
 // ---------- 커뮤니티 ----------
 
 export const COMMUNITY_FEED: CommunityPost[] = [
-  { id: "c1", user: { name: "wanderlust", avatar: "🌿", handle: "@wanderlust" }, title: "동유럽 3주 살이 전체 동선", snippet: "프라하 → 비엔나 → 부다페스트 → 크라쿠프 → 베를린. 각 도시 4~5일씩 잡고 야간열차로 이동.", hashtags: ["#프라하", "#동유럽", "#야간열차"], nodes: 142, likes: 284, bookmarks: 91, exploring: 12, when: "3시간 전" },
-  { id: "c2", user: { name: "foodtrip", avatar: "🥖", handle: "@foodtrip" }, title: "파리 미식 지도 — 1구부터 20구까지", snippet: "미슐랭 빕그루망 + 로컬 비스트로 위주. 마레 지구가 가성비 최고.", hashtags: ["#파리", "#먹거리", "#미슐랭"], nodes: 88, likes: 412, bookmarks: 188, exploring: 34, when: "6시간 전" },
-  { id: "c3", user: { name: "budgetnomad", avatar: "🪙", handle: "@budgetnomad" }, title: "유럽 한 달 200만원으로 살기", snippet: "호스텔 + 슈퍼마켓 + 무료 워킹투어. 알베르고 디푸소 활용 팁 공유.", hashtags: ["#예산", "#배낭여행", "#호스텔"], nodes: 56, likes: 198, bookmarks: 142, exploring: 28, when: "1일 전" },
-  { id: "c4", user: { name: "artwalk", avatar: "🎨", handle: "@artwalk" }, title: "유럽 미술관 30곳 우선순위", snippet: "루브르 / 우피치 / 프라도 / 리이크스. 각 미술관 머스트씨 작품 정리.", hashtags: ["#미술관", "#파리", "#피렌체"], nodes: 73, likes: 256, bookmarks: 198, exploring: 19, when: "2일 전" },
-  { id: "c5", user: { name: "slowtravel", avatar: "🌅", handle: "@slowtravel" }, title: "이탈리아 시골 마을 7곳", snippet: "알베로벨로, 오르비에토, 칼라브리아... 관광지 말고 진짜 이탈리아.", hashtags: ["#이탈리아", "#소도시", "#슬로우트래블"], nodes: 64, likes: 312, bookmarks: 224, exploring: 41, when: "3일 전" },
-  { id: "c6", user: { name: "rail.kr", avatar: "🚆", handle: "@rail.kr" }, title: "유레일 vs 저가항공 — 실비 비교", snippet: "4개국 이상이면 패스. 2~3개국이면 라이언에어가 더 싸다.", hashtags: ["#유레일", "#항공권", "#예산"], nodes: 41, likes: 178, bookmarks: 88, exploring: 7, when: "4일 전" },
+  { id: "c1", user: { name: "wanderlust", avatar: "🌿", handle: "@wanderlust" }, title: "동유럽 3주 살이 전체 동선", snippet: "프라하 → 비엔나 → 부다페스트 → 크라쿠프 → 베를린. 각 도시 4~5일씩 잡고 야간열차로 이동.", hashtags: ["# 프라하", "# 동유럽", "# 야간열차"], nodes: 142, likes: 284, bookmarks: 91, exploring: 12, when: "3시간 전" },
+  { id: "c2", user: { name: "foodtrip", avatar: "🥖", handle: "@foodtrip" }, title: "파리 미식 지도 — 1구부터 20구까지", snippet: "미슐랭 빕그루망 + 로컬 비스트로 위주. 마레 지구가 가성비 최고.", hashtags: ["# 파리", "# 먹거리", "# 미슐랭"], nodes: 88, likes: 412, bookmarks: 188, exploring: 34, when: "6시간 전" },
+  { id: "c3", user: { name: "budgetnomad", avatar: "🪙", handle: "@budgetnomad" }, title: "유럽 한 달 200만원으로 살기", snippet: "호스텔 + 슈퍼마켓 + 무료 워킹투어. 알베르고 디푸소 활용 팁 공유.", hashtags: ["# 예산", "# 배낭여행", "# 호스텔"], nodes: 56, likes: 198, bookmarks: 142, exploring: 28, when: "1일 전" },
+  { id: "c4", user: { name: "artwalk", avatar: "🎨", handle: "@artwalk" }, title: "유럽 미술관 30곳 우선순위", snippet: "루브르 / 우피치 / 프라도 / 리이크스. 각 미술관 머스트씨 작품 정리.", hashtags: ["# 미술관", "# 파리", "# 피렌체"], nodes: 73, likes: 256, bookmarks: 198, exploring: 19, when: "2일 전" },
+  { id: "c5", user: { name: "slowtravel", avatar: "🌅", handle: "@slowtravel" }, title: "이탈리아 시골 마을 7곳", snippet: "알베로벨로, 오르비에토, 칼라브리아... 관광지 말고 진짜 이탈리아.", hashtags: ["# 이탈리아", "# 소도시", "# 슬로우트래블"], nodes: 64, likes: 312, bookmarks: 224, exploring: 41, when: "3일 전" },
+  { id: "c6", user: { name: "rail.kr", avatar: "🚆", handle: "@rail.kr" }, title: "유레일 vs 저가항공 — 실비 비교", snippet: "4개국 이상이면 패스. 2~3개국이면 라이언에어가 더 싸다.", hashtags: ["# 유레일", "# 항공권", "# 예산"], nodes: 41, likes: 178, bookmarks: 88, exploring: 7, when: "4일 전" },
 ];
 
 /** 마인드맵 상세 팝업의 관련 세션 — 해시태그가 겹치는 세션 최대 3개, 없으면 앞의 3개 */
 export function relatedSessionsFor(post: CommunityPost): SessionListItem[] {
-  const tagSet = new Set(post.hashtags.map((h) => h.replace(/^#/, "").toLowerCase()));
+  const tagSet = new Set(post.hashtags.map((h) => withoutHash(h).toLowerCase()));
   const matched = MOCK_SESSIONS.filter((ss) => ss.tags.some((t) => tagSet.has(t.toLowerCase())));
   return (matched.length ? matched : MOCK_SESSIONS).slice(0, 3);
 }
@@ -174,9 +175,9 @@ export function relatedSessionsFor(post: CommunityPost): SessionListItem[] {
 
 // ---------- 홈 대시보드 ----------
 export const HOME_TOP_TAGS = [
-  { tag: "#파리", n: 28 }, { tag: "#로마", n: 24 }, { tag: "#항공권", n: 18 }, { tag: "#미술관", n: 15 },
-  { tag: "#예산", n: 11 }, { tag: "#일정", n: 9 }, { tag: "#식당예약", n: 8 }, { tag: "#교통권", n: 7 },
-  { tag: "#환전", n: 6 }, { tag: "#숨겨진명소", n: 5 },
+  { tag: "# 파리", n: 28 }, { tag: "# 로마", n: 24 }, { tag: "# 항공권", n: 18 }, { tag: "# 미술관", n: 15 },
+  { tag: "# 예산", n: 11 }, { tag: "# 일정", n: 9 }, { tag: "# 식당예약", n: 8 }, { tag: "# 교통권", n: 7 },
+  { tag: "# 환전", n: 6 }, { tag: "# 숨겨진명소", n: 5 },
 ];
 
 export const HOME_WEEK_ACTIVITY = [
@@ -185,11 +186,11 @@ export const HOME_WEEK_ACTIVITY = [
 ];
 
 export const HOME_TIMELINE: TimelineSlot[] = [
-  { time: "09:00 — 10:30", tags: ["#아침루틴", "#커피"], sites: [{ name: "velog.io", favicon: "V", color: "#20c997" }, { name: "medium.com", favicon: "M", color: "#000" }] },
-  { time: "10:30 — 12:00", tags: ["#자바", "#스프링", "#JPA"], sites: [{ name: "docs.spring.io", favicon: "S", color: "#6db33f" }, { name: "baeldung.com", favicon: "B", color: "#5d2f86" }, { name: "stackoverflow", favicon: "SO", color: "#f48024" }] },
-  { time: "13:00 — 14:30", tags: ["#파리", "#항공권", "#일정"], sites: [{ name: "skyscanner.net", favicon: "SK", color: "#0770e3" }, { name: "parisinfo.com", favicon: "P", color: "#d6336c" }] },
-  { time: "15:00 — 16:30", tags: ["#로마", "#콜로세움", "#먹거리"], sites: [{ name: "tripadvisor.co.kr", favicon: "T", color: "#00aa6c" }, { name: "naver.com/blog", favicon: "N", color: "#03c75a" }] },
-  { time: "17:00 — 18:00", tags: ["#예산", "#환전"], sites: [{ name: "kbstar.com", favicon: "K", color: "#fac810" }, { name: "wise.com", favicon: "W", color: "#163300" }] },
+  { time: "09:00 — 10:30", tags: ["# 아침루틴", "# 커피"], sites: [{ name: "velog.io", favicon: "V", color: "#20c997" }, { name: "medium.com", favicon: "M", color: "#000" }] },
+  { time: "10:30 — 12:00", tags: ["# 자바", "# 스프링", "# JPA"], sites: [{ name: "docs.spring.io", favicon: "S", color: "#6db33f" }, { name: "baeldung.com", favicon: "B", color: "#5d2f86" }, { name: "stackoverflow", favicon: "SO", color: "#f48024" }] },
+  { time: "13:00 — 14:30", tags: ["# 파리", "# 항공권", "# 일정"], sites: [{ name: "skyscanner.net", favicon: "SK", color: "#0770e3" }, { name: "parisinfo.com", favicon: "P", color: "#d6336c" }] },
+  { time: "15:00 — 16:30", tags: ["# 로마", "# 콜로세움", "# 먹거리"], sites: [{ name: "tripadvisor.co.kr", favicon: "T", color: "#00aa6c" }, { name: "naver.com/blog", favicon: "N", color: "#03c75a" }] },
+  { time: "17:00 — 18:00", tags: ["# 예산", "# 환전"], sites: [{ name: "kbstar.com", favicon: "K", color: "#fac810" }, { name: "wise.com", favicon: "W", color: "#163300" }] },
 ];
 
 // "이번 주" 타임라인용 세션 목록. dayOffset 0 = 오늘, -6 = 6일 전.
@@ -210,16 +211,16 @@ const SITE = {
 const v = (site: TimelineSite, dwellSec: number): WeekSessionVisit => ({ site, dwellSec });
 
 export const HOME_WEEK_SESSIONS: WeekSession[] = [
-  { dayOffset: -6, startedAt: "10:10", tags: ["#파리", "#항공권"], visits: [v(SITE.sky, 420), v(SITE.sky, 180), v(SITE.paris, 300)] },
-  { dayOffset: -6, startedAt: "21:40", tags: ["#파리", "#일정"], visits: [v(SITE.paris, 520), v(SITE.naver, 90)] },
-  { dayOffset: -4, startedAt: "09:30", tags: ["#자바", "#스프링", "#JPA"], visits: [v(SITE.spring, 600), v(SITE.baeldung, 240), v(SITE.so, 60)] },
-  { dayOffset: -4, startedAt: "14:00", tags: ["#JPA", "#스프링"], visits: [v(SITE.baeldung, 300), v(SITE.so, 120), v(SITE.so, 45)] },
-  { dayOffset: -3, startedAt: "20:15", tags: ["#JPA", "#연관관계"], visits: [v(SITE.velog, 380), v(SITE.baeldung, 200)] },
-  { dayOffset: -2, startedAt: "13:20", tags: ["#로마", "#콜로세움"], visits: [v(SITE.trip, 260), v(SITE.naver, 310)] },
-  { dayOffset: -2, startedAt: "22:05", tags: ["#로마", "#먹거리"], visits: [v(SITE.naver, 180), v(SITE.naver, 140)] },
-  { dayOffset: -1, startedAt: "18:30", tags: ["#예산", "#환전"], visits: [v(SITE.kb, 150), v(SITE.wise, 200)] },
-  { dayOffset: 0, startedAt: "09:00", tags: ["#아침루틴", "#커피"], visits: [v(SITE.velog, 240), v(SITE.medium, 300)] },
-  { dayOffset: 0, startedAt: "10:30", tags: ["#자바", "#스프링", "#JPA"], visits: [v(SITE.spring, 500), v(SITE.velog, 120)] },
+  { dayOffset: -6, startedAt: "10:10", tags: ["# 파리", "# 항공권"], visits: [v(SITE.sky, 420), v(SITE.sky, 180), v(SITE.paris, 300)] },
+  { dayOffset: -6, startedAt: "21:40", tags: ["# 파리", "# 일정"], visits: [v(SITE.paris, 520), v(SITE.naver, 90)] },
+  { dayOffset: -4, startedAt: "09:30", tags: ["# 자바", "# 스프링", "# JPA"], visits: [v(SITE.spring, 600), v(SITE.baeldung, 240), v(SITE.so, 60)] },
+  { dayOffset: -4, startedAt: "14:00", tags: ["# JPA", "# 스프링"], visits: [v(SITE.baeldung, 300), v(SITE.so, 120), v(SITE.so, 45)] },
+  { dayOffset: -3, startedAt: "20:15", tags: ["# JPA", "# 연관관계"], visits: [v(SITE.velog, 380), v(SITE.baeldung, 200)] },
+  { dayOffset: -2, startedAt: "13:20", tags: ["# 로마", "# 콜로세움"], visits: [v(SITE.trip, 260), v(SITE.naver, 310)] },
+  { dayOffset: -2, startedAt: "22:05", tags: ["# 로마", "# 먹거리"], visits: [v(SITE.naver, 180), v(SITE.naver, 140)] },
+  { dayOffset: -1, startedAt: "18:30", tags: ["# 예산", "# 환전"], visits: [v(SITE.kb, 150), v(SITE.wise, 200)] },
+  { dayOffset: 0, startedAt: "09:00", tags: ["# 아침루틴", "# 커피"], visits: [v(SITE.velog, 240), v(SITE.medium, 300)] },
+  { dayOffset: 0, startedAt: "10:30", tags: ["# 자바", "# 스프링", "# JPA"], visits: [v(SITE.spring, 500), v(SITE.velog, 120)] },
 ];
 
 // ---------- 분석/추천 ----------

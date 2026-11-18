@@ -38,16 +38,16 @@ describe("/community 페이지", () => {
     expect(await within(interest).findByText(CONTENT_CARD.title!)).toBeInTheDocument();
     const recent = screen.getByRole("region", { name: "최근 저장한 해시태그 기반 추천" });
     expect(await within(recent).findByText("유럽 한 달 예산")).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /#쉥겐비자/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /# 쉥겐비자/ })).toBeInTheDocument();
     expect(await screen.findByText("foodtrip", { selector: ".personName" })).toBeInTheDocument();
   });
 
   it("오늘과 이번 주를 period 로 나눠 불러온다", async () => {
     mockAll();
     const { user } = renderPersonal(<CommunityPage />);
-    await screen.findByRole("button", { name: /#쉥겐비자/ });
+    await screen.findByRole("button", { name: /# 쉥겐비자/ });
     await user.click(screen.getByRole("button", { name: "이번 주" }));
-    expect(await screen.findByRole("button", { name: /#바르셀로나/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /# 바르셀로나/ })).toBeInTheDocument();
   });
 
   it("한 API 가 실패해도 다른 섹션은 보이고, 다시 시도하면 그 섹션만 채워진다", async () => {

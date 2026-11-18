@@ -32,10 +32,10 @@ describe("toProfilePage", () => {
       bio: "고양이와 사는 사람",
       nodes: 22,
       likes: 2,
-      interests: ["#놀이", "#동물병원"],
+      interests: ["# 놀이", "# 동물병원"],
       topTags: [
-        { tag: "#놀이", count: 7, isPublic: true },
-        { tag: "#사료", count: 5, isPublic: true },
+        { tag: "# 놀이", count: 7, isPublic: true },
+        { tag: "# 사료", count: 5, isPublic: true },
       ],
       visibility: "url",
       pinnedSessionIds: [],
@@ -89,7 +89,7 @@ describe("toMyProfilePage", () => {
     const { hashtags } = toMyProfilePage(API_MY_PROFILE);
 
     expect(hashtags).toHaveLength(7);
-    expect(hashtags?.at(-1)).toEqual({ id: 7, tag: "#비자", count: 4, isPublic: false });
+    expect(hashtags?.at(-1)).toEqual({ id: 7, tag: "# 비자", count: 4, isPublic: false });
   });
 
   it("닉네임 · 소개가 null 이면 대체 이름과 빈 소개로, CONTENT 는 내용까지 공개로 보여준다", () => {
@@ -102,12 +102,12 @@ describe("toMyProfilePage", () => {
 describe("toMyProfileUpdate", () => {
   const draft = {
     bio: "소개",
-    interests: ["#여행", "#HCI"],
+    interests: ["# 여행", "# HCI"],
     visibility: "url" as const,
     hashtags: [
-      { id: 1, tag: "#파리", count: 2, isPublic: true },
-      { id: 2, tag: "#예산", count: 1, isPublic: false },
-      { id: 3, tag: "#비자", count: 1, isPublic: false },
+      { id: 1, tag: "# 파리", count: 2, isPublic: true },
+      { id: 2, tag: "# 예산", count: 1, isPublic: false },
+      { id: 3, tag: "# 비자", count: 1, isPublic: false },
     ],
     pinnedSessionIds: [9, 3, 5],
   };
@@ -144,7 +144,7 @@ describe("toProfileMindmap", () => {
       ownerId: 7,
       title: "",
       snippet: "",
-      hashtags: ["#놀이", "#사료"],
+      hashtags: ["# 놀이", "# 사료"],
       nodes: 9,
       likes: 2,
       likedByMe: true,
@@ -168,7 +168,7 @@ describe("toProfileMindmap", () => {
 
 describe("titleFromTags", () => {
   it("해시태그를 이어 붙이고, 없으면 안내 문구를 쓴다", () => {
-    expect(titleFromTags(["놀이", "#사료"])).toBe("#놀이 #사료");
+    expect(titleFromTags(["놀이", "# 사료"])).toBe("# 놀이 # 사료");
     expect(titleFromTags([])).toBe("원문 링크만 공개된 세션");
   });
 });
