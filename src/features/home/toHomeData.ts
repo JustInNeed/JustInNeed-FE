@@ -191,16 +191,18 @@ export function toTimelineSite(domain: string): TimelineSite {
   };
 }
 
-function toNodeMeta({ sessionId, ...meta }: HomeNodeMeta): GraphNodeMeta {
-  return sessionId == null ? meta : { ...meta, sessionId };
+function toNodeMeta(meta: HomeNodeMeta): GraphNodeMeta {
+  return { seen: meta.seen, tags: meta.tags, sessionId: meta.sessionId };
 }
 
 export function toHomeData(res: HomeResponse): HomeData {
   const { graph } = res;
+  // 명세는 string[][] 이지만 BE 는 항상 [출발, 도착] 두 개를 보낸다
+  const edges = graph.edges.map(([from, to]): [string, string] => [from, to]);
   return {
     graph: {
-      nodes: placeNodes(graph.nodes, graph.edges),
-      edges: graph.edges,
+      nodes: placeNodes(graph.nodes, edges),
+      edges,
       nodeMeta: Object.fromEntries(Object.entries(graph.nodeMeta).map(([id, meta]) => [id, toNodeMeta(meta)])),
       tagGroups: graph.tagGroups,
       filterTags: graph.filterTags,

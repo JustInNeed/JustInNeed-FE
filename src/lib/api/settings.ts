@@ -3,6 +3,7 @@ import type {
   ExcludedUrlCreateResponse,
   ExcludedUrlListResponse,
   ExtensionSettingKey,
+  ExtensionSettings,
   ExtensionSettingsResponse,
 } from "./types";
 
@@ -26,7 +27,19 @@ export const updateExcludedUrlSelection = (excludedUrlIds: number[], isExcluded:
 /** 기본 URL 은 지워지지 않고 체크만 해제된다 */
 export const deleteExcludedUrls = (excludedUrlIds: number[]) => api.del<unknown>(EXCLUDED_URLS, { excludedUrlIds });
 
-export const getExtensionSettings = () => api.get<ExtensionSettingsResponse>("/settings/extension");
+/**
+ * GET 은 세 값을 모두 보낸다. 명세에서는 토글 응답(바꾼 값 하나만 옴)과 같은 타입이라 선택 필드로 나와서,
+ * 빠지면 BE 기본값(켜짐)으로 채운다.
+ */
+export const getExtensionSettings = async (): Promise<ExtensionSettingsResponse & ExtensionSettings> => {
+  const res = await api.get<ExtensionSettingsResponse>("/settings/extension");
+  return {
+    ...res,
+    popupVisible: res.popupVisible ?? true,
+    autoEndNotificationEnabled: res.autoEndNotificationEnabled ?? true,
+    manualScrapEnabled: res.manualScrapEnabled ?? true,
+  };
+};
 
 export const updateExtensionSetting = (key: ExtensionSettingKey, enabled: boolean) =>
   api.patch<unknown>(`/settings/extension/${EXTENSION_PATHS[key]}`, { enabled });

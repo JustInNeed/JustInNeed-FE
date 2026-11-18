@@ -105,8 +105,10 @@ export const BOOKMARK_BUNDLES_PAGE: BookmarkBundlePage = {
 };
 
 export const BOOKMARK_ORIGINAL: BookmarkOriginalResponse = {
+  code: 200,
   sourceAvailable: true,
   mindmap: {
+    code: 200,
     mindmapId: 101,
     ownerId: 101,
     nickname: "wanderlust",
@@ -128,6 +130,7 @@ export const BOOKMARK_ORIGINAL: BookmarkOriginalResponse = {
 };
 
 export const BOOKMARK_ORIGINAL_GONE: BookmarkOriginalResponse = {
+  code: 200,
   sourceAvailable: false,
   mindmap: null,
   highlightedNodeIds: [],

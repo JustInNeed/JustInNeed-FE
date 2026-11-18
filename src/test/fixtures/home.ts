@@ -86,7 +86,7 @@ export const HOME_RESPONSE: HomeResponse = {
     nodeMeta: {
       n1: { seen: "today", tags: ["로마"], sessionId: 9002 }, // 해시태그로 찾으면 9001 인 노드
       n2: { seen: "week", tags: ["파리"], sessionId: 7777 }, // sessions(최대 300개)에 없는 세션
-      n3: { seen: "month", tags: ["항공권"], sessionId: null },
+      n3: { seen: "month", tags: ["항공권"], sessionId: 9002 },
       n4: { seen: "all", tags: ["로마", "콜로세움"], sessionId: 9001 },
     },
     tagGroups: [{ id: 1, tags: ["로마", "파리"] }],

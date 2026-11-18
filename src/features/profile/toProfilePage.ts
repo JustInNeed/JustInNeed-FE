@@ -56,7 +56,7 @@ export function toSession(session: CommunitySharedSession): MySession {
     id: session.id,
     title: session.title ?? "",
     startedAt: session.startedAt,
-    endedAt: session.endedAt,
+    endedAt: session.endedAt ?? null, // 공유 세션 응답은 null 이면 필드가 빠진다
     pageCount: session.pageCount,
     status: session.status,
     isFavorite: false,
