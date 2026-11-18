@@ -2,7 +2,7 @@
 // 사용: node scripts/openapi/compare-types.mjs <openapi.json 경로> [결과 md 경로] [--fail]
 // --fail: "BE가 안 보냄" · "타입 다름" · "명세에 경로 없음" 이 하나라도 있으면 exit 1 (CI 용). "FE에 없음" 은 실패로 치지 않는다.
 import { readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import ts from "typescript";
 
 const args = process.argv.slice(2);

@@ -356,11 +356,11 @@ export function Mindmap({
                 e.stopPropagation();
                 setDrag({ id: n.id });
               }}
-              onMouseEnter={() => onHover && onHover(n.id)}
-              onMouseLeave={() => onHover && onHover(null)}
+              onMouseEnter={() => onHover?.(n.id)}
+              onMouseLeave={() => onHover?.(null)}
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect && onSelect(n.id);
+                onSelect?.(n.id);
               }}
             >
               {isActive && <circle r={n.size + 14} fill="url(#nodeGlow)" />}
