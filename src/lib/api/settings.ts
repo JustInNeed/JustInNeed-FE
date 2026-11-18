@@ -5,6 +5,7 @@ import type {
   ExtensionSettingKey,
   ExtensionSettings,
   ExtensionSettingsResponse,
+  Schemas,
 } from "./types";
 
 const EXCLUDED_URLS = "/settings/collection/excluded-urls";
@@ -19,13 +20,13 @@ const EXTENSION_PATHS: Record<ExtensionSettingKey, string> = {
 export const getExcludedUrls = () => api.get<ExcludedUrlListResponse>(EXCLUDED_URLS);
 
 /** 같은 표시형이 있으면 409, 100개가 차 있으면 400 */
-export const addExcludedUrl = (url: string) => api.post<ExcludedUrlCreateResponse>(EXCLUDED_URLS, { url });
+export const addExcludedUrl = (url: string) => api.post<ExcludedUrlCreateResponse>(EXCLUDED_URLS, { url } satisfies Schemas["ExcludedUrlCreateRequest"]);
 
 export const updateExcludedUrlSelection = (excludedUrlIds: number[], isExcluded: boolean) =>
-  api.patch<unknown>(`${EXCLUDED_URLS}/selections`, { excludedUrlIds, isExcluded });
+  api.patch<unknown>(`${EXCLUDED_URLS}/selections`, { excludedUrlIds, isExcluded } satisfies Schemas["ExcludedUrlSelectionUpdateRequest"]);
 
 /** 기본 URL 은 지워지지 않고 체크만 해제된다 */
-export const deleteExcludedUrls = (excludedUrlIds: number[]) => api.del<unknown>(EXCLUDED_URLS, { excludedUrlIds });
+export const deleteExcludedUrls = (excludedUrlIds: number[]) => api.del<unknown>(EXCLUDED_URLS, { excludedUrlIds } satisfies Schemas["ExcludedUrlDeleteRequest"]);
 
 /**
  * GET 은 세 값을 모두 보낸다. 명세에서는 토글 응답(바꾼 값 하나만 옴)과 같은 타입이라 선택 필드로 나와서,
@@ -42,4 +43,4 @@ export const getExtensionSettings = async (): Promise<ExtensionSettingsResponse 
 };
 
 export const updateExtensionSetting = (key: ExtensionSettingKey, enabled: boolean) =>
-  api.patch<unknown>(`/settings/extension/${EXTENSION_PATHS[key]}`, { enabled });
+  api.patch<unknown>(`/settings/extension/${EXTENSION_PATHS[key]}`, { enabled } satisfies Schemas["ExtensionToggleUpdateRequest"]);

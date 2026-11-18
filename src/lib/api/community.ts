@@ -9,6 +9,7 @@ import type {
   CommunityProfilePage,
   CommunityRecommendationResponse,
   FollowResponse,
+  Schemas,
   SimilarPeopleResponse,
   TrendingHashtagsResponse,
   TrendingPeriod,
@@ -48,13 +49,13 @@ export const getTrendingHashtags = (period: TrendingPeriod) =>
   api.get<TrendingHashtagsResponse>(`/community/recommendations/hashtags/trending?period=${period}`);
 
 export const setCardLike = (mindmapId: number, liked: boolean) =>
-  api.patch<CardLikeResponse>(`/community/mindmaps/${mindmapId}/like`, { liked });
+  api.patch<CardLikeResponse>(`/community/mindmaps/${mindmapId}/like`, { liked } satisfies Schemas["CardReactionControllerLikeRequest"]);
 
 export const setCardExploring = (mindmapId: number, exploring: boolean) =>
-  api.patch<CardExploringResponse>(`/community/mindmaps/${mindmapId}/exploring`, { exploring });
+  api.patch<CardExploringResponse>(`/community/mindmaps/${mindmapId}/exploring`, { exploring } satisfies Schemas["CardReactionControllerExploringRequest"]);
 
 export const setCardBookmark = (mindmapId: number, bookmarked: boolean) =>
-  api.patch<CardBookmarkResponse>(`/community/mindmaps/${mindmapId}/bookmark`, { bookmarked });
+  api.patch<CardBookmarkResponse>(`/community/mindmaps/${mindmapId}/bookmark`, { bookmarked } satisfies Schemas["BookmarkRequest"]);
 
 /** 그 세션 + 같은 작성자의 태그 겹치는 공개 세션, 최대 3개 */
 export const getCardSessions = (mindmapId: number) =>
@@ -63,4 +64,4 @@ export const getCardSessions = (mindmapId: number) =>
 export const getSimilarPeople = () => api.get<SimilarPeopleResponse>("/community/recommendations/profiles/similar");
 
 export const setProfileFollow = (userId: number, following: boolean) =>
-  api.patch<FollowResponse>(`/community/profiles/${userId}/follow`, { following });
+  api.patch<FollowResponse>(`/community/profiles/${userId}/follow`, { following } satisfies Schemas["FollowRequest"]);
