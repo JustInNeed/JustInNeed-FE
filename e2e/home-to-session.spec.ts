@@ -5,16 +5,23 @@ import { judge } from "./support/judge";
 test("E2E-01 홈 그래프 노드에서 관련 세션 상세로 가서 마인드맵을 연다", async ({ loggedIn: page }) => {
   // 1. 홈 대시보드 [X-HOME-01 S1]
   await expect(page.getByText("누적 노드")).toBeVisible();
-  const nodes = page.locator("main svg text").filter({ hasNotText: /^내 탐색$/ });
+  // 노드 = 원 + 이름. 이름 글자는 클릭을 받지 않아(pointer-events: none) 원을 누른다
+  const nodes = page
+    .locator("main svg g")
+    .filter({ has: page.locator("circle") })
+    .filter({ has: page.locator("text") })
+    .filter({ hasNotText: /^내 탐색$/ });
   test.skip((await nodes.count()) === 0, "사전 데이터 없음: 그래프에 그릴 노드가 없음");
 
   // 2. 노드 선택 → 관련 세션 보기 [X-HOME-02 S1]
-  await nodes.first().click();
-  await page.getByRole("button", { name: "관련 세션 보기" }).click();
+  // 그래프는 계속 조금씩 움직여 '멈춘 요소'를 기다리면 끝나지 않는다 → 강제로 누른다 (/qa 촬영 도구와 같은 방식)
+  await nodes.last().locator("circle").last().click({ force: true });
+  await page.getByRole("button", { name: "관련 세션 보기" }).click({ force: true });
   await expect(page).toHaveURL(/\/sessions\/\d+$/);
 
   // 3. 세션 상세 머리 [REC-1 S1]
-  const title = page.getByRole("heading", { level: 1 });
+  // 줄글 본문이 `# 제목` 으로 시작하면 본문에도 같은 h1 이 있다 — 머리의 첫 h1 이 세션 제목
+  const title = page.locator("main").getByRole("heading", { level: 1 }).first();
   await expect(title).toBeVisible();
   await expect(page.getByText(/분석 완료|분석 중|분석에 실패했어요|진행 중/).first()).toBeVisible();
   await judge(page, {

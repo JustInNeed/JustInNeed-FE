@@ -20,7 +20,9 @@ test("E2E-02 즐겨찾기를 켜고 즐겨찾기만 보기에서 확인한 뒤 �
 
   try {
     // 1. 카드의 별 [REC-11 S1]
+    const saved = page.waitForResponse((res) => /\/sessions\/\d+$/.test(res.url()) && res.request().method() === "PATCH");
     await card().getByRole("button", { name: "즐겨찾기" }).click();
+    expect((await saved).ok()).toBe(true);
     await expect(card().getByRole("button", { name: "즐겨찾기" })).toHaveAttribute("aria-pressed", "true");
     await expect(page).toHaveURL(/\/sessions$/); // 상세로 가지 않는다
 
@@ -33,10 +35,13 @@ test("E2E-02 즐겨찾기를 켜고 즐겨찾기만 보기에서 확인한 뒤 �
     // 3. 상세 제목 옆 별 끄기 [REC-11 S3]
     await card().click();
     await expect(page).toHaveURL(/\/sessions\/\d+$/);
+    // 상세의 별은 눌림 상태(aria-pressed)를 내놓지 않아 보내는 요청으로 확인한다
     const star = page.getByRole("button", { name: "즐겨찾기" });
-    await expect(star).toHaveAttribute("aria-pressed", "true");
+    await expect(star).toBeVisible();
+    const unsaved = page.waitForRequest((req) => /\/sessions\/\d+$/.test(req.url()) && req.method() === "PATCH");
     await star.click();
-    await expect(star).toHaveAttribute("aria-pressed", "false");
+    expect((await unsaved).postDataJSON()).toEqual({ isFavorite: false });
+    expect((await (await unsaved).response())?.ok()).toBe(true);
 
     // 4. 다시 즐겨찾기만 보기 → 빠져 있다 [REC-10-3 S1]
     await page.goto("/sessions");
