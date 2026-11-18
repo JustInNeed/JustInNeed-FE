@@ -75,8 +75,8 @@ describe("내 프로필 — 불러오기", () => {
   });
 
   // QA-044-1: 더 보기로 이어 붙이지 않고 페이지 번호로 한 페이지씩 바꿔 보여준다
-  it("마인드맵 탭은 페이지 번호로 한 페이지씩 보여주고 더 보기는 없다", async () => {
-    serveMyProfile({ perPage: 2 });
+  it("[X-PRF-03 S1] 마인드맵 탭은 12개씩 페이지 번호로 한 페이지씩 보여주고 더 보기는 없다", async () => {
+    const fake = serveMyProfile({ perPage: 2 });
     const { user } = renderPersonal(<MyProfile />);
 
     await screen.findByText("공개 카드");
@@ -91,6 +91,9 @@ describe("내 프로필 — 불러오기", () => {
     expect(screen.queryByText("공개 카드")).not.toBeInTheDocument();
     expect(within(pager).getByRole("button", { name: "2페이지" })).toHaveAttribute("aria-current", "page");
     expect(within(pager).getByRole("button", { name: "다음" })).toBeDisabled();
+    // 이어 붙이지 않고 그 페이지만 12개 단위로 받는다
+    expect(fake.mindmapQueries.map((q) => new URLSearchParams(q).get("size"))).toEqual(["12", "12"]);
+    expect(fake.mindmapQueries.map((q) => new URLSearchParams(q).get("page"))).toEqual(["0", "1"]);
   });
 
   it("세션 탭은 마인드맵 탭과 따로 페이지를 넘기고 이전으로 돌아올 수 있다", async () => {
@@ -180,7 +183,7 @@ describe("내 프로필 — 불러오기", () => {
     expect(sessionTitles()).toEqual(MY_SESSIONS.slice(3, 6).map((s) => s.title));
   });
 
-  it("[COM-1-6 S6] [COM-1-3@2 S3] [COM-1-7 S1] 아무것도 없는 프로필은 각 탭 빈 상태와 수정 화면의 공개 세션 안내를 보여준다", async () => {
+  it("[COM-1-6 S6] [COM-1-3@2 S3] [COM-1-7 S1] [X-PRF-03 S1] 아무것도 없는 프로필은 각 탭 빈 상태와 수정 화면의 공개 세션 안내를 보여준다", async () => {
     const empty = {
       ...API_MY_PROFILE,
       bio: null,

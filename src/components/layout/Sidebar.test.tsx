@@ -170,7 +170,8 @@ describe("사이드바", () => {
       const { user } = renderPersonal(<Sidebar />);
       await user.click(await within(card()).findByRole("button", { name: "수집 시작" }));
       expect(await within(card()).findByText("수집 중")).toBeInTheDocument();
-      expect(within(card()).getByText("0분 00초")).toBeInTheDocument();
+      // 실제 시계로 잰다 — 느린 실행에서 몇 초 흘러도 맞도록 0분 0N초 까지 허용 (정책 #29)
+      expect(within(card()).getByText(/^0분 0\d초$/)).toBeInTheDocument();
 
       await user.click(within(card()).getByRole("button", { name: "수집 종료" }));
       expect(await within(card()).findByText("대기 중")).toBeInTheDocument();

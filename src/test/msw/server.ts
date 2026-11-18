@@ -20,3 +20,11 @@ export function ok<T>(data: T, init?: ResponseInit) {
 export function fail(status: number, message: string) {
   return HttpResponse.json({ success: false, data: null, message }, { status });
 }
+
+/** 서버에 닿지 못했을 때 client.ts 가 만드는 ApiError 문구 (HttpResponse.error() 로 흉내) */
+export const CONNECTION_ERROR = "서버에 연결할 수 없습니다. 백엔드가 실행 중인지 확인해주세요.";
+
+/** 본문 없이 상태코드만 오는 실패 — client.ts 는 `요청에 실패했습니다. (HTTP 상태코드)` 를 쓴다 */
+export function failWithoutBody(status: number) {
+  return new HttpResponse(null, { status });
+}
