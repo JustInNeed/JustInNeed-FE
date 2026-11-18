@@ -69,6 +69,7 @@ export function PersonalProvider({
 
   useEffect(() => {
     let alive = true;
+    const generation = gen; // 정리 함수에서 쓸 카운터 (화면 요소가 아니라 늦게 온 답을 가르는 번호)
     const tick = () => {
       if (alive && document.visibilityState === "visible") void refresh();
     };
@@ -78,7 +79,7 @@ export function PersonalProvider({
     window.addEventListener("focus", tick);
     return () => {
       alive = false;
-      gen.current++; // 떠난 뒤 도착하는 답은 버린다
+      generation.current++; // 떠난 뒤 도착하는 답은 버린다
       clearInterval(t);
       document.removeEventListener("visibilitychange", tick);
       window.removeEventListener("focus", tick);
