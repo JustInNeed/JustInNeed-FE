@@ -1,8 +1,8 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { http } from "msw";
+import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderPersonal } from "@/test/render";
-import { API, SERVER_ERROR, fail, ok, server } from "@/test/msw/server";
+import { API, CONNECTION_ERROR, SERVER_ERROR, fail, failWithoutBody, ok, server } from "@/test/msw/server";
 import { EXCLUDED_URLS, INTEGRATIONS } from "@/test/fixtures/settings";
 import type { ExcludedUrl } from "@/lib/viewTypes";
 import { SettingsView } from "./SettingsView";
@@ -215,8 +215,23 @@ describe("설정 화면", () => {
       expect(within(row("tistory.com")).getByRole("checkbox")).not.toHaveAttribute("title");
     });
 
-    // 요구사항과 다름: 서버 문구가 없는 실패도 ApiError("요청에 실패했습니다. (HTTP n)") 라 대체 문구가 나오지 않는다
-    it.todo("MEM-5-2 S2 미일치 — 저장 실패 응답에 서버 문구가 없으면 '저장에 실패했습니다. 다시 시도해 주세요.' 를 보여준다");
+    it("[MEM-5-2 S2] 체크 저장이 서버에 닿지 못하면 원래 체크로 되돌리고 연결 실패 문구를 토스트로 보여준다", async () => {
+      server.use(http.patch(SELECTIONS, () => HttpResponse.error()));
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      await user.click(within(row("tistory.com")).getByRole("checkbox"));
+
+      expect(await screen.findByText(CONNECTION_ERROR)).toBeInTheDocument();
+      expect(within(row("tistory.com")).getByRole("checkbox")).toBeChecked();
+    });
+
+    it("[MEM-5-2 S2] 저장 실패 응답에 서버 문구가 없으면 '요청에 실패했습니다. (HTTP 500)' 을 보여주고 되돌린다", async () => {
+      server.use(http.patch(SELECTIONS, () => failWithoutBody(500)));
+      const { user } = renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);
+      await user.click(within(row("tistory.com")).getByRole("checkbox"));
+
+      expect(await screen.findByText("요청에 실패했습니다. (HTTP 500)")).toBeInTheDocument();
+      expect(within(row("tistory.com")).getByRole("checkbox")).toBeChecked();
+    });
 
     it("켜진 항목은 체크, 꺼진 항목은 체크 해제로 보인다", () => {
       renderPersonal(<SettingsView excludedUrls={EXCLUDED_URLS} />);

@@ -1,9 +1,9 @@
 import { screen } from "@testing-library/react";
-import { http } from "msw";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 import { renderApp } from "@/test/render";
 import { mockRouter } from "@/test/router";
-import { API, fail, ok, server } from "@/test/msw/server";
+import { API, CONNECTION_ERROR, fail, failWithoutBody, ok, server } from "@/test/msw/server";
 import { getAccessToken, getRefreshToken } from "@/lib/auth/tokens";
 import { consumeAuthToast } from "@/lib/auth/toast";
 import { installFakeExtension, removeFakeExtension } from "@/test/extension";
@@ -113,8 +113,27 @@ describe("설정 > 회원 탈퇴", () => {
     expect(screen.queryByText(/사유/)).not.toBeInTheDocument();
   });
 
-  // 요구사항과 다름: 서버 문구가 없는 실패도 ApiError("요청에 실패했습니다. (HTTP n)") 라 대체 문구가 나오지 않는다
-  it.todo("X-SET-06 S6 미일치 — 실패 응답에 서버 문구가 없으면 '탈퇴에 실패했습니다. 다시 시도해 주세요.' 를 보여준다");
+  it("[X-SET-06 S6] 서버에 닿지 못하면 연결 실패 문구를 토스트로 띄우고 토큰은 그대로 둔다", async () => {
+    server.use(http.delete(`${API}/settings/account`, () => HttpResponse.error()));
+    const { user } = renderApp(<WithdrawSection onBack={vi.fn()} />);
+    await user.type(confirmInput(), "WITHDRAW");
+    await user.click(withdrawBtn());
+
+    expect(await screen.findByText(CONNECTION_ERROR)).toBeInTheDocument();
+    expect(getAccessToken()).toBe("test-access-token");
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(withdrawBtn()).toBeEnabled();
+  });
+
+  it("[X-SET-06 S6] 실패 응답에 서버 문구가 없으면 '요청에 실패했습니다. (HTTP 500)' 을 보여준다", async () => {
+    server.use(http.delete(`${API}/settings/account`, () => failWithoutBody(500)));
+    const { user } = renderApp(<WithdrawSection onBack={vi.fn()} />);
+    await user.type(confirmInput(), "WITHDRAW");
+    await user.click(withdrawBtn());
+
+    expect(await screen.findByText("요청에 실패했습니다. (HTTP 500)")).toBeInTheDocument();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
 
   it("취소 · '← 계정 설정으로' 는 onBack 을 부른다", async () => {
     const onBack = vi.fn();

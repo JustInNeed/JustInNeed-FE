@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { http } from "msw";
+import { http, HttpResponse } from "msw";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProfilePageData } from "@/lib/viewTypes";
@@ -15,7 +15,7 @@ import {
   OTHER_PROFILE_PAGE,
   OTHER_SESSIONS,
 } from "@/test/fixtures/profile";
-import { API, SERVER_ERROR, fail, ok, server } from "@/test/msw/server";
+import { API, CONNECTION_ERROR, SERVER_ERROR, fail, failWithoutBody, ok, server } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
 import { ProfileView, type ProfileSessionsSection } from "./ProfileView";
@@ -473,8 +473,25 @@ describe("다른 사용자 프로필", () => {
       expect(following).not.toHaveClass("primary");
     });
 
-    // 요구사항과 다름: 네트워크 오류도 ApiError("서버에 연결할 수 없습니다…")로 와서 대체 문구가 보이지 않는다
-    it.todo("팔로우가 네트워크 오류로 실패하면 되돌리고 '팔로우를 바꾸지 못했어요. 다시 시도해 주세요.' 를 보여준다");
+    it("[X-OPRF-03 S2] 팔로우가 서버에 닿지 못하면 '팔로우' 로 되돌리고 연결 실패 문구를 토스트로 보여준다", async () => {
+      server.use(http.patch(`${API}/community/profiles/7/follow`, () => HttpResponse.error()));
+      const { user } = renderOther();
+
+      await user.click(screen.getByRole("button", { name: "팔로우" }));
+
+      expect(await screen.findByText(CONNECTION_ERROR)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "팔로우" })).toHaveClass("primary");
+    });
+
+    it("[X-OPRF-03 S2] 팔로우 실패 응답에 서버 문구가 없으면 '요청에 실패했습니다. (HTTP 500)' 을 보여준다", async () => {
+      server.use(http.patch(`${API}/community/profiles/7/follow`, () => failWithoutBody(500)));
+      const { user } = renderOther({ ...OTHER_PROFILE_PAGE, following: true });
+
+      await user.click(screen.getByRole("button", { name: "팔로잉" }));
+
+      expect(await screen.findByText("요청에 실패했습니다. (HTTP 500)")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "팔로잉" })).toBeInTheDocument();
+    });
 
     it("[X-OPRF-03 S1] 팔로우를 누르면 following 을 보내고 팔로잉으로 바뀐다", async () => {
       const bodies = serveFollow();
@@ -486,7 +503,7 @@ describe("다른 사용자 프로필", () => {
       await waitFor(() => expect(bodies).toEqual([{ following: true }]));
     });
 
-    it("팔로우가 실패하면 되돌리고 토스트를 보여준다", async () => {
+    it("[X-OPRF-03 S2] 팔로우가 실패하면 되돌리고 서버 문구를 토스트로 보여준다", async () => {
       server.use(http.patch(`${API}/community/profiles/7/follow`, () => fail(500, SERVER_ERROR)));
       const { user } = renderOther({ ...OTHER_PROFILE_PAGE, following: true });
 
@@ -559,7 +576,7 @@ describe("다른 사용자 프로필", () => {
         expect(button).toHaveAttribute("aria-pressed", "false");
       });
 
-      it("나도 탐색이 실패하면 카드와 프로필 수를 되돌린다", async () => {
+      it("[COM-4-2@2 S3] 나도 탐색이 실패하면 카드와 프로필 수를 되돌리고 서버 문구를 토스트로 보여준다", async () => {
         server.use(http.patch(`${API}/community/mindmaps/${CARD_ID}/exploring`, () => fail(500, SERVER_ERROR)));
         const { user } = renderOther();
         const card = cardOf(TITLE);
@@ -571,8 +588,28 @@ describe("다른 사용자 프로필", () => {
         expect(stat("나도 탐색중")).toBe("12");
       });
 
-      // 요구사항과 다름: 네트워크 오류도 ApiError 로 와서 대체 문구 대신 "서버에 연결할 수 없습니다…" 가 보인다
-      it.todo("나도 탐색이 네트워크 오류로 실패하면 되돌리고 '나도 탐색을 바꾸지 못했어요. 다시 시도해 주세요.' 를 보여준다");
+      it("[COM-4-2@2 S3] 나도 탐색이 서버에 닿지 못하면 카드와 프로필 수를 되돌리고 연결 실패 문구를 토스트로 보여준다", async () => {
+        server.use(http.patch(`${API}/community/mindmaps/${CARD_ID}/exploring`, () => HttpResponse.error()));
+        const { user } = renderOther();
+        const card = cardOf(TITLE);
+
+        await user.click(within(card).getByRole("button", { name: "+ 나도 탐색" }));
+
+        expect(await screen.findByText(CONNECTION_ERROR)).toBeInTheDocument();
+        expect(within(card).getByRole("button", { name: "+ 나도 탐색" })).toBeInTheDocument();
+        expect(stat("나도 탐색중")).toBe("12");
+      });
+
+      it("[COM-4-2@2 S3] 나도 탐색 실패 응답에 서버 문구가 없으면 '요청에 실패했습니다. (HTTP 500)' 을 보여준다", async () => {
+        server.use(http.patch(`${API}/community/mindmaps/${CARD_ID}/exploring`, () => failWithoutBody(500)));
+        const { user } = renderOther();
+        const card = cardOf(TITLE);
+
+        await user.click(within(card).getByRole("button", { name: "+ 나도 탐색" }));
+
+        expect(await screen.findByText("요청에 실패했습니다. (HTTP 500)")).toBeInTheDocument();
+        expect(stat("나도 탐색중")).toBe("12");
+      });
 
       it("[COM-4-2@2 S2] 탐색중인 카드를 다시 누르면 해제되고 카드 수 · 프로필 나도 탐색중 수가 함께 1 줄어든다", async () => {
         const exploring = { ...OTHER_MINDMAPS[0], exploringByMe: true, exploring: 5 };

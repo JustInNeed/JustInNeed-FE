@@ -24,6 +24,8 @@ export function serveMyProfile({ profile = API_MY_PROFILE, sessions = MY_SESSION
   const puts: UpdateMyProfileRequest[] = [];
   /** 세션 목록 요청의 쿼리 문자열 */
   const sessionQueries: string[] = [];
+  /** 마인드맵 목록 요청의 쿼리 문자열 */
+  const mindmapQueries: string[] = [];
 
   const paged = <T,>(items: T[], url: URL) => {
     const page = Number(url.searchParams.get("page"));
@@ -66,11 +68,13 @@ export function serveMyProfile({ profile = API_MY_PROFILE, sessions = MY_SESSION
       return ok({ sessions: items, hasNext, totalPages });
     }),
     http.get(`${API}/community/me/mindmaps`, ({ request }) => {
-      const { items, hasNext, totalPages } = paged(cards, new URL(request.url));
+      const url = new URL(request.url);
+      mindmapQueries.push(url.search);
+      const { items, hasNext, totalPages } = paged(cards, url);
       return ok({ mindmaps: items, hasNext, totalPages });
     }),
     http.get(`${API}/community/me/mindmaps/:id/sessions`, () => ok({ sessions: state.sessions.slice(0, 2) })),
     http.get(`${API}/community/me/mindmap`, () => ok(API_MINDMAP)),
   );
-  return { puts, sessionQueries };
+  return { puts, sessionQueries, mindmapQueries };
 }

@@ -1,9 +1,9 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { http } from "msw";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 import type { UseApiResult } from "@/lib/hooks/useApi";
 import { mockRouter } from "@/test/router";
-import { API, fail, ok, server } from "@/test/msw/server";
+import { API, CONNECTION_ERROR, fail, failWithoutBody, ok, server } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import {
   CARD_SESSIONS,
@@ -892,8 +892,46 @@ describe("CommunityView — 요구사항 성공 기준 보강", () => {
     expect(bodies).toEqual([{ bookmarked: true }]);
   });
 
-  // 불일치: 네트워크 오류는 client.ts 가 ApiError("서버에 연결할 수 없습니다. …") 로 바꿔 그 문구가 토스트로 나온다
-  it.todo("좋아요 · 북마크 네트워크 오류는 '저장에 실패했습니다. 다시 시도해 주세요.' 토스트 (X-CMT-03 S3 · COM-4-3@1 S3 불일치)");
-  // 불일치: 네트워크 오류도 ApiError 라 서버 문구 대신 "서버에 연결할 수 없습니다. …" 가 나온다
-  it.todo("팔로우 네트워크 오류는 '팔로우 변경에 실패했습니다. 다시 시도해 주세요.' 토스트 (X-CMT-04 S3 불일치)");
+  it.each([
+    ["좋아요", "like", "28"],
+    ["북마크", "bookmark", "9"],
+  ])("[X-CMT-03 S3] [COM-4-3@1 S3] %s 이 서버에 닿지 못하면 되돌리고 연결 실패 문구를 토스트로 보여준다", async (name, path, original) => {
+    server.use(http.patch(`${API}/community/mindmaps/12/${path}`, () => HttpResponse.error()));
+    const { user } = renderCommunity();
+    const action = button(feedCard(CONTENT_TITLE, region(INTEREST)), name);
+    await user.click(action);
+    expect(await screen.findByText(CONNECTION_ERROR)).toBeInTheDocument();
+    expect(action).toHaveTextContent(original);
+    expect(action).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it.each([
+    ["좋아요", "like", "28"],
+    ["북마크", "bookmark", "9"],
+  ])("[X-CMT-03 S3] [COM-4-3@1 S3] %s 실패 응답에 서버 문구가 없으면 '요청에 실패했습니다. (HTTP 500)' 을 보여준다", async (name, path, original) => {
+    server.use(http.patch(`${API}/community/mindmaps/12/${path}`, () => failWithoutBody(500)));
+    const { user } = renderCommunity();
+    const action = button(feedCard(CONTENT_TITLE, region(INTEREST)), name);
+    await user.click(action);
+    expect(await screen.findByText("요청에 실패했습니다. (HTTP 500)")).toBeInTheDocument();
+    expect(action).toHaveTextContent(original);
+  });
+
+  it("[X-CMT-04 S3] 팔로우가 서버에 닿지 못하면 \"팔로우\" 로 되돌리고 연결 실패 문구를 토스트로 보여준다", async () => {
+    server.use(http.patch(`${API}/community/profiles/102/follow`, () => HttpResponse.error()));
+    const { user } = renderCommunity();
+    const row = within(personRow("foodtrip"));
+    await user.click(row.getByRole("button", { name: "팔로우" }));
+    expect(await screen.findByText(CONNECTION_ERROR)).toBeInTheDocument();
+    expect(row.getByRole("button", { name: "팔로우" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("[X-CMT-04 S3] 팔로우 실패 응답에 서버 문구가 없으면 '요청에 실패했습니다. (HTTP 500)' 을 보여준다", async () => {
+    server.use(http.patch(`${API}/community/profiles/102/follow`, () => failWithoutBody(500)));
+    const { user } = renderCommunity();
+    const row = within(personRow("foodtrip"));
+    await user.click(row.getByRole("button", { name: "팔로우" }));
+    expect(await screen.findByText("요청에 실패했습니다. (HTTP 500)")).toBeInTheDocument();
+    expect(row.getByRole("button", { name: "팔로우" })).toBeInTheDocument();
+  });
 });

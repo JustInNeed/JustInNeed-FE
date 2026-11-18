@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react";
-import { http } from "msw";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 import {
   bookmarkMindmap,
@@ -14,7 +14,7 @@ import {
   UNNAMED_BUNDLE,
 } from "@/test/fixtures/bookmarksApi";
 import { CARD_SESSIONS } from "@/test/fixtures/communityApi";
-import { API, fail, ok, server, SERVER_ERROR } from "@/test/msw/server";
+import { API, CONNECTION_ERROR, fail, failWithoutBody, ok, server, SERVER_ERROR } from "@/test/msw/server";
 import { renderPersonal } from "@/test/render";
 import { mockRouter } from "@/test/router";
 import BookmarksPage from "./page";
@@ -526,6 +526,32 @@ describe("/bookmarks 페이지 — 요구사항 기준", () => {
     expect(screen.queryByRole("button", { name: "더 보기" })).toBeNull();
   });
 
-  // 불일치: 서버가 message 없이 실패하면 api 클라이언트가 "요청에 실패했습니다. (HTTP 500)" 을 만들어 기본 문구가 나오지 않는다
-  it.todo("[COM-4-3@2 S3] 해제 실패 응답에 서버 문구가 없으면 '북마크를 해제하지 못했어요. 다시 시도해 주세요.' 를 보여준다");
+  it("[COM-4-3@2 S3] 해제가 서버에 닿지 못하면 제자리로 돌아오고 연결 실패 문구를 알려 준다", async () => {
+    mockLists();
+    mockWrites({ remove: () => HttpResponse.error() });
+    const { user } = await renderLoaded();
+    await removeCard(user, "파리 미식 지도");
+    expect(await screen.findByRole("alert")).toHaveTextContent(CONNECTION_ERROR);
+    expect(mapTitles()).toEqual(["동유럽 3주 살이 전체 동선", "파리 미식 지도", "# 화장실 # 놀이"]);
+    expect(tab(/^마인드맵/)).toHaveTextContent("마인드맵 (3)");
+  });
+
+  it("[COM-4-3@2 S3] 해제 실패 응답에 서버 문구가 없으면 '요청에 실패했습니다. (HTTP 500)' 을 보여준다", async () => {
+    mockLists();
+    mockWrites({ remove: () => failWithoutBody(500) });
+    const { user } = await renderLoaded();
+    await removeCard(user, "파리 미식 지도");
+    expect(await screen.findByRole("alert")).toHaveTextContent("요청에 실패했습니다. (HTTP 500)");
+    expect(mapTitles()).toEqual(["동유럽 3주 살이 전체 동선", "파리 미식 지도", "# 화장실 # 놀이"]);
+  });
+
+  it("[COM-4-3@2 S4] 되돌리기가 서버에 닿지 못하면 연결 실패 문구를 알려 주고 항목은 돌아오지 않는다", async () => {
+    mockLists();
+    mockWrites({ patch: () => HttpResponse.error() });
+    const { user } = await renderLoaded();
+    await removeCard(user, "동유럽 3주 살이 전체 동선");
+    await user.click(await undoButton());
+    expect(await screen.findByRole("alert")).toHaveTextContent(CONNECTION_ERROR);
+    expect(mapTitles()).toEqual(["파리 미식 지도", "# 화장실 # 놀이"]);
+  });
 });
