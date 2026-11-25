@@ -28,6 +28,9 @@ type ViewMode = "list" | "group";
 const PAGE_SIZE = 10;
 /** 분석이 끝나지 않은 세션이 있으면 이 간격으로 첫 페이지를 다시 받아 상태를 맞춘다 (QA-015) */
 const POLL_MS = 5000;
+/** 카드 최소 폭 · 간격 — 이 폭이 몇 개 들어가는지로 열 개수를 정한다 (SessionsView.module.css .grid gap 과 같게) */
+const CARD_MIN_WIDTH = 320;
+const GRID_GAP = 14;
 const PENDING_STATUSES: ReadonlySet<SessionListItem["status"]> = new Set(["READY", "ANALYZING"]);
 
 export function SessionsView() {
@@ -57,6 +60,18 @@ export function SessionsView() {
   const shiftRef = useRef(0);
   // 보기 전환 · 다시 시도 때 올려서 이전 요청의 응답은 버린다
   const genRef = useRef(0);
+  // 카드 목록 열 개수 — 목록이 그려질 때 폭을 재서 정한다
+  const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null);
+  const [columnCount, setColumnCount] = useState(1);
+  useEffect(() => {
+    if (!gridEl) return;
+    const measure = (width: number) =>
+      setColumnCount(Math.max(1, Math.floor((width + GRID_GAP) / (CARD_MIN_WIDTH + GRID_GAP))));
+    measure(gridEl.clientWidth);
+    const ro = new ResizeObserver(([entry]) => measure(entry.contentRect.width));
+    ro.observe(gridEl);
+    return () => ro.disconnect();
+  }, [gridEl]);
 
   // 그룹 쿼리 결과를 로컬 상태로 미러링 (낙관적 업데이트용)
   useEffect(() => {
@@ -312,14 +327,22 @@ export function SessionsView() {
             />
           ) : (
             <>
-              <div className={styles.grid}>
-                {visible.map((s) => (
-                  <SessionCard
-                    key={s.id}
-                    session={s}
-                    onClick={() => openSession(s.id)}
-                    onToggleFavorite={toggleFav}
-                  />
+              {/* 메이슨리 — i번째 카드를 i % 열 개수 번째 열에 담는다. 최신순이 왼쪽→오른쪽으로 이어지고,
+                  다음 페이지를 붙여도 이미 보이던 카드의 열은 바뀌지 않는다 (#105) */}
+              <div ref={setGridEl} className={styles.grid}>
+                {Array.from({ length: columnCount }, (_, col) => (
+                  <div key={col} className={styles.column}>
+                    {visible
+                      .filter((_, i) => i % columnCount === col)
+                      .map((s) => (
+                        <SessionCard
+                          key={s.id}
+                          session={s}
+                          onClick={() => openSession(s.id)}
+                          onToggleFavorite={toggleFav}
+                        />
+                      ))}
+                  </div>
                 ))}
               </div>
               {loadingMore ? (

@@ -383,6 +383,53 @@ describe("세션 목록 — 즐겨찾기 별", () => {
   });
 });
 
+describe("세션 목록 — 카드 배치 (#105)", () => {
+  /** 열마다 담긴 카드 제목 */
+  const columnTitles = (container: HTMLElement) =>
+    [...container.querySelectorAll(".grid > .column")].map((col) =>
+      [...col.querySelectorAll("h3")].map((h) => h.textContent),
+    );
+  /** i번째 세션이 i % n 번째 열에 오도록 나눈 기대값 */
+  const splitInto = (list: SessionListItem[], n: number) =>
+    Array.from({ length: n }, (_, col) => titles(list.filter((_, i) => i % n === col)));
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("[#105 S1·S2] 폭에 들어가는 만큼 열을 만들고, 최신순 카드를 왼쪽 열부터 한 장씩 차례로 담는다", async () => {
+    // jsdom 은 레이아웃이 없어 목록 폭을 직접 준다 — 1100px 이면 320px 카드 3열
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains("grid") ? 1100 : 0;
+    });
+    const { container } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: ROME.title });
+    expect(columnTitles(container)).toEqual(splitInto(SESSION_LIST.slice(0, 10), 3));
+  });
+
+  it("[#105 S3] 좁은 화면은 한 열이다", async () => {
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains("grid") ? 375 : 0;
+    });
+    const { container } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: ROME.title });
+    expect(columnTitles(container)).toEqual([titles(SESSION_LIST.slice(0, 10))]);
+  });
+
+  it("[#105 R1] 다음 페이지를 붙여도 이미 보이던 카드의 열은 그대로다", async () => {
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains("grid") ? 1100 : 0;
+    });
+    const { container, scroll } = renderSessions();
+    await screen.findByRole("heading", { level: 3, name: ROME.title });
+    const before = columnTitles(container);
+
+    scroll.toBottom();
+    await waitFor(() => expect(cardTitles()).toHaveLength(20));
+    const after = columnTitles(container);
+    before.forEach((col, i) => expect(after[i].slice(0, col.length)).toEqual(col));
+    expect(after).toEqual(splitInto(SESSION_LIST.slice(0, 20), 3));
+  });
+});
+
 describe("세션 목록 — 무한 스크롤", () => {
   it("[REC-10-1 S2·S4] 처음엔 0페이지 10개만 받고, 스크롤이 80% 를 넘으면 다음 페이지를 받아 이어 붙인다", async () => {
     const { scroll } = renderSessions();
@@ -545,7 +592,7 @@ describe("세션 목록 — 무한 스크롤", () => {
     // 보이는 높이가 카드 15장(1500px) 정도로 크면 → 20장까지 받아야 스크롤이 생긴다
     Object.defineProperties(body, {
       clientHeight: { configurable: true, get: () => 1500 },
-      scrollHeight: { configurable: true, get: () => body.querySelectorAll(".grid > .card").length * 100 },
+      scrollHeight: { configurable: true, get: () => body.querySelectorAll(".grid .card").length * 100 },
       scrollTop: { configurable: true, get: () => 0 },
     });
     await waitFor(() => expect(cardTitles()).toHaveLength(20));

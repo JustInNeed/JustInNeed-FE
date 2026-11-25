@@ -34,7 +34,7 @@ export function serveSessions(list: SessionListItem[] | (() => SessionListItem[]
  */
 export function fakeScrollBox(container: HTMLElement) {
   const body = container.querySelector<HTMLElement>(".body")!;
-  const height = () => body.querySelectorAll(".grid > .card").length * 100;
+  const height = () => body.querySelectorAll(".grid .card").length * 100;
   let top = 0;
   Object.defineProperties(body, {
     clientHeight: { configurable: true, get: () => 500 },
