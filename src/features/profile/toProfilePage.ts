@@ -84,7 +84,6 @@ export function toProfilePage(res: CommunityProfileResponse): ProfilePageData {
     mindmaps: [],
     sessions: [],
     sharedSessionCount: res.sharedSessionCount,
-    exploringCount: res.exploringCount,
     likedByMe: res.likedByMe,
     following: res.following,
   };
@@ -138,8 +137,6 @@ export function toProfileMindmap(card: CommunityProfileCard): ProfileMindmap {
     likedByMe: card.likedByMe,
     bookmarks: card.bookmarkCount,
     bookmarkId: card.bookmarkId,
-    exploring: card.exploringCount,
-    exploringByMe: card.exploringByMe,
     when: formatDate(card.lastActivityAt),
     isPinned: card.isPinned,
   };

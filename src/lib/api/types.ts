@@ -233,7 +233,6 @@ export type TrendingHashtagsResponse = Schemas["Trends"];
 
 export type CardLikeResponse = Schemas["CardReactionServiceLikeView"];
 
-export type CardExploringResponse = Schemas["CardReactionServiceExploringView"];
 
 export type CardBookmarkResponse = Schemas["BookmarkView"];
 

@@ -1,7 +1,6 @@
 import { api } from "./client";
 import type {
   CardBookmarkResponse,
-  CardExploringResponse,
   CardLikeResponse,
   CardSessionsResponse,
   CommunityHashtagSearchResponse,
@@ -51,9 +50,6 @@ export const getTrendingHashtags = (period: TrendingPeriod) =>
 export const setCardLike = (mindmapId: number, liked: boolean) =>
   api.patch<CardLikeResponse>(`/community/mindmaps/${mindmapId}/like`, { liked } satisfies Schemas["CardReactionControllerLikeRequest"]);
 
-export const setCardExploring = (mindmapId: number, exploring: boolean) =>
-  api.patch<CardExploringResponse>(`/community/mindmaps/${mindmapId}/exploring`, { exploring } satisfies Schemas["CardReactionControllerExploringRequest"]);
-
 export const setCardBookmark = (mindmapId: number, bookmarked: boolean) =>
   api.patch<CardBookmarkResponse>(`/community/mindmaps/${mindmapId}/bookmark`, { bookmarked } satisfies Schemas["BookmarkRequest"]);
 
@@ -61,7 +57,8 @@ export const setCardBookmark = (mindmapId: number, bookmarked: boolean) =>
 export const getCardSessions = (mindmapId: number) =>
   api.get<CardSessionsResponse>(`/community/mindmaps/${mindmapId}/sessions`);
 
-export const getSimilarPeople = () => api.get<SimilarPeopleResponse>("/community/recommendations/profiles/similar");
+/** 관심사가 비슷한 사람, 최대 5명 */
+export const getSimilarPeople = () => api.get<SimilarPeopleResponse>("/community/recommendations/profiles/similar?limit=5");
 
 export const setProfileFollow = (userId: number, following: boolean) =>
   api.patch<FollowResponse>(`/community/profiles/${userId}/follow`, { following } satisfies Schemas["FollowRequest"]);

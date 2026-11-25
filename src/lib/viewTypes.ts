@@ -47,7 +47,6 @@ export interface CommunityPost {
   nodes: number;
   likes: number;
   bookmarks: number;
-  exploring: number;
   when: string;
 }
 
@@ -104,7 +103,6 @@ export interface ProfileMindmap extends Omit<CommunityPost, "user"> {
   ownerId?: number;
   likedByMe?: boolean;
   bookmarkId?: number | null;
-  exploringByMe?: boolean;
   /** 내 프로필 카드의 공개 상태 */
   isPublic?: boolean;
   isPinned?: boolean;
@@ -121,8 +119,6 @@ export interface ProfilePageData {
   sharedSessionCount: number;
   /** 내 프로필 — 내 해시태그 전체 (프로필 수정의 공개 설정) */
   hashtags?: ProfileHashtagSetting[];
-  /** 다른 사용자 프로필의 "나도 탐색중" 수 */
-  exploringCount?: number;
   /** 다른 사용자 프로필에 내가 누른 좋아요 · 팔로우 */
   likedByMe?: boolean;
   following?: boolean;

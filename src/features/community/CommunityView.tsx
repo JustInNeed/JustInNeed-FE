@@ -41,7 +41,7 @@ const settledEmpty = <T,>({ data, loading, error }: UseApiResult<T>, isEmpty: (d
 export function CommunityView({ sections }: CommunityViewProps) {
   const { member } = usePersonal();
   const router = useRouter();
-  const { withReaction, toggleLike, toggleBookmark, toggleExploring } = useCardReactions();
+  const { withReaction, toggleLike, toggleBookmark } = useCardReactions();
 
   const openProfile = (userId: number) => router.push(profilePath(userId));
   const [detail, setDetail] = useState<FeedPost | null>(null);
@@ -101,7 +101,6 @@ export function CommunityView({ sections }: CommunityViewProps) {
                 canLike={post.ownerId !== member.id}
                 onToggleLike={() => toggleLike(post)}
                 onToggleBookmark={() => toggleBookmark(post)}
-                onToggleExploring={() => toggleExploring(post)}
                 onOpen={() => setDetail(base)}
               />
             );
@@ -219,11 +218,18 @@ export function CommunityView({ sections }: CommunityViewProps) {
                     const person = withFollow(row);
                     return (
                       <div key={person.userId} className={styles.personRow}>
-                        <div className={styles.personAvatar}>{DEFAULT_AVATAR}</div>
-                        <div className={styles.personMain}>
-                          <div className={styles.personName}>{person.name}</div>
-                          <div className={styles.personTags}>{person.tags}</div>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openProfile(person.userId)}
+                          className={styles.personLink}
+                          aria-label={`${person.name} 프로필 보기`}
+                        >
+                          <div className={styles.personAvatar}>{DEFAULT_AVATAR}</div>
+                          <div className={styles.personMain}>
+                            <div className={styles.personName}>{person.name}</div>
+                            <div className={styles.personTags}>{person.tags}</div>
+                          </div>
+                        </button>
                         <button
                           onClick={() => toggleFollow(person)}
                           className={`${styles.followBtn} ${person.following ? styles.followBtnOn : ""}`}

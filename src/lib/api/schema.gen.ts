@@ -196,22 +196,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/community/exploring": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["status"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["exploring_1"];
-        trace?: never;
-    };
     "/community/me/bookmarks/hashtag-bundles": {
         parameters: {
             query?: never;
@@ -546,22 +530,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["bookmark"];
-        trace?: never;
-    };
-    "/community/mindmaps/{mindmapId}/exploring": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["exploring"];
         trace?: never;
     };
     "/community/mindmaps/{mindmapId}/like": {
@@ -1411,11 +1379,6 @@ export interface components {
             message: string | null;
             success: boolean;
         };
-        ApiResponseCardReactionServiceExploringView: {
-            data: components["schemas"]["CardReactionServiceExploringView"] | null;
-            message: string | null;
-            success: boolean;
-        };
         ApiResponseCardReactionServiceLikeView: {
             data: components["schemas"]["CardReactionServiceLikeView"] | null;
             message: string | null;
@@ -1508,11 +1471,6 @@ export interface components {
         };
         ApiResponseIntegrationStatusResponse: {
             data: components["schemas"]["IntegrationStatusResponse"] | null;
-            message: string | null;
-            success: boolean;
-        };
-        ApiResponseInteractionServiceExploringView: {
-            data: components["schemas"]["InteractionServiceExploringView"] | null;
             message: string | null;
             success: boolean;
         };
@@ -1759,16 +1717,8 @@ export interface components {
             code: number;
             hasNext: boolean;
         };
-        CardReactionControllerExploringRequest: {
-            exploring: boolean;
-        };
         CardReactionControllerLikeRequest: {
             liked: boolean;
-        };
-        CardReactionServiceExploringView: {
-            exploringByMe: boolean;
-            /** Format: int64 */
-            exploringCount: number;
         };
         CardReactionServiceLikeView: {
             /** Format: int64 */
@@ -1825,9 +1775,6 @@ export interface components {
             bookmarkCount: number;
             /** Format: int64 */
             bookmarkId: number | null;
-            exploringByMe: boolean;
-            /** Format: int64 */
-            exploringCount: number;
             hashtags: string[];
             /** Format: date-time */
             lastActivityAt: string;
@@ -2019,26 +1966,8 @@ export interface components {
             code: number;
             integrations: components["schemas"]["IntegrationItemResponse"][];
         };
-        InteractionControllerExploringRequest: {
-            exploring: boolean;
-            /** Format: int64 */
-            targetId: number;
-            /** @enum {string} */
-            targetType: "NODE" | "HASHTAG";
-        };
         InteractionControllerLikeRequest: {
             liked: boolean;
-        };
-        InteractionServiceExploringView: {
-            /** Format: int32 */
-            code: number;
-            exploring: boolean;
-            /** Format: int64 */
-            exploringCount: number;
-            /** Format: int64 */
-            targetId: number;
-            /** @enum {string} */
-            targetType: "NODE" | "HASHTAG";
         };
         InteractionServiceLikeView: {
             /** Format: int32 */
@@ -2110,9 +2039,6 @@ export interface components {
             bookmarkCount: number;
             /** Format: int64 */
             bookmarkId: number | null;
-            exploringByMe: boolean;
-            /** Format: int64 */
-            exploringCount: number;
             hashtags: string[];
             isPinned: boolean;
             isPublic: boolean;
@@ -2242,8 +2168,6 @@ export interface components {
             bio: string | null;
             /** Format: int32 */
             code: number;
-            /** Format: int64 */
-            exploringCount: number;
             following: boolean;
             interests: string[];
             /** Format: int64 */
@@ -2265,9 +2189,6 @@ export interface components {
             bookmarkCount: number;
             /** Format: int64 */
             bookmarkId: number | null;
-            exploringByMe: boolean;
-            /** Format: int64 */
-            exploringCount: number;
             hashtags: string[];
             isPinned: boolean;
             /** Format: date-time */
@@ -2895,53 +2816,6 @@ export interface operations {
             };
         };
     };
-    status: {
-        parameters: {
-            query: {
-                targetType: "NODE" | "HASHTAG";
-                targetId: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseInteractionServiceExploringView"];
-                };
-            };
-        };
-    };
-    exploring_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InteractionControllerExploringRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseInteractionServiceExploringView"];
-                };
-            };
-        };
-    };
     bundles: {
         parameters: {
             query?: {
@@ -3505,32 +3379,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseBookmarkView"];
-                };
-            };
-        };
-    };
-    exploring: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                mindmapId: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CardReactionControllerExploringRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseCardReactionServiceExploringView"];
                 };
             };
         };

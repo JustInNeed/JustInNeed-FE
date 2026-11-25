@@ -42,7 +42,6 @@ export {
   SEARCH_PAGE_SIZE,
   getTrendingHashtags,
   setCardLike,
-  setCardExploring,
   setCardBookmark,
   getCardSessions,
   getSimilarPeople,

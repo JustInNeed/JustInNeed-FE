@@ -323,19 +323,6 @@
   font-weight: 600;
   border-bottom-color: var(--green-500);
 }
-.exploreBtn {
-  margin-left: auto;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-}
-.exploreBtnOn {
-  color: var(--green-300);
-}
 .cardAction {
   color: inherit;
   font: inherit;

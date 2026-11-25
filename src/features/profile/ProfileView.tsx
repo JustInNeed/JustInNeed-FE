@@ -14,7 +14,6 @@ import {
   getMyCardSessions,
   getProfileMindmap,
   setCardBookmark,
-  setCardExploring,
   setCardLike,
   setProfileFollow,
   updateProfileLike,
@@ -193,8 +192,6 @@ function ProfileScreen({
   const owner = { name: profile.name, avatar: profile.avatar, handle: profile.handle };
   const mindmaps = data.mindmaps.map((p) => ({ ...p, ...cardPatches[p.id] }));
   const detail = mindmaps.find((p) => p.id === detailId);
-  // 프로필의 나도 탐색중은 카드 숫자의 합이라 카드에서 바뀐 만큼 함께 움직인다
-  const exploringShift = mindmaps.reduce((sum, p, i) => sum + p.exploring - data.mindmaps[i].exploring, 0);
 
   // URL 만 공개한 카드 · 세션은 제목이 없어 제목 자리에 해시태그를 보여주고, 태그 줄엔 같은 태그를 또 찍지 않는다
   const withTitle = <T extends SessionListItem>(s: T): T => (s.title ? s : { ...s, title: titleFromTags(s.tags), tags: [] });
@@ -352,21 +349,6 @@ function ProfileScreen({
       "북마크를 바꾸지 못했어요. 다시 시도해 주세요.",
     );
   };
-  const toggleCardExploring = (p: ProfileMindmap) => {
-    const exploring = !p.exploringByMe;
-    return reactToCard(
-      p,
-      "exploring",
-      { exploringByMe: exploring, exploring: p.exploring + (exploring ? 1 : -1) },
-      { exploringByMe: p.exploringByMe, exploring: p.exploring },
-      async () => {
-        const res = await setCardExploring(Number(p.id), exploring);
-        return { exploringByMe: res.exploringByMe, exploring: res.exploringCount };
-      },
-      "나도 탐색을 바꾸지 못했어요. 다시 시도해 주세요.",
-    );
-  };
-
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
@@ -401,7 +383,6 @@ function ProfileScreen({
           <Stat n={profile.nodes} l="노드" />
           <Stat n={data.sharedSessionCount} l="공유 세션" />
           <Stat n={like.count} l="좋아요" />
-          {!isMine && <Stat n={(data.exploringCount ?? 0) + exploringShift} l="나도 탐색중" accent />}
         </div>
 
         {(profile.topTags.length > 0 || profile.interests.length > 0) && (
@@ -512,17 +493,6 @@ function ProfileScreen({
                         <CardAction label="마인드맵 북마크" on={p.bookmarkId != null} onClick={() => toggleCardBookmark(p)}>
                           {p.bookmarkId != null ? "◆" : "◇"} {p.bookmarks}
                         </CardAction>
-                      )}
-                      {!isMine && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void toggleCardExploring(p);
-                          }}
-                          className={`${styles.exploreBtn} ${p.exploringByMe ? styles.exploreBtnOn : ""}`}
-                        >
-                          {p.exploringByMe ? "✓ 탐색중" : "+ 나도 탐색"}
-                        </button>
                       )}
                     </>
                   }
@@ -664,10 +634,10 @@ function PrivateMark() {
   );
 }
 
-function Stat({ n, l, accent }: { n: number; l: string; accent?: boolean }) {
+function Stat({ n, l }: { n: number; l: string }) {
   return (
     <div>
-      <div className={styles.statN} style={{ color: accent ? "var(--green-700)" : "inherit" }}>{n}</div>
+      <div className={styles.statN}>{n}</div>
       <div className={styles.statL}>{l}</div>
     </div>
   );

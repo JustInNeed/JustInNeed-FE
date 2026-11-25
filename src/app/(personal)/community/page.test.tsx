@@ -42,6 +42,20 @@ describe("/community 페이지", () => {
     expect(await screen.findByText("foodtrip", { selector: ".personName" })).toBeInTheDocument();
   });
 
+  it("[X-CMT-04 S1] 관심사가 비슷한 사람은 최대 5명(limit=5)으로 불러온다", async () => {
+    mockAll();
+    const limits: (string | null)[] = [];
+    server.use(
+      http.get(SIMILAR_URL, ({ request }) => {
+        limits.push(new URL(request.url).searchParams.get("limit"));
+        return ok(SIMILAR_PEOPLE);
+      }),
+    );
+    renderPersonal(<CommunityPage />);
+    expect(await screen.findByText("foodtrip", { selector: ".personName" })).toBeInTheDocument();
+    expect(limits).toEqual(["5"]);
+  });
+
   it("[COM-6-3 S2] 오늘과 이번 주를 period 로 나눠 불러온다", async () => {
     mockAll();
     const { user } = renderPersonal(<CommunityPage />);
