@@ -23,12 +23,19 @@
   padding: 2px 28px 28px;
 }
 
+/* 카드 높이는 내용에 맞추고(QA-023), 열마다 카드를 위로 붙여 짧은 카드 아래 빈칸을 없앤다 (#105).
+   열 개수는 SessionsView 가 폭을 재서 정한다 */
 .grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  display: flex;
+  align-items: flex-start;
   gap: 14px;
-  /* 카드 높이를 내용에 맞춤 — 같은 줄 카드끼리 높이를 맞추지 않는다 (QA-023) */
-  align-items: start;
+}
+.column {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .end {
