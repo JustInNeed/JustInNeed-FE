@@ -37,6 +37,26 @@ export const DEPTH_SIZES = [18, 13, 9.5, 8, 7, 6.5, 6, 5.5, 5, 4.5];
 // BE 가 그룹별 최솟값에 세션 1개마다 +2 한 크기를 보낸다 (HomeGraphBuilder). 그 늘어난 만큼의 비율만 더한다
 const BE_MIN_SIZE: Partial<Record<MindmapGroup, number>> = { city: 16, logi: 12, sub: 7 };
 const SESSION_BONUS = 0.4;
+// 세션(청록 원)이 많으면 원끼리 겹치므로 모든 노드를 같은 비율로 줄인다.
+// FULL_SIZE_SESSIONS 개까지는 그대로, 그보다 많으면 √(FULL_SIZE_SESSIONS / 세션 수) 배, 최소 MIN_SIZE_SCALE 배
+export const FULL_SIZE_SESSIONS = 8;
+export const MIN_SIZE_SCALE = 0.45;
+
+// 라벨 글자는 원보다 덜 줄인다 (원이 절반이면 글자는 0.75 배). 그래도 읽히게 LABEL_MIN_SCALE 배 밑으로는 안 줄인다
+export const LABEL_MIN_SCALE = 0.75;
+// Mindmap 의 그룹별 기본 라벨 크기 (가운데 노드는 줄이지 않는다)
+const LABEL_BASE = { city: 12, other: 10 };
+
+/** 원 크기 배율 → 라벨 글자 배율 */
+export function labelScale(scale: number): number {
+  return Math.max(LABEL_MIN_SCALE, 0.5 + 0.5 * scale);
+}
+
+/** 세션 수에 따른 노드 크기 배율 (1 이하). 깊이별 크기 차이는 그대로 둔다 */
+export function sizeScale(sessionCount: number): number {
+  if (sessionCount <= FULL_SIZE_SESSIONS) return 1;
+  return Math.max(MIN_SIZE_SCALE, Math.sqrt(FULL_SIZE_SESSIONS / sessionCount));
+}
 // 세션에서 닿지 않는 노드는 그룹으로 깊이를 정한다
 const GROUP_DEPTH: Partial<Record<MindmapGroup, number>> = { city: 1, logi: 2, sub: 3 };
 // 세션 한 칸 각도 중 자손이 퍼지는 비율 (나머지는 이웃 세션과의 틈)
@@ -60,11 +80,13 @@ function placeNodes(nodes: HomeGraphNode[], edges: [string, string][]): MindmapN
   const tree = graphTree(nodes, edges);
   if (!tree) {
     const maxDepth = Math.max(1, ...nodes.map((n) => GROUP_DEPTH[n.group] ?? 1));
-    return placed.map((n) => styled(n, undefined, maxDepth));
+    const scale = sizeScale(nodes.filter((n) => n.group === "city").length);
+    return placed.map((n) => styled(n, undefined, maxDepth, scale));
   }
   const { sessions, depth, children } = tree;
   const depthOf = (n: HomeGraphNode) => depth.get(n.id) ?? GROUP_DEPTH[n.group] ?? 1;
   const maxDepth = Math.max(1, ...nodes.filter((n) => n.group !== "core").map(depthOf));
+  const scale = sizeScale(sessions.length);
 
   const angleOf = new Map<string, number>();
   const width = (2 * Math.PI) / sessions.length;
@@ -87,9 +109,9 @@ function placeNodes(nodes: HomeGraphNode[], edges: [string, string][]): MindmapN
 
   return placed.map((n) => {
     const angle = angleOf.get(n.id);
-    if (angle === undefined) return styled(n, depth.get(n.id), maxDepth);
+    if (angle === undefined) return styled(n, depth.get(n.id), maxDepth, scale);
     const radius = DEPTH_RADIUS[Math.min(depth.get(n.id)!, DEPTH_RADIUS.length - 1)];
-    return styled({ ...n, x: CENTER_X + radius * Math.cos(angle), y: CENTER_Y + radius * Math.sin(angle) }, depth.get(n.id), maxDepth);
+    return styled({ ...n, x: CENTER_X + radius * Math.cos(angle), y: CENTER_Y + radius * Math.sin(angle) }, depth.get(n.id), maxDepth, scale);
   });
 }
 
@@ -141,13 +163,18 @@ export function depthColor(depth: number, maxDepth: number): string {
   return rgbToHex(a.map((v, k) => v + (b[k] - v) * (t - i)));
 }
 
-/** 깊이별 색 · 크기. core 는 응답 그대로. 깊이를 모르면 그룹으로 정한다 */
-function styled(n: MindmapNode, depth: number | undefined, maxDepth: number): MindmapNode {
+/** 깊이별 색 · 크기. core 는 응답 그대로. 깊이를 모르면 그룹으로 정한다. scale 은 세션 수에 따른 배율 */
+function styled(n: MindmapNode, depth: number | undefined, maxDepth: number, scale: number): MindmapNode {
   if (n.group === "core") return n;
   const d = Math.min(MAX_DEPTH, Math.max(1, depth ?? GROUP_DEPTH[n.group] ?? 3));
   const min = BE_MIN_SIZE[n.group];
   const bonus = min === undefined ? 0 : Math.max(0, n.size - min) * SESSION_BONUS;
-  return { ...n, size: DEPTH_SIZES[d - 1] + bonus, fill: depthColor(d, maxDepth) };
+  const styledNode: MindmapNode = { ...n, size: (DEPTH_SIZES[d - 1] + bonus) * scale, fill: depthColor(d, maxDepth) };
+  if (scale < 1) {
+    const base = n.group === "city" ? LABEL_BASE.city : LABEL_BASE.other;
+    styledNode.labelSize = Math.round(base * labelScale(scale) * 10) / 10;
+  }
+  return styledNode;
 }
 
 /** core 는 가운데, 나머지는 그룹 원 위에 응답 순서대로 같은 간격으로 놓는다 */

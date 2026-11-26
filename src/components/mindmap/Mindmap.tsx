@@ -371,8 +371,9 @@ export function Mindmap({
                 <text
                   textAnchor={labelRight ? "start" : "middle"}
                   x={labelRight ? n.size + 6 : 0}
-                  y={labelRight ? 4 : n.size + 14}
-                  fontSize={isCore ? 14 : isCity ? 12 : 10}
+                  // 글자가 작아지면 원 아래 간격도 그만큼 좁힌다 (기본 크기면 14 그대로)
+                  y={labelRight ? 4 : n.size + (n.labelSize === undefined ? 14 : n.labelSize + 3)}
+                  fontSize={n.labelSize ?? (isCore ? 14 : isCity ? 12 : 10)}
                   fontWeight={isCore ? 700 : isCity ? 600 : 500}
                   fill="#1A1F17"
                   style={{ pointerEvents: "none" }}

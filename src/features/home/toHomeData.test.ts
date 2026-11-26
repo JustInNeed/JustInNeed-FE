@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { HomeGraphNode, HomeResponse } from "@/lib/api";
 import { EMPTY_HOME_RESPONSE, HOME_RESPONSE } from "@/test/fixtures/home";
 import { dimmedNodeIds, DEFAULT_GRAPH_FILTER } from "./graphFilter";
-import { DEPTH_GRADIENT, DEPTH_SIZES, MAX_DEPTH, depthColor, toHomeData, toTimelineSite } from "./toHomeData";
+import { DEPTH_GRADIENT, DEPTH_SIZES, FULL_SIZE_SESSIONS, LABEL_MIN_SCALE, MAX_DEPTH, MIN_SIZE_SCALE, depthColor, labelScale, sizeScale, toHomeData, toTimelineSite } from "./toHomeData";
 import { buildWeekTimeline } from "./weekTimeline";
 
 const CENTER = { x: 550, y: 350 };
@@ -327,5 +327,69 @@ describe("toHomeData — 깊이별 크기 · 색", () => {
     const p = deep();
     expect(p.core.size).toBe(28);
     expect(p.core.fill).toBeUndefined();
+  });
+});
+
+describe("toHomeData — 세션 수에 따른 크기", () => {
+  // core 에 세션 count 개, 세션마다 소제목 1 · 키워드 1
+  const graphWith = (count: number) => {
+    const nodes: HomeGraphNode[] = [{ id: "core", label: "내 탐색", size: 28, group: "core" }];
+    const edges: [string, string][] = [];
+    for (let i = 0; i < count; i++) {
+      nodes.push({ id: `s${i}`, label: `세션 ${i}`, size: 16, group: "city" });
+      nodes.push({ id: `k${i}`, label: `소제목 ${i}`, size: 12, group: "logi" });
+      nodes.push({ id: `u${i}`, label: `키워드 ${i}`, size: 7, group: "sub" });
+      edges.push(["core", `s${i}`], [`s${i}`, `k${i}`], [`k${i}`, `u${i}`]);
+    }
+    const res: HomeResponse = { ...HOME_RESPONSE, graph: { ...HOME_RESPONSE.graph, nodes, edges, nodeMeta: {} } };
+    return Object.fromEntries(toHomeData(res).graph.nodes.map((p) => [p.id, p]));
+  };
+
+  it("sizeScale — 기준 개수까지는 1, 그보다 많으면 줄고, 최소 배율 밑으로는 안 내려간다", () => {
+    expect(sizeScale(1)).toBe(1);
+    expect(sizeScale(FULL_SIZE_SESSIONS)).toBe(1);
+    expect(sizeScale(FULL_SIZE_SESSIONS * 4)).toBeCloseTo(0.5);
+    expect(sizeScale(1000)).toBe(MIN_SIZE_SCALE);
+  });
+
+  it("세션이 적으면 깊이별 기본 크기 그대로다", () => {
+    const p = graphWith(FULL_SIZE_SESSIONS);
+    expect(p.s0.size).toBe(DEPTH_SIZES[0]);
+    expect(p.k0.size).toBe(DEPTH_SIZES[1]);
+    expect(p.u0.size).toBe(DEPTH_SIZES[2]);
+  });
+
+  it("세션이 많아지면 세션 · 소제목 · 키워드 원이 같은 비율로 작아지고 순서는 그대로다", () => {
+    const few = graphWith(FULL_SIZE_SESSIONS);
+    const many = graphWith(32);
+    expect(many.s0.size).toBeCloseTo(DEPTH_SIZES[0] * 0.5);
+    expect(many.s0.size).toBeLessThan(few.s0.size);
+    expect(many.k0.size / few.k0.size).toBeCloseTo(many.s0.size / few.s0.size);
+    expect(many.s0.size).toBeGreaterThan(many.k0.size);
+    expect(many.k0.size).toBeGreaterThan(many.u0.size);
+  });
+
+  it("core 는 세션이 많아도 응답 크기 그대로다", () => {
+    expect(graphWith(32).core.size).toBe(28);
+    expect(graphWith(32).core.labelSize).toBeUndefined();
+  });
+
+  it("세션이 적으면 라벨 글자 크기를 정하지 않는다 (Mindmap 기본 크기)", () => {
+    const p = graphWith(FULL_SIZE_SESSIONS);
+    expect(p.s0.labelSize).toBeUndefined();
+    expect(p.u0.labelSize).toBeUndefined();
+  });
+
+  it("세션이 많아지면 라벨 글자도 작아지되 원보다 덜 줄고, 세션 라벨이 더 크다", () => {
+    const p = graphWith(32); // 원 0.5 배 → 글자 0.75 배
+    expect(p.s0.labelSize).toBe(9);
+    expect(p.k0.labelSize).toBe(7.5);
+    expect(p.u0.labelSize).toBe(7.5);
+  });
+
+  it("labelScale — 원 배율이 아무리 작아도 최소 글자 배율 밑으로는 안 내려간다", () => {
+    expect(labelScale(1)).toBe(1);
+    expect(labelScale(0.5)).toBeCloseTo(0.75);
+    expect(labelScale(MIN_SIZE_SCALE)).toBe(LABEL_MIN_SCALE);
   });
 });
