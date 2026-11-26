@@ -326,6 +326,15 @@
 .cardAction {
   color: inherit;
   font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+/* 내 카드의 북마크 수 (누를 수 없음) — 아이콘과 숫자를 한 줄로 */
+.cardStat {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 .cardActionOn {
   color: var(--green-300);

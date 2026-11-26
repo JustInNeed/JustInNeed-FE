@@ -326,7 +326,7 @@ describe("내 프로필", () => {
     const card = cardOf("로마 3박 4일 동선");
     const mine = MY_MINDMAPS.find((m) => m.title === "로마 3박 4일 동선")!;
     expect(within(card).getByText(`♡ ${mine.likes}`)).toBeInTheDocument();
-    expect(within(card).getByText(`◇ ${mine.bookmarks}`)).toBeInTheDocument();
+    expect(within(card).getByLabelText("북마크 수")).toHaveTextContent(String(mine.bookmarks));
     expect(screen.queryByRole("button", { name: "마인드맵 좋아요" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "마인드맵 북마크" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /나도 탐색|탐색중/ })).not.toBeInTheDocument();
@@ -538,16 +538,21 @@ describe("다른 사용자 프로필", () => {
         const bookmark = within(cardOf(TITLE)).getByRole("button", { name: "마인드맵 북마크" });
 
         await user.click(bookmark);
-        await waitFor(() => expect(bookmark).toHaveTextContent("◆ 92"));
+        await waitFor(() => expect(bookmark).toHaveTextContent("92"));
+        expect(bookmark).toHaveAttribute("aria-pressed", "true");
+        // 다이아 글자 대신 저장 아이콘 (저장하면 채운 아이콘)
+        expect(bookmark.textContent).not.toMatch(/[◇◆]/);
+        expect(bookmark.querySelector("svg")).toHaveAttribute("fill", "currentColor");
         await user.click(bookmark);
 
-        await waitFor(() => expect(bookmark).toHaveTextContent("◇ 91"));
+        await waitFor(() => expect(bookmark).toHaveTextContent("91"));
+        expect(bookmark).toHaveAttribute("aria-pressed", "false");
         expect(bodies).toEqual([{ bookmarked: true }, { bookmarked: false }]);
       });
 
       it.each([
         ["좋아요", "like", "마인드맵 좋아요", "♡ 284"],
-        ["북마크", "bookmark", "마인드맵 북마크", "◇ 91"],
+        ["북마크", "bookmark", "마인드맵 북마크", "91"],
       ])("[X-OPRF-02 S3] %s 가 실패하면 되돌리고 토스트를 보여준다", async (_, path, name, text) => {
         server.use(http.patch(`${API}/community/mindmaps/${CARD_ID}/${path}`, () => fail(500, SERVER_ERROR)));
         const { user } = renderOther();

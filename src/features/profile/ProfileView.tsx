@@ -488,10 +488,18 @@ function ProfileScreen({
                         </CardAction>
                       )}
                       {isMine ? (
-                        <span>◇ {p.bookmarks}</span>
+                        <span className={styles.cardStat} aria-label="북마크 수">
+                          <Icon name="bookmark" size={12} stroke={1.7} /> {p.bookmarks}
+                        </span>
                       ) : (
                         <CardAction label="마인드맵 북마크" on={p.bookmarkId != null} onClick={() => toggleCardBookmark(p)}>
-                          {p.bookmarkId != null ? "◆" : "◇"} {p.bookmarks}
+                          <Icon
+                            name="bookmark"
+                            size={12}
+                            stroke={p.bookmarkId != null ? 0 : 1.7}
+                            fill={p.bookmarkId != null ? "currentColor" : undefined}
+                          />{" "}
+                          {p.bookmarks}
                         </CardAction>
                       )}
                     </>
