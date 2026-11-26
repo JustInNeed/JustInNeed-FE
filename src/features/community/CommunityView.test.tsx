@@ -21,6 +21,7 @@ import {
   TRENDING_WEEK,
 } from "@/test/fixtures/communityApi";
 import { CommunityView, profilePath, type CommunitySections } from "./CommunityView";
+import { URL_ONLY_SNIPPET } from "./FeedCard";
 import { toRecommendation, toSimilarPersonRow, toTrendingHashtag } from "./toCommunityData";
 
 const ready = <T,>(data: T): UseApiResult<T> => ({ data, loading: false, error: null, refetch: vi.fn() });
@@ -105,10 +106,10 @@ describe("CommunityView — 추천 피드", () => {
     expect(within(card).queryByText(/나도 탐색/)).toBeNull();
   });
 
-  it("[X-CMT-01 S3] URL 만 공개한 카드는 제목 자리에 해시태그, 소개글 없음", () => {
+  it("[X-CMT-01 S3] URL 만 공개한 카드는 제목 자리에 해시태그, 소개글 자리에 일부 공개 안내", () => {
     renderCommunity();
     const card = feedCard("# 미술관 # 로마");
-    expect(card.querySelector(".feedSnippet")).toBeNull();
+    expect(card.querySelector(".feedSnippet")).toHaveTextContent(URL_ONLY_SNIPPET);
     expect(card.querySelector(".feedTags")).toBeNull();
   });
 

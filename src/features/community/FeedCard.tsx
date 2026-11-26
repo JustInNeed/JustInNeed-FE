@@ -4,6 +4,9 @@ import { Icon, HashChip } from "@/components/ui";
 import type { FeedPost } from "./toCommunityData";
 import styles from "./Community.module.css";
 
+/** URL 만 공개한 카드는 제목 · 요약이 오지 않아 본문 자리에 대신 보여준다 */
+export const URL_ONLY_SNIPPET = "일부 공개 세션으로 원문 링크만 공개되어 있어요";
+
 export interface FeedCardProps {
   /** 내 반응을 반영한 카드 */
   post: FeedPost;
@@ -40,7 +43,11 @@ export function FeedCard({ post, canLike, onToggleLike, onToggleBookmark, onOpen
         <span className={styles.nodeBadge}>노드 {post.nodes}</span>
       </div>
       <h4 className={styles.feedTitle}>{post.title}</h4>
-      {post.snippet && <p className={styles.feedSnippet}>{post.snippet}</p>}
+      {post.urlOnly ? (
+        <p className={`${styles.feedSnippet} ${styles.feedSnippetMuted}`}>{URL_ONLY_SNIPPET}</p>
+      ) : (
+        post.snippet && <p className={styles.feedSnippet}>{post.snippet}</p>
+      )}
       {/* URL 만 공개한 카드는 해시태그가 제목 자리에 있다 */}
       {!post.urlOnly && (
         <div className={styles.feedTags}>

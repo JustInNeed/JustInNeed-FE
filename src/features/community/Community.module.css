@@ -365,6 +365,9 @@
   color: var(--ink-700);
   line-height: 1.5;
 }
+.feedSnippetMuted {
+  color: var(--ink-500);
+}
 .feedTags {
   display: flex;
   flex-wrap: wrap;
