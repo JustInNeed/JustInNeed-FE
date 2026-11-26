@@ -39,8 +39,8 @@ const BE_MIN_SIZE: Partial<Record<MindmapGroup, number>> = { city: 16, logi: 12,
 const SESSION_BONUS = 0.4;
 // 세션(청록 원)이 많으면 원끼리 겹치므로 모든 노드를 같은 비율로 줄인다.
 // FULL_SIZE_SESSIONS 개까지는 그대로, 그보다 많으면 √(FULL_SIZE_SESSIONS / 세션 수) 배, 최소 MIN_SIZE_SCALE 배
-export const FULL_SIZE_SESSIONS = 8;
-export const MIN_SIZE_SCALE = 0.45;
+export const FULL_SIZE_SESSIONS = 12;
+export const MIN_SIZE_SCALE = 0.5;
 
 // 라벨 글자는 원보다 덜 줄인다 (원이 절반이면 글자는 0.75 배). 그래도 읽히게 LABEL_MIN_SCALE 배 밑으로는 안 줄인다
 export const LABEL_MIN_SCALE = 0.75;
