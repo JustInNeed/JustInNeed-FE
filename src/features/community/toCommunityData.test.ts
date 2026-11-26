@@ -37,8 +37,6 @@ describe("toFeedPost", () => {
       likedByMe: false,
       bookmarks: 9,
       bookmarked: false,
-      exploring: 12,
-      exploringByMe: false,
       when: "2026-10-30",
       relatedUrls: CONTENT_CARD.relatedUrls,
     });
@@ -48,7 +46,6 @@ describe("toFeedPost", () => {
     const post = toFeedPost(REACTED_CARD);
     expect(post.bookmarked).toBe(true);
     expect(post.likedByMe).toBe(true);
-    expect(post.exploringByMe).toBe(true);
   });
 
   it("[X-CMT-01 S3] URL 만 공개한 카드는 제목 자리에 해시태그, 소개글은 비우고 URL 제목은 사이트 주소로 채운다", () => {

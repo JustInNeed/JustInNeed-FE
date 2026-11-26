@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { ApiError, SessionExpiredError, setCardBookmark, setCardExploring, setCardLike } from "@/lib/api";
+import { ApiError, SessionExpiredError, setCardBookmark, setCardLike } from "@/lib/api";
 import { useToast } from "@/lib/app/ToastContext";
 import type { CardReaction, FeedPost } from "./toCommunityData";
 import { useOptimisticPatches } from "./useOptimisticPatches";
@@ -9,7 +9,7 @@ import { useOptimisticPatches } from "./useOptimisticPatches";
 const CARD_GONE_MESSAGE = "더 이상 공개되지 않는 마인드맵이에요.";
 const SAVE_FAILED_MESSAGE = "저장에 실패했습니다. 다시 시도해 주세요.";
 
-/** 좋아요 · 북마크 · 나도 탐색중 — mindmapId 기준이라 같은 카드가 여러 목록에 있어도 함께 바뀐다 */
+/** 좋아요 · 북마크 — mindmapId 기준이라 같은 카드가 여러 목록에 있어도 함께 바뀐다 */
 export function useCardReactions() {
   const toast = useToast();
   const onError = useCallback(
@@ -48,17 +48,5 @@ export function useCardReactions() {
     });
   };
 
-  const toggleExploring = (post: FeedPost) => {
-    const next = !post.exploringByMe;
-    void run({
-      id: post.id,
-      action: "exploring",
-      optimistic: { exploringByMe: next, exploring: post.exploring + (next ? 1 : -1) },
-      revert: { exploringByMe: post.exploringByMe, exploring: post.exploring },
-      request: () =>
-        setCardExploring(post.mindmapId, next).then((r) => ({ exploringByMe: r.exploringByMe, exploring: r.exploringCount })),
-    });
-  };
-
-  return { withReaction, toggleLike, toggleBookmark, toggleExploring };
+  return { withReaction, toggleLike, toggleBookmark };
 }

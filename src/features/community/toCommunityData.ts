@@ -25,8 +25,6 @@ export interface CardReaction {
   likedByMe: boolean;
   bookmarks: number;
   bookmarked: boolean;
-  exploring: number;
-  exploringByMe: boolean;
 }
 
 export interface FeedPost extends CommunityPost, CardReaction {
@@ -77,8 +75,6 @@ export function toFeedPost(card: CommunityCard): FeedPost {
     likedByMe: card.likedByMe,
     bookmarks: card.bookmarkCount,
     bookmarked: card.bookmarkId !== null,
-    exploring: card.exploringCount,
-    exploringByMe: card.exploringByMe,
     when: formatDate(card.lastActivityAt),
     relatedUrls: card.relatedUrls.map((u) => ({ title: u.title ?? hostFromUrl(u.url), url: u.url })),
   };

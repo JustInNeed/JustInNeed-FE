@@ -40,7 +40,7 @@ describe("toProfilePage", () => {
       visibility: "url",
       pinnedSessionIds: [],
     });
-    expect(page).toMatchObject({ exploringCount: 3, likedByMe: true, following: true, mindmaps: [], sessions: [], sharedSessionCount: 2 });
+    expect(page).toMatchObject({ likedByMe: true, following: true, mindmaps: [], sessions: [], sharedSessionCount: 2 });
   });
 
   it("닉네임 · 소개가 null 이면 대체 이름과 빈 소개, 빈 핸들로 보여준다", () => {
@@ -139,7 +139,7 @@ describe("toMyProfileMindmap", () => {
 
 describe("toProfileMindmap", () => {
   it("URL_ONLY 카드는 제목 · 소개글이 비고 숫자와 내 반응은 그대로 옮긴다", () => {
-    expect(toProfileMindmap(apiCard({ likedByMe: true, bookmarkId: 5, exploringByMe: true }))).toEqual({
+    expect(toProfileMindmap(apiCard({ likedByMe: true, bookmarkId: 5 }))).toEqual({
       id: "31",
       ownerId: 7,
       title: "",
@@ -150,8 +150,6 @@ describe("toProfileMindmap", () => {
       likedByMe: true,
       bookmarks: 1,
       bookmarkId: 5,
-      exploring: 3,
-      exploringByMe: true,
       when: "2026-10-31",
       isPinned: false,
     });

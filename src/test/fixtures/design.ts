@@ -156,12 +156,12 @@ export const MOCK_SESSIONS: SessionListItem[] = [
 // ---------- 커뮤니티 ----------
 
 export const COMMUNITY_FEED: CommunityPost[] = [
-  { id: "c1", user: { name: "wanderlust", avatar: "🌿", handle: "@wanderlust" }, title: "동유럽 3주 살이 전체 동선", snippet: "프라하 → 비엔나 → 부다페스트 → 크라쿠프 → 베를린. 각 도시 4~5일씩 잡고 야간열차로 이동.", hashtags: ["# 프라하", "# 동유럽", "# 야간열차"], nodes: 142, likes: 284, bookmarks: 91, exploring: 12, when: "3시간 전" },
-  { id: "c2", user: { name: "foodtrip", avatar: "🥖", handle: "@foodtrip" }, title: "파리 미식 지도 — 1구부터 20구까지", snippet: "미슐랭 빕그루망 + 로컬 비스트로 위주. 마레 지구가 가성비 최고.", hashtags: ["# 파리", "# 먹거리", "# 미슐랭"], nodes: 88, likes: 412, bookmarks: 188, exploring: 34, when: "6시간 전" },
-  { id: "c3", user: { name: "budgetnomad", avatar: "🪙", handle: "@budgetnomad" }, title: "유럽 한 달 200만원으로 살기", snippet: "호스텔 + 슈퍼마켓 + 무료 워킹투어. 알베르고 디푸소 활용 팁 공유.", hashtags: ["# 예산", "# 배낭여행", "# 호스텔"], nodes: 56, likes: 198, bookmarks: 142, exploring: 28, when: "1일 전" },
-  { id: "c4", user: { name: "artwalk", avatar: "🎨", handle: "@artwalk" }, title: "유럽 미술관 30곳 우선순위", snippet: "루브르 / 우피치 / 프라도 / 리이크스. 각 미술관 머스트씨 작품 정리.", hashtags: ["# 미술관", "# 파리", "# 피렌체"], nodes: 73, likes: 256, bookmarks: 198, exploring: 19, when: "2일 전" },
-  { id: "c5", user: { name: "slowtravel", avatar: "🌅", handle: "@slowtravel" }, title: "이탈리아 시골 마을 7곳", snippet: "알베로벨로, 오르비에토, 칼라브리아... 관광지 말고 진짜 이탈리아.", hashtags: ["# 이탈리아", "# 소도시", "# 슬로우트래블"], nodes: 64, likes: 312, bookmarks: 224, exploring: 41, when: "3일 전" },
-  { id: "c6", user: { name: "rail.kr", avatar: "🚆", handle: "@rail.kr" }, title: "유레일 vs 저가항공 — 실비 비교", snippet: "4개국 이상이면 패스. 2~3개국이면 라이언에어가 더 싸다.", hashtags: ["# 유레일", "# 항공권", "# 예산"], nodes: 41, likes: 178, bookmarks: 88, exploring: 7, when: "4일 전" },
+  { id: "c1", user: { name: "wanderlust", avatar: "🌿", handle: "@wanderlust" }, title: "동유럽 3주 살이 전체 동선", snippet: "프라하 → 비엔나 → 부다페스트 → 크라쿠프 → 베를린. 각 도시 4~5일씩 잡고 야간열차로 이동.", hashtags: ["# 프라하", "# 동유럽", "# 야간열차"], nodes: 142, likes: 284, bookmarks: 91, when: "3시간 전" },
+  { id: "c2", user: { name: "foodtrip", avatar: "🥖", handle: "@foodtrip" }, title: "파리 미식 지도 — 1구부터 20구까지", snippet: "미슐랭 빕그루망 + 로컬 비스트로 위주. 마레 지구가 가성비 최고.", hashtags: ["# 파리", "# 먹거리", "# 미슐랭"], nodes: 88, likes: 412, bookmarks: 188, when: "6시간 전" },
+  { id: "c3", user: { name: "budgetnomad", avatar: "🪙", handle: "@budgetnomad" }, title: "유럽 한 달 200만원으로 살기", snippet: "호스텔 + 슈퍼마켓 + 무료 워킹투어. 알베르고 디푸소 활용 팁 공유.", hashtags: ["# 예산", "# 배낭여행", "# 호스텔"], nodes: 56, likes: 198, bookmarks: 142, when: "1일 전" },
+  { id: "c4", user: { name: "artwalk", avatar: "🎨", handle: "@artwalk" }, title: "유럽 미술관 30곳 우선순위", snippet: "루브르 / 우피치 / 프라도 / 리이크스. 각 미술관 머스트씨 작품 정리.", hashtags: ["# 미술관", "# 파리", "# 피렌체"], nodes: 73, likes: 256, bookmarks: 198, when: "2일 전" },
+  { id: "c5", user: { name: "slowtravel", avatar: "🌅", handle: "@slowtravel" }, title: "이탈리아 시골 마을 7곳", snippet: "알베로벨로, 오르비에토, 칼라브리아... 관광지 말고 진짜 이탈리아.", hashtags: ["# 이탈리아", "# 소도시", "# 슬로우트래블"], nodes: 64, likes: 312, bookmarks: 224, when: "3일 전" },
+  { id: "c6", user: { name: "rail.kr", avatar: "🚆", handle: "@rail.kr" }, title: "유레일 vs 저가항공 — 실비 비교", snippet: "4개국 이상이면 패스. 2~3개국이면 라이언에어가 더 싸다.", hashtags: ["# 유레일", "# 항공권", "# 예산"], nodes: 41, likes: 178, bookmarks: 88, when: "4일 전" },
 ];
 
 /** 마인드맵 상세 팝업의 관련 세션 — 해시태그가 겹치는 세션 최대 3개, 없으면 앞의 3개 */

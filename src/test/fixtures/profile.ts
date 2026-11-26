@@ -33,7 +33,7 @@ const mindmap = (
   likes: number,
   bookmarks: number,
   sessions: SessionListItem[],
-): MindmapFixture => ({ id, title, snippet: `${title} 정리`, hashtags, nodes, likes, bookmarks, exploring: 0, when: "2일 전", sessions });
+): MindmapFixture => ({ id, title, snippet: `${title} 정리`, hashtags, nodes, likes, bookmarks, when: "2일 전", sessions });
 
 // ---------- 내 프로필 ----------
 
@@ -160,7 +160,6 @@ export const OTHER_PROFILE_PAGE: ProfilePageData = {
   mindmaps: OTHER_MINDMAPS,
   sessions: [],
   sharedSessionCount: OTHER_SESSIONS.length,
-  exploringCount: 12,
 };
 
 // ---------- 커뮤니티 프로필 API 응답 (실제 응답 모양) ----------
@@ -193,7 +192,6 @@ export const API_PROFILE: CommunityProfileResponse = {
   likeCount: 2,
   likedByMe: true,
   following: true,
-  exploringCount: 3,
 };
 
 /** API_PROFILE 의 공개 세션 — 앞의 하나만 핀고정 */
@@ -213,8 +211,6 @@ export const apiCard = (over: Partial<CommunityProfileCard> = {}): CommunityProf
   likedByMe: false,
   bookmarkCount: 1,
   bookmarkId: null,
-  exploringCount: 3,
-  exploringByMe: false,
   lastActivityAt: "2026-10-31T10:00:00",
   relatedUrls: [{ title: null, url: "https://www.nightjet.com/en" }],
   isPinned: false,

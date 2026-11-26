@@ -20,8 +20,6 @@ const card = (overrides: Partial<CommunityCard> & Pick<CommunityCard, "mindmapId
   likedByMe: false,
   bookmarkCount: 9,
   bookmarkId: null,
-  exploringCount: 12,
-  exploringByMe: false,
   lastActivityAt: "2026-10-30T21:15:00",
   relatedUrls: [
     { title: "ÖBB 나이트젯 야간열차 노선", url: "https://www.nightjet.com/en" },
@@ -44,8 +42,6 @@ export const REACTED_CARD = card({
   likedByMe: true,
   bookmarkCount: 3,
   bookmarkId: 501,
-  exploringCount: 5,
-  exploringByMe: true,
   relatedUrls: [{ title: "파리 빵집 목록", url: "https://paris.example.com/bakery" }],
 });
 

@@ -26,7 +26,7 @@ vi.mock("@/components/mindmap/MindmapPreview", async () => {
   return { MindmapPreview: ({ children }: { children?: ReactNode }) => createElement("div", null, children) };
 });
 
-/** 통계 숫자 (노드 · 공유 세션 · 좋아요 · 나도 탐색중) */
+/** 통계 숫자 (노드 · 공유 세션 · 좋아요) */
 function stat(label: string) {
   return screen.getByText(label, { selector: ".statL" }).previousElementSibling?.textContent;
 }
@@ -320,7 +320,7 @@ describe("내 프로필", () => {
     expect(chips.slice(firstInterest).every((c) => c.interest && c.text.startsWith("#"))).toBe(true);
   });
 
-  it("[X-PRF-03 S3] [COM-4-2@2 R1] 내 카드는 좋아요 · 북마크 버튼 대신 숫자만 보이고 나도 탐색 버튼이 없다", () => {
+  it("[X-PRF-03 S3] 내 카드는 좋아요 · 북마크 버튼 대신 숫자만 보이고 나도 탐색 버튼이 없다", () => {
     renderMine();
 
     const card = cardOf("로마 3박 4일 동선");
@@ -368,13 +368,13 @@ describe("다른 사용자 프로필", () => {
     expect(screen.queryByRole("button", { name: "프로필 수정" })).not.toBeInTheDocument();
   });
 
-  it("[X-OPRF-01 S4] 노드 수 · 공개 세션 수 · 나도 탐색중 수가 함께 보인다", () => {
+  it("[X-OPRF-01 S4] 노드 수 · 공개 세션 수 · 좋아요 수가 보이고 나도 탐색중 통계는 없다", () => {
     renderOther();
 
     expect(stat("노드")).toBe("142");
     expect(stat("공유 세션")).toBe("4");
     expect(stat("좋아요")).toBe("284");
-    expect(stat("나도 탐색중")).toBe("12");
+    expect(screen.queryByText("나도 탐색중")).not.toBeInTheDocument();
   });
 
   describe("좋아요 · 팔로우", () => {
@@ -545,22 +545,6 @@ describe("다른 사용자 프로필", () => {
         expect(bodies).toEqual([{ bookmarked: true }, { bookmarked: false }]);
       });
 
-      it("[COM-4-2@2 S1] 나도 탐색을 누르면 그 카드만 바뀌고 프로필의 나도 탐색중 수도 함께 움직인다", async () => {
-        const bodies = servePatch<{ exploring: boolean }>(`/community/mindmaps/${CARD_ID}/exploring`, ({ exploring }) =>
-          ok({ exploringCount: exploring ? 1 : 0, exploringByMe: exploring }),
-        );
-        const { user } = renderOther();
-        const card = cardOf(TITLE);
-
-        await user.click(within(card).getByRole("button", { name: "+ 나도 탐색" }));
-
-        expect(await within(card).findByRole("button", { name: "✓ 탐색중" })).toHaveClass("exploreBtnOn");
-        expect(screen.getAllByRole("button", { name: "+ 나도 탐색" })).toHaveLength(OTHER_MINDMAPS.length - 1);
-        expect(stat("나도 탐색중")).toBe("13");
-        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-        await waitFor(() => expect(bodies).toEqual([{ exploring: true }]));
-      });
-
       it.each([
         ["좋아요", "like", "마인드맵 좋아요", "♡ 284"],
         ["북마크", "bookmark", "마인드맵 북마크", "◇ 91"],
@@ -574,56 +558,6 @@ describe("다른 사용자 프로필", () => {
         expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
         expect(button).toHaveTextContent(text);
         expect(button).toHaveAttribute("aria-pressed", "false");
-      });
-
-      it("[COM-4-2@2 S3] 나도 탐색이 실패하면 카드와 프로필 수를 되돌리고 서버 문구를 토스트로 보여준다", async () => {
-        server.use(http.patch(`${API}/community/mindmaps/${CARD_ID}/exploring`, () => fail(500, SERVER_ERROR)));
-        const { user } = renderOther();
-        const card = cardOf(TITLE);
-
-        await user.click(within(card).getByRole("button", { name: "+ 나도 탐색" }));
-
-        expect(await screen.findByText(SERVER_ERROR)).toBeInTheDocument();
-        expect(within(card).getByRole("button", { name: "+ 나도 탐색" })).toBeInTheDocument();
-        expect(stat("나도 탐색중")).toBe("12");
-      });
-
-      it("[COM-4-2@2 S3] 나도 탐색이 서버에 닿지 못하면 카드와 프로필 수를 되돌리고 연결 실패 문구를 토스트로 보여준다", async () => {
-        server.use(http.patch(`${API}/community/mindmaps/${CARD_ID}/exploring`, () => HttpResponse.error()));
-        const { user } = renderOther();
-        const card = cardOf(TITLE);
-
-        await user.click(within(card).getByRole("button", { name: "+ 나도 탐색" }));
-
-        expect(await screen.findByText(CONNECTION_ERROR)).toBeInTheDocument();
-        expect(within(card).getByRole("button", { name: "+ 나도 탐색" })).toBeInTheDocument();
-        expect(stat("나도 탐색중")).toBe("12");
-      });
-
-      it("[COM-4-2@2 S3] 나도 탐색 실패 응답에 서버 문구가 없으면 '요청에 실패했습니다. (HTTP 500)' 을 보여준다", async () => {
-        server.use(http.patch(`${API}/community/mindmaps/${CARD_ID}/exploring`, () => failWithoutBody(500)));
-        const { user } = renderOther();
-        const card = cardOf(TITLE);
-
-        await user.click(within(card).getByRole("button", { name: "+ 나도 탐색" }));
-
-        expect(await screen.findByText("요청에 실패했습니다. (HTTP 500)")).toBeInTheDocument();
-        expect(stat("나도 탐색중")).toBe("12");
-      });
-
-      it("[COM-4-2@2 S2] 탐색중인 카드를 다시 누르면 해제되고 카드 수 · 프로필 나도 탐색중 수가 함께 1 줄어든다", async () => {
-        const exploring = { ...OTHER_MINDMAPS[0], exploringByMe: true, exploring: 5 };
-        const bodies = servePatch<{ exploring: boolean }>(`/community/mindmaps/${CARD_ID}/exploring`, () =>
-          ok({ exploringCount: 4, exploringByMe: false }),
-        );
-        const { user } = renderOther({ ...OTHER_PROFILE_PAGE, mindmaps: [exploring] });
-        const card = cardOf(TITLE);
-
-        await user.click(within(card).getByRole("button", { name: "✓ 탐색중" }));
-
-        expect(await within(card).findByRole("button", { name: "+ 나도 탐색" })).not.toHaveClass("exploreBtnOn");
-        expect(stat("나도 탐색중")).toBe("11");
-        await waitFor(() => expect(bodies).toEqual([{ exploring: false }]));
       });
 
       it("상세 팝업의 좋아요 수는 카드에서 바뀐 값을 따른다", async () => {
@@ -654,7 +588,7 @@ describe("다른 사용자 프로필", () => {
     for (const m of OTHER_MINDMAPS) expect(screen.getByText(m.title)).toBeInTheDocument();
     expect(screen.getAllByTitle("핀고정됨")).toHaveLength(1);
     expect(within(cardOf("동유럽 3주 살이 전체 동선")).getByRole("img", { name: "핀고정됨" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "+ 나도 탐색" })).toHaveLength(OTHER_MINDMAPS.length);
+    expect(screen.queryByRole("button", { name: /나도 탐색|탐색중/ })).not.toBeInTheDocument();
   });
 
   it("[COM-1-6 S2·R1] 세션 카드는 고정한 세션에만 핀 표시가 있고 비공개 표시는 없다", async () => {
