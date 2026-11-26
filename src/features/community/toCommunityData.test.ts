@@ -90,13 +90,15 @@ describe("그 밖의 응답 변환", () => {
     });
   });
 
-  it("비슷한 사람 — 겹치는 태그를 한 줄로 합친다", () => {
+  it("비슷한 사람 — 겹치는 태그를 최대 5개까지 담는다", () => {
     expect(toSimilarPersonRow(SIMILAR_PEOPLE.people[0])).toEqual({
       userId: 102,
       name: "foodtrip",
-      tags: "# 파리 # 먹거리",
+      tags: ["# 파리", "# 먹거리"],
       following: false,
     });
+    const many = { ...SIMILAR_PEOPLE.people[0], matchedHashtags: ["a", "b", "c", "d", "e", "f", "g"] };
+    expect(toSimilarPersonRow(many).tags).toEqual(["# a", "# b", "# c", "# d", "# e"]);
     expect(toSimilarPersonRow(SIMILAR_PEOPLE.people[2]).name).toBe("이름 없는 사용자");
   });
 
