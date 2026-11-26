@@ -51,8 +51,8 @@ export interface SearchedProfile {
 export interface SimilarPersonRow {
   userId: number;
   name: string;
-  /** 표시용 한 줄 (예: "#파리 #먹거리") */
-  tags: string;
+  /** 겹치는 해시태그, 최대 SIMILAR_PERSON_TAG_LIMIT 개 ('#' 포함) */
+  tags: string[];
   following: boolean;
 }
 
@@ -105,10 +105,12 @@ export const toSearchedProfile = (hit: CommunityProfileHit): SearchedProfile => 
   mapCount: hit.mindmapCount,
 });
 
+export const SIMILAR_PERSON_TAG_LIMIT = 5;
+
 export const toSimilarPersonRow = (person: SimilarPersonItem): SimilarPersonRow => ({
   userId: person.userId,
   name: displayName(person.nickname),
-  tags: person.matchedHashtags.map(withHash).join(" "),
+  tags: person.matchedHashtags.slice(0, SIMILAR_PERSON_TAG_LIMIT).map(withHash),
   following: person.following,
 });
 

@@ -468,6 +468,23 @@
   font-size: 10px;
   color: var(--ink-500);
 }
+.personTagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+.personTag {
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--line);
+  border: 1px solid var(--line-2);
+  color: var(--ink-700);
+  font-weight: 500;
+  white-space: nowrap;
+}
 .followBtn {
   font-size: 11px;
   padding: 4px 10px;

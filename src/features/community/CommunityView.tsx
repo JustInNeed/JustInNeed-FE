@@ -227,7 +227,13 @@ export function CommunityView({ sections }: CommunityViewProps) {
                           <div className={styles.personAvatar}>{DEFAULT_AVATAR}</div>
                           <div className={styles.personMain}>
                             <div className={styles.personName}>{person.name}</div>
-                            <div className={styles.personTags}>{person.tags}</div>
+                            {person.tags.length > 0 && (
+                              <div className={styles.personTagList}>
+                                {person.tags.map((t) => (
+                                  <span key={t} className={styles.personTag}>{t}</span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </button>
                         <button

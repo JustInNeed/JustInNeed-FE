@@ -684,7 +684,7 @@ describe("CommunityView — 떠오르는 해시태그", () => {
 describe("CommunityView — 비슷한 사람", () => {
   it("[X-CMT-04 S1] 이름 · 겹치는 태그 · 팔로우 상태를 보여주고 닉네임이 없으면 대체 이름을 쓴다", () => {
     renderCommunity();
-    expect(within(personRow("foodtrip")).getByText("# 파리 # 먹거리")).toBeInTheDocument();
+    expect(within(personRow("foodtrip")).getAllByText(/^# /).map((el) => el.textContent)).toEqual(["# 파리", "# 먹거리"]);
     expect(within(personRow("foodtrip")).getByRole("button", { name: "팔로우" })).toHaveAttribute("aria-pressed", "false");
     expect(within(personRow("artwalk")).getByRole("button", { name: "팔로잉" })).toHaveAttribute("aria-pressed", "true");
     expect(within(personRow("이름 없는 사용자")).getByText("# 예산")).toBeInTheDocument();
@@ -696,7 +696,7 @@ describe("CommunityView — 비슷한 사람", () => {
     const row = within(personRow("foodtrip"));
     await user.click(row.getByRole("button", { name: "팔로우" }));
     expect(mockRouter.push).not.toHaveBeenCalled();
-    await user.click(row.getByText("# 파리 # 먹거리"));
+    await user.click(row.getByText("# 먹거리"));
     expect(mockRouter.push).toHaveBeenCalledWith("/profile/102");
     await user.click(within(personRow("artwalk")).getByRole("button", { name: "artwalk 프로필 보기" }));
     expect(mockRouter.push).toHaveBeenCalledWith("/profile/103");
