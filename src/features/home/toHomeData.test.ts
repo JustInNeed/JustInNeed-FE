@@ -361,7 +361,7 @@ describe("toHomeData — 세션 수에 따른 크기", () => {
 
   it("세션이 많아지면 세션 · 소제목 · 키워드 원이 같은 비율로 작아지고 순서는 그대로다", () => {
     const few = graphWith(FULL_SIZE_SESSIONS);
-    const many = graphWith(32);
+    const many = graphWith(48);
     expect(many.s0.size).toBeCloseTo(DEPTH_SIZES[0] * 0.5);
     expect(many.s0.size).toBeLessThan(few.s0.size);
     expect(many.k0.size / few.k0.size).toBeCloseTo(many.s0.size / few.s0.size);
@@ -381,10 +381,17 @@ describe("toHomeData — 세션 수에 따른 크기", () => {
   });
 
   it("세션이 많아지면 라벨 글자도 작아지되 원보다 덜 줄고, 세션 라벨이 더 크다", () => {
-    const p = graphWith(32); // 원 0.5 배 → 글자 0.75 배
+    const p = graphWith(48); // 원 0.5 배 → 글자 0.75 배
     expect(p.s0.labelSize).toBe(9);
     expect(p.k0.labelSize).toBe(7.5);
     expect(p.u0.labelSize).toBe(7.5);
+  });
+
+  it("세션 32개면 원은 약 0.61 배, 글자는 약 0.81 배다", () => {
+    const p = graphWith(32);
+    expect(sizeScale(32)).toBeCloseTo(Math.sqrt(12 / 32));
+    expect(p.s0.size).toBeCloseTo(DEPTH_SIZES[0] * Math.sqrt(12 / 32));
+    expect(p.s0.labelSize).toBe(9.7);
   });
 
   it("labelScale — 원 배율이 아무리 작아도 최소 글자 배율 밑으로는 안 내려간다", () => {
