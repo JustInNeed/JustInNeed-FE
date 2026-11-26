@@ -15,6 +15,8 @@ export interface MindmapNode {
   group: MindmapGroup;
   /** 노드 색 — 없으면 그룹 기본 색 */
   fill?: string;
+  /** 라벨 글자 크기 — 없으면 그룹 기본 크기 (가운데 14 · 세션 12 · 나머지 10) */
+  labelSize?: number;
   vx?: number;
   vy?: number;
 }
